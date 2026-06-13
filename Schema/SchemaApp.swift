@@ -20,10 +20,9 @@ struct SchemaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Text("Schema")
-                .font(.largeTitle)
-                .frame(minWidth: 400, minHeight: 300)
+            ContentView()
         }
         .modelContainer(modelContainer)
+        .defaultSize(width: 900, height: 640)
     }
 }
