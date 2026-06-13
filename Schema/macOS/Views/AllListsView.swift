@@ -71,7 +71,7 @@ struct AllListsView: View {
             .padding(CardMetrics.padding)
             .background(
                 RoundedRectangle(cornerRadius: CardMetrics.cornerRadius, style: .continuous)
-                    .fill(Color(red: 0.96, green: 0.96, blue: 0.97))
+                    .fill(SchemaTheme.newListCardFill)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CardMetrics.cornerRadius, style: .continuous)

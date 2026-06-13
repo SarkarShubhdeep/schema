@@ -102,6 +102,36 @@ final class ListViewModel {
         selectedListID = lists[index].id
     }
 
+    func selectNextList(from lists: [SchemaList]) {
+        guard !lists.isEmpty else { return }
+
+        guard let currentListID = selectedListID,
+              let currentIndex = lists.firstIndex(where: { $0.id == currentListID }) else {
+            selectedListID = lists.first?.id
+            return
+        }
+
+        let nextIndex = (currentIndex + 1) % lists.count
+        selectedListID = lists[nextIndex].id
+    }
+
+    func selectPreviousList(from lists: [SchemaList]) {
+        guard !lists.isEmpty else { return }
+
+        guard let currentListID = selectedListID,
+              let currentIndex = lists.firstIndex(where: { $0.id == currentListID }) else {
+            selectedListID = lists.first?.id
+            return
+        }
+
+        let previousIndex = currentIndex == 0 ? lists.count - 1 : currentIndex - 1
+        selectedListID = lists[previousIndex].id
+    }
+
+    func selectEverythingList(from lists: [SchemaList]) {
+        selectedListID = lists.first(where: \.isEverythingList)?.id ?? lists.first?.id
+    }
+
     func selectedList(from lists: [SchemaList]) -> SchemaList? {
         if let selectedListID {
             return lists.first(where: { $0.id == selectedListID })

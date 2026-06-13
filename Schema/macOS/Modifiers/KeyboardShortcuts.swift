@@ -10,9 +10,14 @@ struct WorkspaceKeyboardShortcuts: ViewModifier {
     @FocusState.Binding var isAddTaskFocused: Bool
 
     let lists: [SchemaList]
+    let canUndo: Bool
     let onSelectListAtIndex: (Int) -> Void
+    let onSelectNextList: () -> Void
+    let onSelectPreviousList: () -> Void
+    let onSelectEverythingList: () -> Void
     let onCreateList: () -> Void
     let onCloseAddTask: () -> Void
+    let onUndo: () -> Void
 
     func body(content: Content) -> some View {
         content
@@ -35,6 +40,23 @@ struct WorkspaceKeyboardShortcuts: ViewModifier {
 
             Button("Close Add Task", action: onCloseAddTask)
                 .keyboardShortcut(.cancelAction)
+                .hidden()
+
+            Button("Undo", action: onUndo)
+                .keyboardShortcut("z", modifiers: .command)
+                .disabled(!canUndo)
+                .hidden()
+
+            Button("Select Next List", action: onSelectNextList)
+                .keyboardShortcut(.tab, modifiers: .control)
+                .hidden()
+
+            Button("Select Previous List", action: onSelectPreviousList)
+                .keyboardShortcut(.tab, modifiers: [.control, .shift])
+                .hidden()
+
+            Button("Select Everything List", action: onSelectEverythingList)
+                .keyboardShortcut("/", modifiers: [])
                 .hidden()
 
             Button("New List", action: onCreateList)
@@ -64,18 +86,28 @@ extension View {
         isAddTaskExpanded: Binding<Bool>,
         isAddTaskFocused: FocusState<Bool>.Binding,
         lists: [SchemaList],
+        canUndo: Bool,
         onSelectListAtIndex: @escaping (Int) -> Void,
+        onSelectNextList: @escaping () -> Void,
+        onSelectPreviousList: @escaping () -> Void,
+        onSelectEverythingList: @escaping () -> Void,
         onCreateList: @escaping () -> Void,
-        onCloseAddTask: @escaping () -> Void
+        onCloseAddTask: @escaping () -> Void,
+        onUndo: @escaping () -> Void
     ) -> some View {
         modifier(
             WorkspaceKeyboardShortcuts(
                 isAddTaskExpanded: isAddTaskExpanded,
                 isAddTaskFocused: isAddTaskFocused,
                 lists: lists,
+                canUndo: canUndo,
                 onSelectListAtIndex: onSelectListAtIndex,
+                onSelectNextList: onSelectNextList,
+                onSelectPreviousList: onSelectPreviousList,
+                onSelectEverythingList: onSelectEverythingList,
                 onCreateList: onCreateList,
-                onCloseAddTask: onCloseAddTask
+                onCloseAddTask: onCloseAddTask,
+                onUndo: onUndo
             )
         )
     }

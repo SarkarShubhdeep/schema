@@ -12,8 +12,11 @@ import Observation
 final class TaskViewModel {
     private let modelContext: ModelContext
     private let notificationService: any NotificationServiceProtocol
+    private var undoStack: [TaskUndoAction] = []
+    private let maxUndoCount = 30
 
     var quickEntryText = ""
+    var canUndo: Bool { !undoStack.isEmpty }
 
     init(
         modelContext: ModelContext,
@@ -67,7 +70,8 @@ final class TaskViewModel {
         to list: SchemaList?,
         title: String,
         defaultWritableListID: UUID? = nil,
-        lists: [SchemaList] = []
+        lists: [SchemaList] = [],
+        recordUndo: Bool = true
     ) -> SchemaTask? {
         guard let list else { return nil }
 
@@ -92,10 +96,19 @@ final class TaskViewModel {
         modelContext.insert(task)
         save()
         quickEntryText = ""
+
+        if recordUndo {
+            pushUndo(.addedTask(task.id))
+        }
+
         return task
     }
 
-    func toggleCompletion(_ task: SchemaTask) {
+    func toggleCompletion(_ task: SchemaTask, recordUndo: Bool = true) {
+        if recordUndo {
+            pushUndo(.toggledCompletion(taskID: task.id, wasCompleted: task.isCompleted))
+        }
+
         task.isCompleted.toggle()
         save()
 
@@ -104,15 +117,24 @@ final class TaskViewModel {
         }
     }
 
-    func deleteTask(_ task: SchemaTask) {
+    func deleteTask(_ task: SchemaTask, recordUndo: Bool = true) {
+        if recordUndo {
+            pushUndo(.deletedTask(TaskSnapshot(task: task)))
+        }
+
         notificationService.cancelReminder(for: task)
         modelContext.delete(task)
         save()
     }
 
-    func updateTitle(_ task: SchemaTask, title: String) {
+    func updateTitle(_ task: SchemaTask, title: String, recordUndo: Bool = true) {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+
+        if recordUndo, trimmed != task.title {
+            pushUndo(.updatedTitle(taskID: task.id, previousTitle: task.title))
+        }
+
         task.title = trimmed
         save()
     }
@@ -137,6 +159,87 @@ final class TaskViewModel {
             }
         } else {
             notificationService.cancelReminder(for: task)
+        }
+    }
+
+    func undo() {
+        guard let action = undoStack.popLast() else { return }
+
+        switch action {
+        case .addedTask(let id):
+            if let task = fetchTask(id: id) {
+                deleteTask(task, recordUndo: false)
+            }
+        case .deletedTask(let snapshot):
+            restoreTask(snapshot)
+        case .toggledCompletion(let taskID, let wasCompleted):
+            if let task = fetchTask(id: taskID) {
+                task.isCompleted = wasCompleted
+                save()
+                if wasCompleted {
+                    Task { await rescheduleReminderIfNeeded(for: task) }
+                } else {
+                    notificationService.cancelReminder(for: task)
+                }
+            }
+        case .updatedTitle(let taskID, let previousTitle):
+            if let task = fetchTask(id: taskID) {
+                task.title = previousTitle
+                save()
+            }
+        }
+    }
+
+    private func restoreTask(_ snapshot: TaskSnapshot) {
+        let list = snapshot.listID.flatMap { fetchList(id: $0) }
+        let task = SchemaTask(
+            title: snapshot.title,
+            description: snapshot.taskDescription,
+            list: list,
+            reminderTime: snapshot.reminderTime
+        )
+        task.id = snapshot.id
+        task.isCompleted = snapshot.isCompleted
+        task.createdAt = snapshot.createdAt
+        modelContext.insert(task)
+        save()
+
+        if let reminderTime = snapshot.reminderTime, reminderTime > Date(), !snapshot.isCompleted {
+            Task { await rescheduleReminderIfNeeded(for: task) }
+        }
+    }
+
+    private func rescheduleReminderIfNeeded(for task: SchemaTask) async {
+        guard let reminderTime = task.reminderTime, reminderTime > Date(), !task.isCompleted else { return }
+        do {
+            let authorized = try await notificationService.requestAuthorization()
+            guard authorized else { return }
+            try await notificationService.scheduleReminder(for: task)
+        } catch {
+            assertionFailure("Failed to reschedule reminder: \(error)")
+        }
+    }
+
+    private func fetchTask(id: UUID) -> SchemaTask? {
+        var descriptor = FetchDescriptor<SchemaTask>(
+            predicate: #Predicate<SchemaTask> { $0.id == id }
+        )
+        descriptor.fetchLimit = 1
+        return try? modelContext.fetch(descriptor).first
+    }
+
+    private func fetchList(id: UUID) -> SchemaList? {
+        var descriptor = FetchDescriptor<SchemaList>(
+            predicate: #Predicate<SchemaList> { $0.id == id }
+        )
+        descriptor.fetchLimit = 1
+        return try? modelContext.fetch(descriptor).first
+    }
+
+    private func pushUndo(_ action: TaskUndoAction) {
+        undoStack.append(action)
+        if undoStack.count > maxUndoCount {
+            undoStack.removeFirst(undoStack.count - maxUndoCount)
         }
     }
 

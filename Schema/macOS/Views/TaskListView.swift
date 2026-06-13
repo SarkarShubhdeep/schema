@@ -11,17 +11,26 @@ struct TaskListView: View {
     let highlightedTaskID: UUID?
     let showListTags: Bool
     let selectedListID: UUID?
+    let editingTaskID: UUID?
     let sortOption: TaskSortOption
     let filterOption: TaskFilterOption
     let onToggle: (SchemaTask) -> Void
     let onDelete: (SchemaTask) -> Void
     let onUpdateTitle: (SchemaTask, String) -> Void
     let onSetReminder: (SchemaTask, Date?) -> Void
+    let onEditingTaskIDChange: (UUID?) -> Void
 
     @State private var showCompleted = false
 
     private var contentAnimationKey: String {
         "\(selectedListID?.uuidString ?? "")-\(sortOption.rawValue)-\(filterOption.rawValue)"
+    }
+
+    private var taskRowTransition: AnyTransition {
+        .asymmetric(
+            insertion: .opacity.combined(with: .move(edge: .top)),
+            removal: .opacity.combined(with: .move(edge: .bottom))
+        )
     }
 
     var body: some View {
@@ -57,13 +66,18 @@ struct TaskListView: View {
                 task: task,
                 isHighlighted: highlightedTaskID == task.id,
                 showListTag: showListTags,
+                isEditing: editingTaskID == task.id,
                 onToggle: { onToggle(task) },
                 onDelete: { onDelete(task) },
                 onUpdateTitle: { title in onUpdateTitle(task, title) },
-                onSetReminder: { date in onSetReminder(task, date) }
+                onSetReminder: { date in onSetReminder(task, date) },
+                onEditingChange: { isEditing in
+                    onEditingTaskIDChange(isEditing ? task.id : nil)
+                }
             )
-            .transition(.opacity.combined(with: .move(edge: .top)))
+            .transition(taskRowTransition)
         }
+        .animation(SchemaMotion.smooth, value: incompleteTasks.map(\.id))
 
         if !completedTasks.isEmpty {
             Button {
@@ -93,10 +107,14 @@ struct TaskListView: View {
                         task: task,
                         isHighlighted: highlightedTaskID == task.id,
                         showListTag: showListTags,
+                        isEditing: editingTaskID == task.id,
                         onToggle: { onToggle(task) },
                         onDelete: { onDelete(task) },
                         onUpdateTitle: { title in onUpdateTitle(task, title) },
-                        onSetReminder: { date in onSetReminder(task, date) }
+                        onSetReminder: { date in onSetReminder(task, date) },
+                        onEditingChange: { isEditing in
+                            onEditingTaskIDChange(isEditing ? task.id : nil)
+                        }
                     )
                     .transition(.opacity)
                 }

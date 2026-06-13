@@ -9,10 +9,12 @@ struct TaskRowView: View {
     @Bindable var task: SchemaTask
     let isHighlighted: Bool
     let showListTag: Bool
+    let isEditing: Bool
     let onToggle: () -> Void
     let onDelete: () -> Void
     let onUpdateTitle: (String) -> Void
     let onSetReminder: (Date?) -> Void
+    let onEditingChange: (Bool) -> Void
 
     @State private var showReminderPicker = false
     @State private var reminderDate = Date()
@@ -22,8 +24,15 @@ struct TaskRowView: View {
     @State private var isHovered = false
     @FocusState private var isTitleFocused: Bool
 
+    private enum Metrics {
+        static let reminderColumnWidth: CGFloat = 120
+        static let reminderRowHeight: CGFloat = 16
+        static let checkboxTopInset: CGFloat = 1
+        static let rowSpacing: CGFloat = 12
+    }
+
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .top, spacing: Metrics.rowSpacing) {
             Button(action: handleToggle) {
                 Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 18))
@@ -31,6 +40,7 @@ struct TaskRowView: View {
                     .scaleEffect(checkboxScale)
             }
             .buttonStyle(.plain)
+            .padding(.top, Metrics.checkboxTopInset)
 
             VStack(alignment: .leading, spacing: 3) {
                 titleView
@@ -42,23 +52,9 @@ struct TaskRowView: View {
                         .lineLimit(2)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Spacer(minLength: 12)
-
-            reminderColumn
-
-            if showListTag, let list = task.list {
-                Text(list.displayTagLabel)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(SchemaTheme.listTagForeground(for: list))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(SchemaTheme.listTagBackground(for: list))
-                    )
-                    .transition(.opacity)
-            }
+            trailingMetadata
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 10)
@@ -69,6 +65,15 @@ struct TaskRowView: View {
         .animation(SchemaMotion.fast, value: isHovered)
         .animation(SchemaMotion.standard, value: isHighlighted)
         .onHover { isHovered = $0 }
+        .onChange(of: isEditing) { _, shouldEdit in
+            if shouldEdit {
+                if !isEditingTitle {
+                    beginTitleEdit()
+                }
+            } else if isEditingTitle {
+                cancelTitleEdit()
+            }
+        }
         .contextMenu {
             Button("Set Reminder") {
                 openReminderPicker()
@@ -90,32 +95,72 @@ struct TaskRowView: View {
     }
 
     @ViewBuilder
-    private var reminderColumn: some View {
-        if let reminderTime = task.reminderTime {
-            Button(action: openReminderPicker) {
-                HStack(spacing: 4) {
-                    Image(systemName: "clock")
-                        .font(.system(size: 11, weight: .medium))
-                    Text(ReminderFormatting.displayString(for: reminderTime))
-                        .font(.system(size: 12, weight: .medium))
+    private var trailingMetadata: some View {
+        if showListTag {
+            HStack(alignment: .center, spacing: Metrics.rowSpacing) {
+                reminderColumn
+                    .frame(width: Metrics.reminderColumnWidth, alignment: .trailing)
+
+                if let list = task.list {
+                    listTag(for: list)
                 }
-                .foregroundStyle(SchemaTheme.accent.opacity(0.85))
             }
-            .buttonStyle(.plain)
-            .transition(.opacity)
-        } else if isHovered, !task.isCompleted {
-            Button(action: openReminderPicker) {
-                HStack(spacing: 4) {
-                    Image(systemName: "clock")
-                        .font(.system(size: 11, weight: .medium))
-                    Text("Add time")
-                        .font(.system(size: 12, weight: .medium))
-                }
-                .foregroundStyle(SchemaTheme.mutedText)
-            }
-            .buttonStyle(.plain)
-            .transition(.opacity)
+            .fixedSize(horizontal: true, vertical: false)
+        } else {
+            reminderColumn
+                .frame(width: Metrics.reminderColumnWidth, alignment: .trailing)
+                .fixedSize(horizontal: true, vertical: false)
         }
+    }
+
+    @ViewBuilder
+    private var reminderColumn: some View {
+        Group {
+            if let reminderTime = task.reminderTime {
+                Button(action: openReminderPicker) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 11, weight: .medium))
+                        Text(ReminderFormatting.displayString(for: reminderTime))
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundStyle(SchemaTheme.accent.opacity(0.85))
+                }
+                .buttonStyle(.plain)
+            } else if isHovered, !task.isCompleted {
+                Button(action: openReminderPicker) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 11, weight: .medium))
+                        Text("Add time")
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundStyle(SchemaTheme.mutedText)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Color.clear
+                    .frame(
+                        width: Metrics.reminderColumnWidth,
+                        height: Metrics.reminderRowHeight
+                    )
+            }
+        }
+        .frame(width: Metrics.reminderColumnWidth, alignment: .trailing)
+        .transition(.opacity)
+    }
+
+    private func listTag(for list: SchemaList) -> some View {
+        Text(list.displayTagLabel)
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(SchemaTheme.listTagForeground(for: list))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(SchemaTheme.listTagBackground(for: list))
+            )
+            .transition(.opacity)
     }
 
     private var rowBackground: Color {
@@ -123,7 +168,7 @@ struct TaskRowView: View {
             return SchemaTheme.accent.opacity(0.06)
         }
         if isHovered {
-            return Color.black.opacity(0.04)
+            return SchemaTheme.rowHoverBackground()
         }
         return .clear
     }
@@ -137,11 +182,6 @@ struct TaskRowView: View {
                 .foregroundStyle(task.isCompleted ? SchemaTheme.completed : .primary)
                 .focused($isTitleFocused)
                 .onSubmit(commitTitleEdit)
-                .onChange(of: isTitleFocused) { _, focused in
-                    if !focused, isEditingTitle {
-                        commitTitleEdit()
-                    }
-                }
                 .onKeyPress(.escape) {
                     cancelTitleEdit()
                     return .handled
@@ -152,6 +192,8 @@ struct TaskRowView: View {
                 .foregroundStyle(task.isCompleted ? SchemaTheme.completed : .primary)
                 .strikethrough(task.isCompleted, color: SchemaTheme.completed)
                 .opacity(task.isCompleted ? 0.75 : 1)
+                .lineLimit(2)
+                .truncationMode(.tail)
                 .animation(SchemaMotion.fast, value: task.isCompleted)
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -211,6 +253,7 @@ struct TaskRowView: View {
     private func beginTitleEdit() {
         editedTitle = task.title
         isEditingTitle = true
+        onEditingChange(true)
         DispatchQueue.main.async {
             isTitleFocused = true
         }
@@ -223,12 +266,14 @@ struct TaskRowView: View {
         }
         isEditingTitle = false
         isTitleFocused = false
+        onEditingChange(false)
     }
 
     private func cancelTitleEdit() {
         editedTitle = task.title
         isEditingTitle = false
         isTitleFocused = false
+        onEditingChange(false)
     }
 
     private func openReminderPicker() {

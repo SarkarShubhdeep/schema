@@ -8,7 +8,6 @@ import SwiftUI
 struct AppHeaderToolbar: ToolbarContent {
     @Binding var showNotifications: Bool
     @Binding var showSettings: Bool
-    @Binding var showAccountAlert: Bool
 
     let pendingNotificationCount: Int
     let notificationItems: [SchemaNotificationItem]
@@ -17,7 +16,6 @@ struct AppHeaderToolbar: ToolbarContent {
     private enum Metrics {
         static let slotSize: CGFloat = 22
         static let symbolSize: CGFloat = 18
-        static let accountSymbolSize: CGFloat = 22
     }
 
     var body: some ToolbarContent {
@@ -49,23 +47,6 @@ struct AppHeaderToolbar: ToolbarContent {
                     .frame(width: Metrics.slotSize, height: Metrics.slotSize)
             }
             .help("Settings")
-
-            Menu {
-                Button("Account") {}
-                    .disabled(true)
-
-                Divider()
-
-                Button("Logout") {
-                    showAccountAlert = true
-                }
-            } label: {
-                toolbarSymbol("person.circle.fill", size: Metrics.accountSymbolSize)
-                    .frame(width: Metrics.slotSize, height: Metrics.slotSize)
-            }
-            .menuIndicator(.hidden)
-            .menuStyle(.borderlessButton)
-            .help("Account")
         }
     }
 

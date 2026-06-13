@@ -22,9 +22,10 @@ struct ContentView: View {
     @State private var navigationPath = NavigationPath()
     @State private var showNotifications = false
     @State private var showSettings = false
-    @State private var showAccountAlert = false
     @State private var notificationItems: [SchemaNotificationItem] = []
     @State private var isAddTaskExpanded = false
+    @State private var skipAddTaskDismiss = false
+    @State private var editingTaskID: UUID?
     @FocusState private var isAddTaskFocused: Bool
 
     private let notificationService = NotificationService()
@@ -67,7 +68,6 @@ struct ContentView: View {
                     AppHeaderToolbar(
                         showNotifications: $showNotifications,
                         showSettings: $showSettings,
-                        showAccountAlert: $showAccountAlert,
                         pendingNotificationCount: notificationItems.count,
                         notificationItems: notificationItems,
                         onNotificationSelect: { item in
@@ -114,11 +114,6 @@ struct ContentView: View {
             if listViewModel?.defaultWritableListID == nil {
                 listViewModel?.defaultWritableListID = lists.first(where: { !$0.isEverythingList })?.id
             }
-        }
-        .alert("Coming Soon", isPresented: $showAccountAlert) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Account and logout will be available in a future release.")
         }
     }
 
@@ -176,10 +171,13 @@ struct ContentView: View {
                 highlightedTaskID: highlightedTaskID,
                 showListTags: selectedList?.isEverythingList == true,
                 selectedListID: listViewModel.selectedListID,
+                editingTaskID: editingTaskID,
                 sortOption: listViewModel.sortOption,
                 filterOption: listViewModel.filterOption,
                 onToggle: { task in
-                    taskViewModel.toggleCompletion(task)
+                    withAnimation(SchemaMotion.smooth) {
+                        taskViewModel.toggleCompletion(task)
+                    }
                 },
                 onDelete: { task in
                     taskViewModel.deleteTask(task)
@@ -192,24 +190,51 @@ struct ContentView: View {
                         await taskViewModel.setReminder(task, at: date)
                         await refreshNotifications()
                     }
+                },
+                onEditingTaskIDChange: { taskID in
+                    editingTaskID = taskID
                 }
             )
         }
         .frame(minWidth: 720, minHeight: 520)
         .background(SchemaTheme.background)
+        .clickOutsideDismiss(isActive: isAddTaskExpanded || editingTaskID != nil) {
+            dismissActiveEditing()
+        }
         .workspaceKeyboardShortcuts(
             isAddTaskExpanded: $isAddTaskExpanded,
             isAddTaskFocused: $isAddTaskFocused,
             lists: lists,
+            canUndo: taskViewModel.canUndo,
             onSelectListAtIndex: { index in
                 withAnimation(SchemaMotion.smooth) {
                     listViewModel.selectList(at: index, from: lists)
                 }
             },
+            onSelectNextList: {
+                withAnimation(SchemaMotion.smooth) {
+                    listViewModel.selectNextList(from: lists)
+                }
+            },
+            onSelectPreviousList: {
+                withAnimation(SchemaMotion.smooth) {
+                    listViewModel.selectPreviousList(from: lists)
+                }
+            },
+            onSelectEverythingList: {
+                withAnimation(SchemaMotion.smooth) {
+                    listViewModel.selectEverythingList(from: lists)
+                }
+            },
             onCreateList: {
                 listViewModel.showNewListSheet = true
             },
-            onCloseAddTask: closeAddTask
+            onCloseAddTask: closeAddTask,
+            onUndo: {
+                withAnimation(SchemaMotion.smooth) {
+                    taskViewModel.undo()
+                }
+            }
         )
         .sheet(isPresented: Binding(
             get: { listViewModel.showNewListSheet },
@@ -268,6 +293,7 @@ struct ContentView: View {
         guard !taskViewModel.quickEntryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return
         }
+        skipAddTaskDismiss = true
         withAnimation(SchemaMotion.smooth) {
             _ = taskViewModel.addTask(
                 to: selectedList,
@@ -276,13 +302,25 @@ struct ContentView: View {
                 lists: lists
             )
         }
-        closeAddTask()
+        isAddTaskExpanded = true
+        DispatchQueue.main.async {
+            isAddTaskFocused = true
+            skipAddTaskDismiss = false
+        }
     }
 
     private func closeAddTask() {
         taskViewModel?.quickEntryText = ""
         isAddTaskExpanded = false
         isAddTaskFocused = false
+        skipAddTaskDismiss = false
+    }
+
+    private func dismissActiveEditing() {
+        if isAddTaskExpanded {
+            closeAddTask()
+        }
+        editingTaskID = nil
     }
 
     private func handleNotificationSelect(_ item: SchemaNotificationItem, listViewModel: ListViewModel) {

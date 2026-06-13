@@ -34,6 +34,7 @@ struct ListNavigationBar: View {
 
                                 taskCountBadge(for: list)
                             }
+                            .fixedSize(horizontal: true, vertical: false)
                             .padding(.vertical, 4)
                         }
                         .buttonStyle(.plain)
@@ -61,6 +62,7 @@ struct ListNavigationBar: View {
             Text("\(count)")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(SchemaTheme.mutedText)
+                .fixedSize()
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
                 .background(

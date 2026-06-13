@@ -26,7 +26,7 @@ struct AddTaskBar: View {
         HStack(spacing: 10) {
             if isExpanded {
                 expandedField
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(.opacity)
             } else {
                 addTaskButton
                     .transition(.opacity)
@@ -93,11 +93,11 @@ struct AddTaskBar: View {
         .frame(height: Metrics.controlHeight, alignment: .leading)
         .padding(.horizontal, Metrics.horizontalPadding)
         .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color(red: 0.95, green: 0.95, blue: 0.96))
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(SchemaTheme.controlFill)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(
                     showFocusBorder ? SchemaTheme.accent.opacity(0.45) : .clear,
                     lineWidth: 1.5
