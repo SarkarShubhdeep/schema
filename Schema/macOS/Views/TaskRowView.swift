@@ -7,6 +7,7 @@ import SwiftUI
 
 struct TaskRowView: View {
     @Bindable var task: SchemaTask
+    let isHighlighted: Bool
     let onToggle: () -> Void
     let onDelete: () -> Void
     let onSetReminder: (Date?) -> Void
@@ -69,7 +70,15 @@ struct TaskRowView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
-        .background(SchemaTheme.surface)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isHighlighted ? SchemaTheme.accent.opacity(0.08) : SchemaTheme.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(isHighlighted ? SchemaTheme.accent.opacity(0.35) : .clear, lineWidth: 1)
+        )
+        .animation(.easeInOut(duration: 0.2), value: isHighlighted)
         .popover(isPresented: $showReminderPicker) {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Reminder")

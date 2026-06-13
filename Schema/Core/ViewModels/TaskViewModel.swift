@@ -17,7 +17,7 @@ final class TaskViewModel {
 
     init(
         modelContext: ModelContext,
-        notificationService: any NotificationServiceProtocol = NotificationService()
+        notificationService: any NotificationServiceProtocol
     ) {
         self.modelContext = modelContext
         self.notificationService = notificationService

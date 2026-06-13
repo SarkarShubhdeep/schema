@@ -8,6 +8,12 @@ import SwiftData
 
 @main
 struct SchemaApp: App {
+    init() {
+#if os(macOS)
+        NotificationHandler.shared.configure()
+#endif
+    }
+
     var modelContainer: ModelContainer = {
         let schema = Schema([SchemaList.self, SchemaTask.self])
         let configuration = ModelConfiguration(schema: schema)

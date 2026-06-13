@@ -8,6 +8,7 @@ import SwiftUI
 struct TaskListView: View {
     let incompleteTasks: [SchemaTask]
     let completedTasks: [SchemaTask]
+    let highlightedTaskID: UUID?
     let onToggle: (SchemaTask) -> Void
     let onDelete: (SchemaTask) -> Void
     let onSetReminder: (SchemaTask, Date?) -> Void
@@ -26,6 +27,7 @@ struct TaskListView: View {
                     ForEach(incompleteTasks) { task in
                         TaskRowView(
                             task: task,
+                            isHighlighted: highlightedTaskID == task.id,
                             onToggle: { onToggle(task) },
                             onDelete: { onDelete(task) },
                             onSetReminder: { date in onSetReminder(task, date) }
@@ -46,6 +48,7 @@ struct TaskListView: View {
                         ForEach(completedTasks) { task in
                             TaskRowView(
                                 task: task,
+                                isHighlighted: highlightedTaskID == task.id,
                                 onToggle: { onToggle(task) },
                                 onDelete: { onDelete(task) },
                                 onSetReminder: { date in onSetReminder(task, date) }

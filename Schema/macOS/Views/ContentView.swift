@@ -14,7 +14,10 @@ struct ContentView: View {
 
     @State private var listViewModel: ListViewModel?
     @State private var taskViewModel: TaskViewModel?
+    @State private var highlightedTaskID: UUID?
     @FocusState private var isQuickEntryFocused: Bool
+
+    private let notificationService = NotificationService()
 
     private var selectedList: SchemaList? {
         listViewModel?.selectedList(from: lists)
@@ -37,8 +40,21 @@ struct ContentView: View {
                     listVM.selectedListID = lists.first?.id
                 }
                 listViewModel = listVM
-                taskViewModel = TaskViewModel(modelContext: modelContext)
+                taskViewModel = TaskViewModel(
+                    modelContext: modelContext,
+                    notificationService: notificationService
+                )
+
+                Task {
+                    await notificationService.rescheduleAllReminders(for: allTasks)
+                }
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NotificationNames.taskReminderOpened)) { notification in
+            if let listID = notification.openedListID {
+                listViewModel?.selectedListID = listID
+            }
+            highlightedTaskID = notification.openedTaskID
         }
         .onChange(of: lists.count) { _, _ in
             if listViewModel?.selectedListID == nil {
@@ -70,6 +86,7 @@ struct ContentView: View {
             TaskListView(
                 incompleteTasks: taskViewModel.incompleteTasks(for: selectedList, from: allTasks),
                 completedTasks: taskViewModel.completedTasks(for: selectedList, from: allTasks),
+                highlightedTaskID: highlightedTaskID,
                 onToggle: { task in
                     taskViewModel.toggleCompletion(task)
                 },
