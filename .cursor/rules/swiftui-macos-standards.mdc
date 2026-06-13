@@ -38,6 +38,10 @@ alwaysApply: true
 - Use standard window chrome, no custom title bars
 - Keyboard shortcuts via `.keyboardShortcut()` and `.onKeyPress()`
 
+## User Edits
+
+- When the user has manually edited a file, preserve their changes. Do not revert, overwrite, or reformat unrelated parts of manually modified code unless explicitly asked.
+
 ## Examples
 
 ```swift

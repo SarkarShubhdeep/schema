@@ -8,9 +8,17 @@ import Foundation
 @MainActor
 protocol NotificationServiceProtocol {
     func requestAuthorization() async throws -> Bool
+    func authorizationStatus() async -> NotificationAuthorizationStatus
     func scheduleReminder(for task: SchemaTask) async throws
     func cancelReminder(for task: SchemaTask)
     func rescheduleAllReminders(for tasks: [SchemaTask]) async
+    func fetchPendingReminders() async -> [SchemaNotificationItem]
+}
+
+enum NotificationAuthorizationStatus {
+    case notDetermined
+    case denied
+    case authorized
 }
 
 #if os(macOS)
@@ -22,6 +30,20 @@ final class NotificationService: NotificationServiceProtocol {
 
     func requestAuthorization() async throws -> Bool {
         try await center.requestAuthorization(options: [.alert, .sound, .badge])
+    }
+
+    func authorizationStatus() async -> NotificationAuthorizationStatus {
+        let settings = await center.notificationSettings()
+        switch settings.authorizationStatus {
+        case .notDetermined:
+            return .notDetermined
+        case .denied:
+            return .denied
+        case .authorized, .provisional, .ephemeral:
+            return .authorized
+        @unknown default:
+            return .notDetermined
+        }
     }
 
     func scheduleReminder(for task: SchemaTask) async throws {
@@ -81,6 +103,32 @@ final class NotificationService: NotificationServiceProtocol {
         }
     }
 
+    func fetchPendingReminders() async -> [SchemaNotificationItem] {
+        let requests = await center.pendingNotificationRequests()
+        return requests
+            .compactMap { request -> SchemaNotificationItem? in
+                guard let trigger = request.trigger as? UNCalendarNotificationTrigger,
+                      let fireDate = trigger.nextTriggerDate(),
+                      fireDate > Date() else {
+                    return nil
+                }
+
+                let userInfo = request.content.userInfo
+                let taskID = (userInfo[NotificationUserInfoKey.taskID] as? String).flatMap(UUID.init(uuidString:))
+                let listID = (userInfo[NotificationUserInfoKey.listID] as? String).flatMap(UUID.init(uuidString:))
+
+                return SchemaNotificationItem(
+                    id: request.identifier,
+                    taskID: taskID,
+                    listID: listID,
+                    title: request.content.title,
+                    subtitle: request.content.body.isEmpty ? nil : request.content.body,
+                    fireDate: fireDate
+                )
+            }
+            .sorted { $0.fireDate < $1.fireDate }
+    }
+
     private func notificationID(for task: SchemaTask) -> String {
         "schema.task.\(task.id.uuidString)"
     }
@@ -89,9 +137,11 @@ final class NotificationService: NotificationServiceProtocol {
 @MainActor
 final class NotificationService: NotificationServiceProtocol {
     func requestAuthorization() async throws -> Bool { false }
+    func authorizationStatus() async -> NotificationAuthorizationStatus { .denied }
     func scheduleReminder(for task: SchemaTask) async throws {}
     func cancelReminder(for task: SchemaTask) {}
     func rescheduleAllReminders(for tasks: [SchemaTask]) async {}
+    func fetchPendingReminders() async -> [SchemaNotificationItem] { [] }
 }
 #endif
 

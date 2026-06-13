@@ -6,37 +6,36 @@
 import SwiftUI
 
 struct WorkspaceKeyboardShortcuts: ViewModifier {
-    @FocusState.Binding var isQuickEntryFocused: Bool
+    @Binding var isAddTaskExpanded: Bool
+    @FocusState.Binding var isAddTaskFocused: Bool
 
     let lists: [SchemaList]
     let onSelectListAtIndex: (Int) -> Void
     let onCreateList: () -> Void
-    let onSubmitQuickEntry: () -> Void
+    let onCloseAddTask: () -> Void
 
     func body(content: Content) -> some View {
         content
             .background(hiddenShortcutButtons)
     }
 
-    private func focusQuickEntry() {
-        // Defer focus so it applies after the key event finishes dispatching.
+    private func openAddTask() {
+        isAddTaskExpanded = true
         DispatchQueue.main.async {
-            isQuickEntryFocused = true
+            isAddTaskFocused = true
         }
     }
 
     @ViewBuilder
     private var hiddenShortcutButtons: some View {
         Group {
-            Button("Focus Quick Entry", action: focusQuickEntry)
+            Button("Open Add Task", action: openAddTask)
                 .keyboardShortcut("n", modifiers: [])
                 .hidden()
 
-            Button("Unfocus Quick Entry") {
-                isQuickEntryFocused = false
-            }
-            .keyboardShortcut(.cancelAction)
-            .hidden()
+            Button("Close Add Task", action: onCloseAddTask)
+                .keyboardShortcut(.cancelAction)
+                .hidden()
 
             Button("New List", action: onCreateList)
                 .keyboardShortcut("n", modifiers: .command)
@@ -62,19 +61,21 @@ struct WorkspaceKeyboardShortcuts: ViewModifier {
 
 extension View {
     func workspaceKeyboardShortcuts(
-        isQuickEntryFocused: FocusState<Bool>.Binding,
+        isAddTaskExpanded: Binding<Bool>,
+        isAddTaskFocused: FocusState<Bool>.Binding,
         lists: [SchemaList],
         onSelectListAtIndex: @escaping (Int) -> Void,
         onCreateList: @escaping () -> Void,
-        onSubmitQuickEntry: @escaping () -> Void
+        onCloseAddTask: @escaping () -> Void
     ) -> some View {
         modifier(
             WorkspaceKeyboardShortcuts(
-                isQuickEntryFocused: isQuickEntryFocused,
+                isAddTaskExpanded: isAddTaskExpanded,
+                isAddTaskFocused: isAddTaskFocused,
                 lists: lists,
                 onSelectListAtIndex: onSelectListAtIndex,
                 onCreateList: onCreateList,
-                onSubmitQuickEntry: onSubmitQuickEntry
+                onCloseAddTask: onCloseAddTask
             )
         )
     }

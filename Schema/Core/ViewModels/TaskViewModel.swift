@@ -23,34 +23,69 @@ final class TaskViewModel {
         self.notificationService = notificationService
     }
 
-    func tasks(for list: SchemaList?, from allTasks: [SchemaTask]) -> [SchemaTask] {
+    func tasks(
+        for list: SchemaList?,
+        from allTasks: [SchemaTask],
+        sortOption: TaskSortOption = .manual,
+        filterOption: TaskFilterOption = .all
+    ) -> [SchemaTask] {
         guard let list else { return [] }
 
+        var result: [SchemaTask]
         if list.isEverythingList {
-            return allTasks.sorted { $0.createdAt < $1.createdAt }
+            result = allTasks
+        } else {
+            result = allTasks.filter { $0.list?.id == list.id }
         }
 
-        return allTasks
-            .filter { $0.list?.id == list.id }
-            .sorted { $0.createdAt < $1.createdAt }
+        result = applyFilter(result, option: filterOption)
+        return applySort(result, option: sortOption)
     }
 
-    func incompleteTasks(for list: SchemaList?, from allTasks: [SchemaTask]) -> [SchemaTask] {
-        tasks(for: list, from: allTasks).filter { !$0.isCompleted }
+    func incompleteTasks(
+        for list: SchemaList?,
+        from allTasks: [SchemaTask],
+        sortOption: TaskSortOption = .manual,
+        filterOption: TaskFilterOption = .all
+    ) -> [SchemaTask] {
+        tasks(for: list, from: allTasks, sortOption: sortOption, filterOption: filterOption)
+            .filter { !$0.isCompleted }
     }
 
-    func completedTasks(for list: SchemaList?, from allTasks: [SchemaTask]) -> [SchemaTask] {
-        tasks(for: list, from: allTasks).filter(\.isCompleted)
+    func completedTasks(
+        for list: SchemaList?,
+        from allTasks: [SchemaTask],
+        sortOption: TaskSortOption = .manual,
+        filterOption: TaskFilterOption = .all
+    ) -> [SchemaTask] {
+        tasks(for: list, from: allTasks, sortOption: sortOption, filterOption: filterOption)
+            .filter(\.isCompleted)
     }
 
     @discardableResult
-    func addTask(to list: SchemaList?, title: String) -> SchemaTask? {
+    func addTask(
+        to list: SchemaList?,
+        title: String,
+        defaultWritableListID: UUID? = nil,
+        lists: [SchemaList] = []
+    ) -> SchemaTask? {
         guard let list else { return nil }
 
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 
-        let targetList = list.isEverythingList ? defaultWritableList() : list
+        let targetList: SchemaList?
+        if list.isEverythingList {
+            if let defaultWritableListID,
+               let preferred = lists.first(where: { $0.id == defaultWritableListID && !$0.isEverythingList }) {
+                targetList = preferred
+            } else {
+                targetList = defaultWritableList(from: lists)
+            }
+        } else {
+            targetList = list
+        }
+
         guard let targetList else { return nil }
 
         let task = SchemaTask(title: trimmed, list: targetList)
@@ -105,15 +140,45 @@ final class TaskViewModel {
         }
     }
 
-    private func defaultWritableList() -> SchemaList? {
-        var descriptor = FetchDescriptor<SchemaList>(
-            predicate: #Predicate<SchemaList> { list in
-                list.title != "Everything"
-            },
-            sortBy: [SortDescriptor(\.order)]
-        )
-        descriptor.fetchLimit = 1
-        return try? modelContext.fetch(descriptor).first
+    private func defaultWritableList(from lists: [SchemaList]) -> SchemaList? {
+        lists.first(where: { !$0.isEverythingList })
+    }
+
+    private func applyFilter(_ tasks: [SchemaTask], option: TaskFilterOption) -> [SchemaTask] {
+        switch option {
+        case .all:
+            return tasks
+        case .withReminder:
+            return tasks.filter { $0.reminderTime != nil }
+        case .withoutReminder:
+            return tasks.filter { $0.reminderTime == nil }
+        }
+    }
+
+    private func applySort(_ tasks: [SchemaTask], option: TaskSortOption) -> [SchemaTask] {
+        switch option {
+        case .manual:
+            return tasks.sorted { $0.createdAt < $1.createdAt }
+        case .createdAt:
+            return tasks.sorted { $0.createdAt > $1.createdAt }
+        case .reminderTime:
+            return tasks.sorted { lhs, rhs in
+                switch (lhs.reminderTime, rhs.reminderTime) {
+                case let (left?, right?):
+                    return left < right
+                case (nil, _?):
+                    return false
+                case (_?, nil):
+                    return true
+                case (nil, nil):
+                    return lhs.createdAt < rhs.createdAt
+                }
+            }
+        case .alphabetical:
+            return tasks.sorted {
+                $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+            }
+        }
     }
 
     private func save() {

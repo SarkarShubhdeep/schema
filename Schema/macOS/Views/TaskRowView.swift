@@ -8,6 +8,7 @@ import SwiftUI
 struct TaskRowView: View {
     @Bindable var task: SchemaTask
     let isHighlighted: Bool
+    let showListTag: Bool
     let onToggle: () -> Void
     let onDelete: () -> Void
     let onUpdateTitle: (String) -> Void
@@ -17,67 +18,114 @@ struct TaskRowView: View {
     @State private var reminderDate = Date()
     @State private var isEditingTitle = false
     @State private var editedTitle = ""
+    @State private var checkboxScale: CGFloat = 1.0
+    @State private var isHovered = false
     @FocusState private var isTitleFocused: Bool
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Button(action: onToggle) {
+        HStack(alignment: .center, spacing: 12) {
+            Button(action: handleToggle) {
                 Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 18))
-                    .foregroundStyle(task.isCompleted ? SchemaTheme.accent : SchemaTheme.mutedText)
+                    .foregroundStyle(task.isCompleted ? SchemaTheme.accent : SchemaTheme.mutedText.opacity(0.55))
+                    .scaleEffect(checkboxScale)
             }
             .buttonStyle(.plain)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 3) {
                 titleView
 
                 if let description = task.displayDescription {
                     Text(description)
-                        .font(.system(size: 13))
+                        .font(.system(size: 12))
                         .foregroundStyle(SchemaTheme.mutedText)
+                        .lineLimit(2)
                 }
-
-                reminderView
             }
 
-            Spacer(minLength: 0)
+            Spacer(minLength: 12)
 
-            Menu {
-                Button("Set Reminder") {
-                    openReminderPicker()
-                }
+            reminderColumn
 
-                if task.reminderTime != nil {
-                    Button("Remove Reminder") {
-                        onSetReminder(nil)
-                    }
-                }
-
-                Divider()
-
-                Button("Delete Task", role: .destructive, action: onDelete)
-            } label: {
-                Image(systemName: "ellipsis.circle")
-                    .font(.system(size: 15))
-                    .foregroundStyle(SchemaTheme.mutedText)
+            if showListTag, let list = task.list {
+                Text(list.displayTagLabel)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(SchemaTheme.listTagForeground(for: list))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(SchemaTheme.listTagBackground(for: list))
+                    )
+                    .transition(.opacity)
             }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(isHighlighted ? SchemaTheme.accent.opacity(0.08) : SchemaTheme.surface)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(rowBackground)
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(isHighlighted ? SchemaTheme.accent.opacity(0.35) : .clear, lineWidth: 1)
-        )
-        .animation(.easeInOut(duration: 0.2), value: isHighlighted)
+        .animation(SchemaMotion.fast, value: isHovered)
+        .animation(SchemaMotion.standard, value: isHighlighted)
+        .onHover { isHovered = $0 }
+        .contextMenu {
+            Button("Set Reminder") {
+                openReminderPicker()
+            }
+
+            if task.reminderTime != nil {
+                Button("Remove Reminder") {
+                    onSetReminder(nil)
+                }
+            }
+
+            Divider()
+
+            Button("Delete Task", role: .destructive, action: onDelete)
+        }
         .popover(isPresented: $showReminderPicker) {
             reminderPickerContent
         }
+    }
+
+    @ViewBuilder
+    private var reminderColumn: some View {
+        if let reminderTime = task.reminderTime {
+            Button(action: openReminderPicker) {
+                HStack(spacing: 4) {
+                    Image(systemName: "clock")
+                        .font(.system(size: 11, weight: .medium))
+                    Text(ReminderFormatting.displayString(for: reminderTime))
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .foregroundStyle(SchemaTheme.accent.opacity(0.85))
+            }
+            .buttonStyle(.plain)
+            .transition(.opacity)
+        } else if isHovered, !task.isCompleted {
+            Button(action: openReminderPicker) {
+                HStack(spacing: 4) {
+                    Image(systemName: "clock")
+                        .font(.system(size: 11, weight: .medium))
+                    Text("Add time")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .foregroundStyle(SchemaTheme.mutedText)
+            }
+            .buttonStyle(.plain)
+            .transition(.opacity)
+        }
+    }
+
+    private var rowBackground: Color {
+        if isHighlighted {
+            return SchemaTheme.accent.opacity(0.06)
+        }
+        if isHovered {
+            return Color.black.opacity(0.04)
+        }
+        return .clear
     }
 
     @ViewBuilder
@@ -85,7 +133,7 @@ struct TaskRowView: View {
         if isEditingTitle {
             TextField("Task title", text: $editedTitle)
                 .textFieldStyle(.plain)
-                .font(.system(size: 15, weight: .medium))
+                .font(.system(size: 15, weight: .regular))
                 .foregroundStyle(task.isCompleted ? SchemaTheme.completed : .primary)
                 .focused($isTitleFocused)
                 .onSubmit(commitTitleEdit)
@@ -100,30 +148,15 @@ struct TaskRowView: View {
                 }
         } else {
             Text(task.title)
-                .font(.system(size: 15, weight: .medium))
+                .font(.system(size: 15, weight: .regular))
                 .foregroundStyle(task.isCompleted ? SchemaTheme.completed : .primary)
                 .strikethrough(task.isCompleted, color: SchemaTheme.completed)
+                .opacity(task.isCompleted ? 0.75 : 1)
+                .animation(SchemaMotion.fast, value: task.isCompleted)
                 .contentShape(Rectangle())
                 .onTapGesture {
                     beginTitleEdit()
                 }
-                .help("Click to edit title")
-        }
-    }
-
-    @ViewBuilder
-    private var reminderView: some View {
-        if let reminderTime = task.reminderTime {
-            Button(action: openReminderPicker) {
-                Label(
-                    reminderTime.formatted(date: .abbreviated, time: .shortened),
-                    systemImage: "bell.fill"
-                )
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(SchemaTheme.accent.opacity(0.85))
-            }
-            .buttonStyle(.plain)
-            .help("Click to edit reminder")
         }
     }
 
@@ -163,6 +196,16 @@ struct TaskRowView: View {
         }
         .padding(16)
         .frame(width: 280)
+    }
+
+    private func handleToggle() {
+        withAnimation(SchemaMotion.spring) {
+            checkboxScale = 0.94
+            onToggle()
+        }
+        withAnimation(SchemaMotion.spring.delay(0.08)) {
+            checkboxScale = 1.0
+        }
     }
 
     private func beginTitleEdit() {

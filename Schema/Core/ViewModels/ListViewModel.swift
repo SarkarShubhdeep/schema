@@ -7,6 +7,40 @@ import Foundation
 import SwiftData
 import Observation
 
+enum TaskSortOption: String, CaseIterable, Identifiable {
+    case manual
+    case createdAt
+    case reminderTime
+    case alphabetical
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .manual: "Manual"
+        case .createdAt: "Date Created"
+        case .reminderTime: "Reminder Time"
+        case .alphabetical: "Alphabetical"
+        }
+    }
+}
+
+enum TaskFilterOption: String, CaseIterable, Identifiable {
+    case all
+    case withReminder
+    case withoutReminder
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .all: "All Tasks"
+        case .withReminder: "With Reminder"
+        case .withoutReminder: "Without Reminder"
+        }
+    }
+}
+
 @Observable
 @MainActor
 final class ListViewModel {
@@ -15,6 +49,9 @@ final class ListViewModel {
     var selectedListID: UUID?
     var showNewListSheet = false
     var newListTitle = ""
+    var sortOption: TaskSortOption = .manual
+    var filterOption: TaskFilterOption = .all
+    var defaultWritableListID: UUID?
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -23,13 +60,37 @@ final class ListViewModel {
     func ensureDefaultListsIfNeeded(from lists: [SchemaList]) {
         guard lists.isEmpty else { return }
 
-        let everything = SchemaList(title: SchemaList.everythingTitle, order: 0)
-        let dailyTodos = SchemaList(title: "Daily Todos", order: 1)
+        let everything = SchemaList(
+            title: SchemaList.everythingTitle,
+            order: 0,
+            accentColorName: SchemaListColorName.neutral.rawValue
+        )
+        let dailyTodos = SchemaList(
+            title: "Daily Todos",
+            order: 1,
+            accentColorName: SchemaListColorName.grey.rawValue,
+            tagLabel: "Daily todo"
+        )
+        let githubWork = SchemaList(
+            title: "Github Work",
+            order: 2,
+            accentColorName: SchemaListColorName.blue.rawValue,
+            tagLabel: "Github"
+        )
+        let groceries = SchemaList(
+            title: "Groceries",
+            order: 3,
+            accentColorName: SchemaListColorName.purple.rawValue,
+            tagLabel: "Groceries"
+        )
 
         modelContext.insert(everything)
         modelContext.insert(dailyTodos)
+        modelContext.insert(githubWork)
+        modelContext.insert(groceries)
         save()
         selectedListID = everything.id
+        defaultWritableListID = dailyTodos.id
     }
 
     func selectList(_ list: SchemaList?) {
@@ -53,7 +114,11 @@ final class ListViewModel {
         guard !trimmed.isEmpty else { return }
 
         let nextOrder = (existingLists.map(\.order).max() ?? -1) + 1
-        let list = SchemaList(title: trimmed, order: nextOrder)
+        let list = SchemaList(
+            title: trimmed,
+            order: nextOrder,
+            accentColorName: SchemaListColorName.fallback(for: trimmed).rawValue
+        )
         modelContext.insert(list)
         save()
         selectedListID = list.id
