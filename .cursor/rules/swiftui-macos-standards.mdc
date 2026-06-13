@@ -1,0 +1,57 @@
+---
+description: SwiftUI and macOS engineering standards for Schema
+alwaysApply: true
+---
+
+# SwiftUI/macOS Standards
+
+## Architecture
+
+- Keep Core layer (Models, ViewModels, Services) platform-agnostic for future iOS port
+- macOS UI lives under `Schema/macOS/` only
+- Use MVVM: Views observe ViewModels, ViewModels own business logic
+
+## SwiftData
+
+- Use `@Model` macro for all persistent types
+- Use `@Query` for fetching in views, never raw `ModelContext.fetch()` in views
+- Relationships must specify `@Relationship` with explicit delete rules
+- Use `@Bindable` for `@Model` objects in views requiring mutation
+
+## View Performance
+
+- Extract heavy computations to ViewModels
+- Avoid `AnyView` — use `@ViewBuilder` or concrete types
+- Avoid unnecessary structural view rebuilds; pass stable identifiers
+
+## Forbidden Patterns
+
+- No UIKit bridging (use pure SwiftUI or AppKit where required)
+- No deprecated modifiers: `.navigationBarTitle`, `.edgesIgnoringSafeArea`
+- No `GeometryReader` for simple layouts
+- No hacky view-hierarchy workarounds or private API usage
+
+## macOS Native
+
+- Use `List` with `.listStyle(.inset)` or `.listStyle(.plain)`
+- Use `TextField` with `.textFieldStyle(.roundedBorder)`
+- Use standard window chrome, no custom title bars
+- Keyboard shortcuts via `.keyboardShortcut()` and `.onKeyPress()`
+
+## Examples
+
+```swift
+// BAD — fetch in view
+let tasks = try? modelContext.fetch(FetchDescriptor<SchemaTask>())
+
+// GOOD — declarative query
+@Query(sort: \SchemaTask.createdAt) private var tasks: [SchemaTask]
+```
+
+```swift
+// BAD — platform logic in view
+UNUserNotificationCenter.current().add(request)
+
+// GOOD — service abstraction
+await notificationService.scheduleReminder(for: task)
+```
