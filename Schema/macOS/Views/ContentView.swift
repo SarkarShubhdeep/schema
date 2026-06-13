@@ -97,6 +97,19 @@ struct ContentView: View {
         }
         .frame(minWidth: 720, minHeight: 520)
         .background(SchemaTheme.background)
+        .workspaceKeyboardShortcuts(
+            isQuickEntryFocused: $isQuickEntryFocused,
+            lists: lists,
+            onSelectListAtIndex: { index in
+                listViewModel.selectList(at: index, from: lists)
+            },
+            onCreateList: {
+                listViewModel.showNewListSheet = true
+            },
+            onSubmitQuickEntry: {
+                submitQuickEntry(taskViewModel: taskViewModel)
+            }
+        )
         .sheet(isPresented: Binding(
             get: { listViewModel.showNewListSheet },
             set: { listViewModel.showNewListSheet = $0 }
@@ -128,6 +141,9 @@ struct ContentView: View {
     }
 
     private func submitQuickEntry(taskViewModel: TaskViewModel) {
+        guard !taskViewModel.quickEntryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return
+        }
         _ = taskViewModel.addTask(to: selectedList, title: taskViewModel.quickEntryText)
         isQuickEntryFocused = true
     }
