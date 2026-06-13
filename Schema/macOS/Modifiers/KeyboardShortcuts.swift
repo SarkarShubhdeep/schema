@@ -16,20 +16,28 @@ struct WorkspaceKeyboardShortcuts: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background(hiddenShortcutButtons)
-            .onKeyPress(keys: [.init("n")]) { _ in
-                guard !isQuickEntryFocused else { return .ignored }
-                isQuickEntryFocused = true
-                return .handled
-            }
-            .onKeyPress(.escape) {
-                isQuickEntryFocused = false
-                return .handled
-            }
+    }
+
+    private func focusQuickEntry() {
+        // Defer focus so it applies after the key event finishes dispatching.
+        DispatchQueue.main.async {
+            isQuickEntryFocused = true
+        }
     }
 
     @ViewBuilder
     private var hiddenShortcutButtons: some View {
         Group {
+            Button("Focus Quick Entry", action: focusQuickEntry)
+                .keyboardShortcut("n", modifiers: [])
+                .hidden()
+
+            Button("Unfocus Quick Entry") {
+                isQuickEntryFocused = false
+            }
+            .keyboardShortcut(.cancelAction)
+            .hidden()
+
             Button("New List", action: onCreateList)
                 .keyboardShortcut("n", modifiers: .command)
                 .hidden()

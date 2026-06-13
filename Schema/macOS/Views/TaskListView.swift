@@ -11,6 +11,7 @@ struct TaskListView: View {
     let highlightedTaskID: UUID?
     let onToggle: (SchemaTask) -> Void
     let onDelete: (SchemaTask) -> Void
+    let onUpdateTitle: (SchemaTask, String) -> Void
     let onSetReminder: (SchemaTask, Date?) -> Void
 
     var body: some View {
@@ -30,6 +31,7 @@ struct TaskListView: View {
                             isHighlighted: highlightedTaskID == task.id,
                             onToggle: { onToggle(task) },
                             onDelete: { onDelete(task) },
+                            onUpdateTitle: { title in onUpdateTitle(task, title) },
                             onSetReminder: { date in onSetReminder(task, date) }
                         )
                     }
@@ -51,6 +53,7 @@ struct TaskListView: View {
                                 isHighlighted: highlightedTaskID == task.id,
                                 onToggle: { onToggle(task) },
                                 onDelete: { onDelete(task) },
+                                onUpdateTitle: { title in onUpdateTitle(task, title) },
                                 onSetReminder: { date in onSetReminder(task, date) }
                             )
                         }

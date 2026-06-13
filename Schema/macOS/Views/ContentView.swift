@@ -93,6 +93,9 @@ struct ContentView: View {
                 onDelete: { task in
                     taskViewModel.deleteTask(task)
                 },
+                onUpdateTitle: { task, title in
+                    taskViewModel.updateTitle(task, title: title)
+                },
                 onSetReminder: { task, date in
                     Task {
                         await taskViewModel.setReminder(task, at: date)

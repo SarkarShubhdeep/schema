@@ -10,10 +10,14 @@ struct TaskRowView: View {
     let isHighlighted: Bool
     let onToggle: () -> Void
     let onDelete: () -> Void
+    let onUpdateTitle: (String) -> Void
     let onSetReminder: (Date?) -> Void
 
     @State private var showReminderPicker = false
     @State private var reminderDate = Date()
+    @State private var isEditingTitle = false
+    @State private var editedTitle = ""
+    @FocusState private var isTitleFocused: Bool
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -25,10 +29,7 @@ struct TaskRowView: View {
             .buttonStyle(.plain)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(task.title)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(task.isCompleted ? SchemaTheme.completed : .primary)
-                    .strikethrough(task.isCompleted, color: SchemaTheme.completed)
+                titleView
 
                 if let description = task.displayDescription {
                     Text(description)
@@ -36,19 +37,14 @@ struct TaskRowView: View {
                         .foregroundStyle(SchemaTheme.mutedText)
                 }
 
-                if let reminderTime = task.reminderTime {
-                    Label(reminderTime.formatted(date: .abbreviated, time: .shortened), systemImage: "bell.fill")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(SchemaTheme.accent.opacity(0.85))
-                }
+                reminderView
             }
 
             Spacer(minLength: 0)
 
             Menu {
                 Button("Set Reminder") {
-                    reminderDate = task.reminderTime ?? Date().addingTimeInterval(3600)
-                    showReminderPicker = true
+                    openReminderPicker()
                 }
 
                 if task.reminderTime != nil {
@@ -80,34 +76,120 @@ struct TaskRowView: View {
         )
         .animation(.easeInOut(duration: 0.2), value: isHighlighted)
         .popover(isPresented: $showReminderPicker) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Reminder")
-                    .font(.headline)
-
-                DatePicker(
-                    "Reminder Time",
-                    selection: $reminderDate,
-                    in: Date()...,
-                    displayedComponents: [.date, .hourAndMinute]
-                )
-                .labelsHidden()
-
-                HStack {
-                    Button("Cancel") {
-                        showReminderPicker = false
-                    }
-
-                    Spacer()
-
-                    Button("Save") {
-                        onSetReminder(reminderDate)
-                        showReminderPicker = false
-                    }
-                    .keyboardShortcut(.defaultAction)
-                }
-            }
-            .padding(16)
-            .frame(width: 280)
+            reminderPickerContent
         }
+    }
+
+    @ViewBuilder
+    private var titleView: some View {
+        if isEditingTitle {
+            TextField("Task title", text: $editedTitle)
+                .textFieldStyle(.plain)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(task.isCompleted ? SchemaTheme.completed : .primary)
+                .focused($isTitleFocused)
+                .onSubmit(commitTitleEdit)
+                .onChange(of: isTitleFocused) { _, focused in
+                    if !focused, isEditingTitle {
+                        commitTitleEdit()
+                    }
+                }
+                .onKeyPress(.escape) {
+                    cancelTitleEdit()
+                    return .handled
+                }
+        } else {
+            Text(task.title)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(task.isCompleted ? SchemaTheme.completed : .primary)
+                .strikethrough(task.isCompleted, color: SchemaTheme.completed)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    beginTitleEdit()
+                }
+                .help("Click to edit title")
+        }
+    }
+
+    @ViewBuilder
+    private var reminderView: some View {
+        if let reminderTime = task.reminderTime {
+            Button(action: openReminderPicker) {
+                Label(
+                    reminderTime.formatted(date: .abbreviated, time: .shortened),
+                    systemImage: "bell.fill"
+                )
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(SchemaTheme.accent.opacity(0.85))
+            }
+            .buttonStyle(.plain)
+            .help("Click to edit reminder")
+        }
+    }
+
+    private var reminderPickerContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Reminder")
+                .font(.headline)
+
+            DatePicker(
+                "Reminder Time",
+                selection: $reminderDate,
+                in: Date()...,
+                displayedComponents: [.date, .hourAndMinute]
+            )
+            .labelsHidden()
+
+            HStack {
+                Button("Cancel") {
+                    showReminderPicker = false
+                }
+
+                if task.reminderTime != nil {
+                    Button("Remove", role: .destructive) {
+                        onSetReminder(nil)
+                        showReminderPicker = false
+                    }
+                }
+
+                Spacer()
+
+                Button("Save") {
+                    onSetReminder(reminderDate)
+                    showReminderPicker = false
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(16)
+        .frame(width: 280)
+    }
+
+    private func beginTitleEdit() {
+        editedTitle = task.title
+        isEditingTitle = true
+        DispatchQueue.main.async {
+            isTitleFocused = true
+        }
+    }
+
+    private func commitTitleEdit() {
+        let trimmed = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty, trimmed != task.title {
+            onUpdateTitle(trimmed)
+        }
+        isEditingTitle = false
+        isTitleFocused = false
+    }
+
+    private func cancelTitleEdit() {
+        editedTitle = task.title
+        isEditingTitle = false
+        isTitleFocused = false
+    }
+
+    private func openReminderPicker() {
+        reminderDate = task.reminderTime ?? Date().addingTimeInterval(3600)
+        showReminderPicker = true
     }
 }
