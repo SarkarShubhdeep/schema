@@ -140,8 +140,8 @@ final class NotificationHandler: NSObject, UNUserNotificationCenterDelegate {
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
-        let taskID = response.notification.request.content.userInfo[NotificationUserInfoKey.taskID] as? String
-        let listID = response.notification.request.content.userInfo[NotificationUserInfoKey.listID] as? String
+        let taskID = response.notification.request.content.userInfo["taskID"] as? String
+        let listID = response.notification.request.content.userInfo["listID"] as? String
 
         await MainActor.run {
             var payload: [String: String] = [:]
