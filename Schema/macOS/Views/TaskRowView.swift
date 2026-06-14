@@ -8,6 +8,7 @@ import SwiftUI
 struct TaskRowView: View {
     @Bindable var task: SchemaTask
     let isHighlighted: Bool
+    let isKeyboardSelected: Bool
     let showListTag: Bool
     let isEditing: Bool
     let onToggle: () -> Void
@@ -15,6 +16,8 @@ struct TaskRowView: View {
     let onUpdateTitle: (String) -> Void
     let onSetReminder: (Date?) -> Void
     let onEditingChange: (Bool) -> Void
+    let onSelect: () -> Void
+    let onDeselect: () -> Void
 
     @State private var showReminderPicker = false
     @State private var reminderDate = Date()
@@ -25,7 +28,7 @@ struct TaskRowView: View {
     @FocusState private var isTitleFocused: Bool
 
     private enum Metrics {
-        static let reminderColumnWidth: CGFloat = 120
+        static let reminderColumnWidth: CGFloat = 148
         static let reminderRowHeight: CGFloat = 16
         static let checkboxTopInset: CGFloat = 1
         static let rowSpacing: CGFloat = 12
@@ -64,6 +67,11 @@ struct TaskRowView: View {
         )
         .animation(SchemaMotion.fast, value: isHovered)
         .animation(SchemaMotion.standard, value: isHighlighted)
+        .animation(SchemaMotion.standard, value: isKeyboardSelected)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onSelect()
+        }
         .onHover { isHovered = $0 }
         .onChange(of: isEditing) { _, shouldEdit in
             if shouldEdit {
@@ -71,7 +79,7 @@ struct TaskRowView: View {
                     beginTitleEdit()
                 }
             } else if isEditingTitle {
-                cancelTitleEdit()
+                commitTitleEdit()
             }
         }
         .contextMenu {
@@ -118,24 +126,16 @@ struct TaskRowView: View {
         Group {
             if let reminderTime = task.reminderTime {
                 Button(action: openReminderPicker) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock")
-                            .font(.system(size: 11, weight: .medium))
-                        Text(ReminderFormatting.displayString(for: reminderTime))
-                            .font(.system(size: 12, weight: .medium))
-                    }
-                    .foregroundStyle(SchemaTheme.accent.opacity(0.85))
+                    Text(ReminderFormatting.displayString(for: reminderTime))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(SchemaTheme.accent.opacity(0.85))
                 }
                 .buttonStyle(.plain)
             } else if isHovered, !task.isCompleted {
                 Button(action: openReminderPicker) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock")
-                            .font(.system(size: 11, weight: .medium))
-                        Text("Add time")
-                            .font(.system(size: 12, weight: .medium))
-                    }
-                    .foregroundStyle(SchemaTheme.mutedText)
+                    Text("Add time")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(SchemaTheme.mutedText)
                 }
                 .buttonStyle(.plain)
             } else {
@@ -167,6 +167,9 @@ struct TaskRowView: View {
         if isHighlighted {
             return SchemaTheme.accent.opacity(0.06)
         }
+        if isKeyboardSelected {
+            return SchemaTheme.accent.opacity(0.08)
+        }
         if isHovered {
             return SchemaTheme.rowHoverBackground()
         }
@@ -184,6 +187,7 @@ struct TaskRowView: View {
                 .onSubmit(commitTitleEdit)
                 .onKeyPress(.escape) {
                     cancelTitleEdit()
+                    onDeselect()
                     return .handled
                 }
         } else {
@@ -197,6 +201,7 @@ struct TaskRowView: View {
                 .animation(SchemaMotion.fast, value: task.isCompleted)
                 .contentShape(Rectangle())
                 .onTapGesture {
+                    onSelect()
                     beginTitleEdit()
                 }
         }
@@ -241,6 +246,7 @@ struct TaskRowView: View {
     }
 
     private func handleToggle() {
+        onDeselect()
         withAnimation(SchemaMotion.spring) {
             checkboxScale = 0.94
             onToggle()
@@ -277,6 +283,7 @@ struct TaskRowView: View {
     }
 
     private func openReminderPicker() {
+        onDeselect()
         reminderDate = task.reminderTime ?? Date().addingTimeInterval(3600)
         showReminderPicker = true
     }

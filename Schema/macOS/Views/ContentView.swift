@@ -26,7 +26,12 @@ struct ContentView: View {
     @State private var isAddTaskExpanded = false
     @State private var skipAddTaskDismiss = false
     @State private var editingTaskID: UUID?
+    @State private var selectedTaskIDs: Set<UUID> = []
+    @State private var primarySelectedTaskID: UUID?
+    @State private var selectionAnchorID: UUID?
+    @State private var isEditingListName = false
     @FocusState private var isAddTaskFocused: Bool
+    @FocusState private var isTaskListFocused: Bool
 
     private let notificationService = NotificationService()
 
@@ -122,9 +127,24 @@ struct ContentView: View {
         listViewModel: ListViewModel,
         taskViewModel: TaskViewModel
     ) -> some View {
+        let incomplete = taskViewModel.incompleteTasks(
+            for: selectedList,
+            from: allTasks,
+            sortOption: listViewModel.sortOption,
+            filterOption: listViewModel.filterOption
+        )
+        let completed = taskViewModel.completedTasks(
+            for: selectedList,
+            from: allTasks,
+            sortOption: listViewModel.sortOption,
+            filterOption: listViewModel.filterOption
+        )
+        let navigableTaskIDs = (incomplete + completed).map(\.id)
+
         VStack(spacing: 0) {
             ListContextBar(
                 onAllLists: {
+                    clearTaskSelection()
                     navigationPath.append(WorkspaceRoute.allLists)
                 },
                 listViewModel: listViewModel
@@ -135,10 +155,13 @@ struct ContentView: View {
                 selectedListID: listViewModel.selectedListID,
                 taskCount: taskCount,
                 onSelect: { list in
-                    withAnimation(SchemaMotion.smooth) {
-                        listViewModel.selectList(list)
-                    }
-                }
+                    clearTaskSelection()
+                    listViewModel.selectList(list)
+                },
+                onRename: { list, title in
+                    listViewModel.updateListTitle(list, title: title)
+                },
+                isEditingListName: $isEditingListName
             )
 
             AddTaskBar(
@@ -152,28 +175,26 @@ struct ContentView: View {
                     submitQuickEntry(taskViewModel: taskViewModel, listViewModel: listViewModel)
                 },
                 onCancel: closeAddTask,
+                onOpen: clearTaskSelection,
+                onNavigateUp: { moveSingleTaskSelection(by: -1, in: navigableTaskIDs) },
+                onNavigateDown: { moveSingleTaskSelection(by: 1, in: navigableTaskIDs) },
                 focusBinding: $isAddTaskFocused
             )
 
             TaskListView(
-                incompleteTasks: taskViewModel.incompleteTasks(
-                    for: selectedList,
-                    from: allTasks,
-                    sortOption: listViewModel.sortOption,
-                    filterOption: listViewModel.filterOption
-                ),
-                completedTasks: taskViewModel.completedTasks(
-                    for: selectedList,
-                    from: allTasks,
-                    sortOption: listViewModel.sortOption,
-                    filterOption: listViewModel.filterOption
-                ),
+                incompleteTasks: incomplete,
+                completedTasks: completed,
                 highlightedTaskID: highlightedTaskID,
+                selectedTaskIDs: selectedTaskIDs,
+                primarySelectedTaskID: primarySelectedTaskID,
                 showListTags: selectedList?.isEverythingList == true,
                 selectedListID: listViewModel.selectedListID,
                 editingTaskID: editingTaskID,
                 sortOption: listViewModel.sortOption,
                 filterOption: listViewModel.filterOption,
+                navigableTaskIDs: navigableTaskIDs,
+                isAddTaskFocused: isAddTaskFocused,
+                isEditingListName: isEditingListName,
                 onToggle: { task in
                     withAnimation(SchemaMotion.smooth) {
                         taskViewModel.toggleCompletion(task)
@@ -193,13 +214,81 @@ struct ContentView: View {
                 },
                 onEditingTaskIDChange: { taskID in
                     editingTaskID = taskID
-                }
+                    if taskID == nil {
+                        DispatchQueue.main.async {
+                            isTaskListFocused = true
+                        }
+                    }
+                },
+                onSelectTask: { taskID in
+                    selectSingleTask(taskID)
+                },
+                onClearSelection: clearTaskSelection,
+                onToggleSelected: { taskIDs in
+                    handleKeyboardToggleSelected(
+                        taskIDs: taskIDs,
+                        incomplete: incomplete,
+                        completed: completed,
+                        taskViewModel: taskViewModel
+                    )
+                },
+                onDeleteSelected: { taskIDs in
+                    handleKeyboardDeleteSelected(
+                        taskIDs: taskIDs,
+                        navigableTaskIDs: navigableTaskIDs,
+                        incomplete: incomplete,
+                        completed: completed,
+                        taskViewModel: taskViewModel
+                    )
+                },
+                onDuplicateSelected: { taskIDs in
+                    handleKeyboardDuplicateSelected(
+                        taskIDs: taskIDs,
+                        incomplete: incomplete,
+                        completed: completed,
+                        taskViewModel: taskViewModel
+                    )
+                },
+                onSelectAllPending: {
+                    selectAllPendingTasks(in: incomplete)
+                },
+                selectedTaskIDsBinding: $selectedTaskIDs,
+                primarySelectedTaskIDBinding: $primarySelectedTaskID,
+                selectionAnchorIDBinding: $selectionAnchorID,
+                editingTaskIDBinding: $editingTaskID,
+                isTaskListFocused: $isTaskListFocused
             )
         }
         .frame(minWidth: 720, minHeight: 520)
         .background(SchemaTheme.background)
-        .clickOutsideDismiss(isActive: isAddTaskExpanded || editingTaskID != nil) {
+        .clickOutsideDismiss(isActive: isAddTaskExpanded || editingTaskID != nil || !selectedTaskIDs.isEmpty) {
             dismissActiveEditing()
+        }
+        .onChange(of: isAddTaskExpanded) { _, expanded in
+            if expanded {
+                clearTaskSelection()
+            } else {
+                DispatchQueue.main.async {
+                    isTaskListFocused = true
+                }
+            }
+        }
+        .onChange(of: listViewModel.selectedListID) { _, _ in
+            clearTaskSelection()
+        }
+        .onChange(of: listViewModel.sortOption) { _, _ in
+            clearTaskSelection()
+        }
+        .onChange(of: listViewModel.filterOption) { _, _ in
+            clearTaskSelection()
+        }
+        .onChange(of: navigableTaskIDs) { _, ids in
+            let validIDs = Set(ids)
+            selectedTaskIDs = selectedTaskIDs.intersection(validIDs)
+            if let primarySelectedTaskID, !validIDs.contains(primarySelectedTaskID) {
+                self.primarySelectedTaskID = selectedTaskIDs.first
+                selectionAnchorID = selectedTaskIDs.first
+            }
         }
         .workspaceKeyboardShortcuts(
             isAddTaskExpanded: $isAddTaskExpanded,
@@ -314,13 +403,163 @@ struct ContentView: View {
         isAddTaskExpanded = false
         isAddTaskFocused = false
         skipAddTaskDismiss = false
+        DispatchQueue.main.async {
+            isTaskListFocused = true
+        }
+    }
+
+    private func clearTaskSelection() {
+        selectedTaskIDs = []
+        primarySelectedTaskID = nil
+        selectionAnchorID = nil
+    }
+
+    private func selectSingleTask(_ taskID: UUID) {
+        selectedTaskIDs = [taskID]
+        primarySelectedTaskID = taskID
+        selectionAnchorID = taskID
+    }
+
+    private func selectAllPendingTasks(in incomplete: [SchemaTask]) {
+        guard !incomplete.isEmpty else {
+            clearTaskSelection()
+            return
+        }
+
+        selectedTaskIDs = Set(incomplete.map(\.id))
+        selectionAnchorID = incomplete.first?.id
+        primarySelectedTaskID = incomplete.last?.id
+        isTaskListFocused = true
+    }
+
+    private func moveSingleTaskSelection(by offset: Int, in navigableTaskIDs: [UUID]) {
+        guard editingTaskID == nil, !isEditingListName else { return }
+        guard !navigableTaskIDs.isEmpty else {
+            clearTaskSelection()
+            return
+        }
+
+        let currentID = primarySelectedTaskID ?? selectedTaskIDs.first
+
+        if currentID == nil {
+            selectSingleTask(navigableTaskIDs[0])
+            isTaskListFocused = true
+            return
+        }
+
+        guard let currentIndex = navigableTaskIDs.firstIndex(of: currentID!) else {
+            selectSingleTask(navigableTaskIDs[0])
+            isTaskListFocused = true
+            return
+        }
+
+        let nextIndex = max(0, min(navigableTaskIDs.count - 1, currentIndex + offset))
+        selectSingleTask(navigableTaskIDs[nextIndex])
+        isTaskListFocused = true
+    }
+
+    private func handleKeyboardToggleSelected(
+        taskIDs: Set<UUID>,
+        incomplete: [SchemaTask],
+        completed: [SchemaTask],
+        taskViewModel: TaskViewModel
+    ) {
+        let allTasks = incomplete + completed
+        let selectedTasks = allTasks.filter { taskIDs.contains($0.id) }
+        let tasksToCheckOff = selectedTasks.filter { !$0.isCompleted }
+        let tasksToUncheck = selectedTasks.filter(\.isCompleted)
+
+        withAnimation(SchemaMotion.smooth) {
+            for task in tasksToCheckOff + tasksToUncheck {
+                taskViewModel.toggleCompletion(task)
+            }
+        }
+
+        if tasksToCheckOff.count == 1, tasksToUncheck.isEmpty,
+           let task = tasksToCheckOff.first,
+           let currentIndex = incomplete.firstIndex(where: { $0.id == task.id }) {
+            let remaining = incomplete.filter { $0.id != task.id }
+            if remaining.isEmpty {
+                clearTaskSelection()
+            } else {
+                selectSingleTask(remaining[min(currentIndex, remaining.count - 1)].id)
+            }
+        } else if tasksToUncheck.count == 1, tasksToCheckOff.isEmpty,
+                  let task = tasksToUncheck.first {
+            selectSingleTask(task.id)
+        } else if !tasksToCheckOff.isEmpty {
+            let checkedIDs = Set(tasksToCheckOff.map(\.id))
+            let remaining = incomplete.filter { !checkedIDs.contains($0.id) }
+            if let firstRemaining = remaining.first {
+                selectSingleTask(firstRemaining.id)
+            } else {
+                clearTaskSelection()
+            }
+        } else {
+            clearTaskSelection()
+        }
+
+        isTaskListFocused = true
+    }
+
+    private func handleKeyboardDeleteSelected(
+        taskIDs: Set<UUID>,
+        navigableTaskIDs: [UUID],
+        incomplete: [SchemaTask],
+        completed: [SchemaTask],
+        taskViewModel: TaskViewModel
+    ) {
+        let sortedIDsToDelete = navigableTaskIDs.filter { taskIDs.contains($0) }
+        guard !sortedIDsToDelete.isEmpty else { return }
+
+        let allTasks = incomplete + completed
+        let firstDeletedIndex = navigableTaskIDs.firstIndex(of: sortedIDsToDelete[0])
+
+        for taskID in sortedIDsToDelete.reversed() {
+            guard let task = allTasks.first(where: { $0.id == taskID }) else { continue }
+            taskViewModel.deleteTask(task)
+        }
+
+        let remainingNavigable = navigableTaskIDs.filter { !taskIDs.contains($0) }
+        if let firstDeletedIndex, !remainingNavigable.isEmpty {
+            let nextIndex = min(firstDeletedIndex, remainingNavigable.count - 1)
+            selectSingleTask(remainingNavigable[nextIndex])
+        } else {
+            clearTaskSelection()
+        }
+
+        isTaskListFocused = true
+    }
+
+    private func handleKeyboardDuplicateSelected(
+        taskIDs: Set<UUID>,
+        incomplete: [SchemaTask],
+        completed: [SchemaTask],
+        taskViewModel: TaskViewModel
+    ) {
+        let orderedTasks = (incomplete + completed).filter { taskIDs.contains($0.id) }
+        guard !orderedTasks.isEmpty else { return }
+
+        withAnimation(SchemaMotion.smooth) {
+            let copies = taskViewModel.duplicateTasks(orderedTasks)
+            if !copies.isEmpty {
+                selectedTaskIDs = Set(copies.map(\.id))
+                primarySelectedTaskID = copies.last?.id
+                selectionAnchorID = copies.first?.id
+            }
+        }
+
+        isTaskListFocused = true
     }
 
     private func dismissActiveEditing() {
         if isAddTaskExpanded {
             closeAddTask()
         }
-        editingTaskID = nil
+        if editingTaskID != nil {
+            editingTaskID = nil
+        }
+        clearTaskSelection()
     }
 
     private func handleNotificationSelect(_ item: SchemaNotificationItem, listViewModel: ListViewModel) {

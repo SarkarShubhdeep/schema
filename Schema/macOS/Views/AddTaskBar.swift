@@ -11,6 +11,9 @@ struct AddTaskBar: View {
     let placeholder: String
     let onSubmit: () -> Void
     let onCancel: () -> Void
+    var onOpen: (() -> Void)?
+    var onNavigateUp: (() -> Void)?
+    var onNavigateDown: (() -> Void)?
     var focusBinding: FocusState<Bool>.Binding
 
     private enum Metrics {
@@ -80,6 +83,14 @@ struct AddTaskBar: View {
                     onCancel()
                     return .handled
                 }
+                .onKeyPress(keys: [.upArrow], phases: [.down, .repeat]) { _ in
+                    onNavigateUp?()
+                    return .handled
+                }
+                .onKeyPress(keys: [.downArrow], phases: [.down, .repeat]) { _ in
+                    onNavigateDown?()
+                    return .handled
+                }
         }
     }
 
@@ -122,6 +133,7 @@ struct AddTaskBar: View {
     }
 
     private func openAddTask() {
+        onOpen?()
         isExpanded = true
     }
 }

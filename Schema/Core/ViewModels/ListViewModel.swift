@@ -156,6 +156,14 @@ final class ListViewModel {
         showNewListSheet = false
     }
 
+    func updateListTitle(_ list: SchemaList, title: String) {
+        guard !list.isEverythingList else { return }
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        list.title = trimmed
+        save()
+    }
+
     func deleteList(_ list: SchemaList, from lists: [SchemaList]) {
         guard !list.isEverythingList else { return }
 

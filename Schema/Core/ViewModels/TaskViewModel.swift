@@ -117,6 +117,41 @@ final class TaskViewModel {
         }
     }
 
+    @discardableResult
+    func duplicateTasks(_ tasks: [SchemaTask], recordUndo: Bool = true) -> [SchemaTask] {
+        var copies: [SchemaTask] = []
+
+        for (index, task) in tasks.enumerated() {
+            guard let list = task.list else { continue }
+
+            let copy = SchemaTask(
+                title: task.title,
+                description: task.taskDescription,
+                list: list,
+                reminderTime: task.reminderTime,
+                tags: task.tags
+            )
+            copy.isCompleted = task.isCompleted
+            copy.createdAt = task.createdAt.addingTimeInterval(Double(index + 1) * 0.001)
+            modelContext.insert(copy)
+            copies.append(copy)
+
+            if recordUndo {
+                pushUndo(.addedTask(copy.id))
+            }
+        }
+
+        guard !copies.isEmpty else { return [] }
+
+        save()
+
+        for copy in copies where copy.reminderTime != nil && !copy.isCompleted {
+            Task { await rescheduleReminderIfNeeded(for: copy) }
+        }
+
+        return copies
+    }
+
     func deleteTask(_ task: SchemaTask, recordUndo: Bool = true) {
         if recordUndo {
             pushUndo(.deletedTask(TaskSnapshot(task: task)))

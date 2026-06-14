@@ -9,16 +9,32 @@ struct TaskListView: View {
     let incompleteTasks: [SchemaTask]
     let completedTasks: [SchemaTask]
     let highlightedTaskID: UUID?
+    let selectedTaskIDs: Set<UUID>
+    let primarySelectedTaskID: UUID?
     let showListTags: Bool
     let selectedListID: UUID?
     let editingTaskID: UUID?
     let sortOption: TaskSortOption
     let filterOption: TaskFilterOption
+    let navigableTaskIDs: [UUID]
+    let isAddTaskFocused: Bool
+    let isEditingListName: Bool
     let onToggle: (SchemaTask) -> Void
     let onDelete: (SchemaTask) -> Void
     let onUpdateTitle: (SchemaTask, String) -> Void
     let onSetReminder: (SchemaTask, Date?) -> Void
     let onEditingTaskIDChange: (UUID?) -> Void
+    let onSelectTask: (UUID) -> Void
+    let onClearSelection: () -> Void
+    let onToggleSelected: (Set<UUID>) -> Void
+    let onDeleteSelected: (Set<UUID>) -> Void
+    let onDuplicateSelected: (Set<UUID>) -> Void
+    let onSelectAllPending: () -> Void
+    @Binding var selectedTaskIDsBinding: Set<UUID>
+    @Binding var primarySelectedTaskIDBinding: UUID?
+    @Binding var selectionAnchorIDBinding: UUID?
+    @Binding var editingTaskIDBinding: UUID?
+    var isTaskListFocused: FocusState<Bool>.Binding
 
     @State private var showCompleted = false
 
@@ -34,54 +50,77 @@ struct TaskListView: View {
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 2) {
-                if incompleteTasks.isEmpty && completedTasks.isEmpty {
-                    ContentUnavailableView(
-                        "No tasks yet",
-                        systemImage: "checklist",
-                        description: Text("Press n to add your first task.")
-                    )
-                    .frame(maxWidth: .infinity, minHeight: 280)
-                    .transition(.opacity)
-                } else {
-                    taskSection
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 2) {
+                    if incompleteTasks.isEmpty && completedTasks.isEmpty {
+                        ContentUnavailableView(
+                            "No tasks yet",
+                            systemImage: "checklist",
+                            description: Text("Press n to add your first task.")
+                        )
+                        .frame(maxWidth: .infinity, minHeight: 280)
+                        .transition(.opacity)
+                    } else {
+                        taskSection
+                    }
+                }
+                .padding(.horizontal, 28)
+                .padding(.vertical, 8)
+                .id(contentAnimationKey)
+            }
+            .background(SchemaTheme.background)
+            .animation(SchemaMotion.fast, value: contentAnimationKey)
+            .focusable()
+            .focused(isTaskListFocused)
+            .focusEffectDisabled()
+            .taskListKeyboardNavigation(
+                navigableTaskIDs: navigableTaskIDs,
+                selectedTaskIDs: $selectedTaskIDsBinding,
+                primarySelectedTaskID: $primarySelectedTaskIDBinding,
+                selectionAnchorID: $selectionAnchorIDBinding,
+                editingTaskID: $editingTaskIDBinding,
+                isTaskListFocused: isTaskListFocused,
+                isAddTaskFocused: isAddTaskFocused,
+                isEditingListName: isEditingListName,
+                onToggleSelected: onToggleSelected,
+                onDeleteSelected: onDeleteSelected,
+                onDuplicateSelected: onDuplicateSelected,
+                onSelectAllPending: onSelectAllPending,
+                onClearSelection: onClearSelection
+            )
+            .onChange(of: primarySelectedTaskID) { _, taskID in
+                guard let taskID else { return }
+
+                if completedTasks.contains(where: { $0.id == taskID }), !showCompleted {
+                    withAnimation(SchemaMotion.fast) {
+                        showCompleted = true
+                    }
+                }
+
+                withAnimation(SchemaMotion.fast) {
+                    proxy.scrollTo(taskID, anchor: .center)
                 }
             }
-            .padding(.horizontal, 28)
-            .padding(.vertical, 8)
-            .opacity(1)
-            .offset(y: 0)
-            .id(contentAnimationKey)
-            .transition(.opacity.combined(with: .offset(y: 4)))
+            .onTapGesture {
+                isTaskListFocused.wrappedValue = true
+            }
         }
-        .background(SchemaTheme.background)
-        .animation(SchemaMotion.smooth, value: contentAnimationKey)
     }
 
     @ViewBuilder
     private var taskSection: some View {
         ForEach(incompleteTasks) { task in
-            TaskRowView(
-                task: task,
-                isHighlighted: highlightedTaskID == task.id,
-                showListTag: showListTags,
-                isEditing: editingTaskID == task.id,
-                onToggle: { onToggle(task) },
-                onDelete: { onDelete(task) },
-                onUpdateTitle: { title in onUpdateTitle(task, title) },
-                onSetReminder: { date in onSetReminder(task, date) },
-                onEditingChange: { isEditing in
-                    onEditingTaskIDChange(isEditing ? task.id : nil)
-                }
-            )
-            .transition(taskRowTransition)
+            taskRow(for: task)
+                .id(task.id)
+                .transition(taskRowTransition)
         }
-        .animation(SchemaMotion.smooth, value: incompleteTasks.map(\.id))
+        .animation(SchemaMotion.fast, value: incompleteTasks.map(\.id))
 
         if !completedTasks.isEmpty {
             Button {
-                withAnimation(SchemaMotion.smooth) {
+                onClearSelection()
+                withAnimation(SchemaMotion.fast) {
                     showCompleted.toggle()
                 }
             } label: {
@@ -103,22 +142,33 @@ struct TaskListView: View {
 
             if showCompleted {
                 ForEach(completedTasks) { task in
-                    TaskRowView(
-                        task: task,
-                        isHighlighted: highlightedTaskID == task.id,
-                        showListTag: showListTags,
-                        isEditing: editingTaskID == task.id,
-                        onToggle: { onToggle(task) },
-                        onDelete: { onDelete(task) },
-                        onUpdateTitle: { title in onUpdateTitle(task, title) },
-                        onSetReminder: { date in onSetReminder(task, date) },
-                        onEditingChange: { isEditing in
-                            onEditingTaskIDChange(isEditing ? task.id : nil)
-                        }
-                    )
-                    .transition(.opacity)
+                    taskRow(for: task)
+                        .id(task.id)
+                        .transition(.opacity)
                 }
             }
         }
+    }
+
+    private func taskRow(for task: SchemaTask) -> some View {
+        TaskRowView(
+            task: task,
+            isHighlighted: highlightedTaskID == task.id,
+            isKeyboardSelected: selectedTaskIDs.contains(task.id),
+            showListTag: showListTags,
+            isEditing: editingTaskID == task.id,
+            onToggle: { onToggle(task) },
+            onDelete: { onDelete(task) },
+            onUpdateTitle: { title in onUpdateTitle(task, title) },
+            onSetReminder: { date in onSetReminder(task, date) },
+            onEditingChange: { isEditing in
+                onEditingTaskIDChange(isEditing ? task.id : nil)
+            },
+            onSelect: {
+                onSelectTask(task.id)
+                isTaskListFocused.wrappedValue = true
+            },
+            onDeselect: onClearSelection
+        )
     }
 }
