@@ -60,6 +60,13 @@ struct SettingsView: View {
             }
 
             HStack {
+                Text("Version")
+                Spacer()
+                Text(versionLabel)
+                    .foregroundStyle(SchemaTheme.mutedText)
+            }
+
+            HStack {
                 Spacer()
                 Button("Done") {
                     dismiss()
@@ -80,6 +87,12 @@ struct SettingsView: View {
         case .denied: "Denied"
         case .authorized: "Authorized"
         }
+    }
+
+    private var versionLabel: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+        return "\(version) (\(build))"
     }
 
     private var defaultListBinding: Binding<UUID?> {

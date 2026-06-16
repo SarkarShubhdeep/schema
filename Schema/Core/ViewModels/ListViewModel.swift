@@ -49,9 +49,15 @@ final class ListViewModel {
     var selectedListID: UUID?
     var showNewListSheet = false
     var newListTitle = ""
-    var sortOption: TaskSortOption = .manual
-    var filterOption: TaskFilterOption = .all
-    var defaultWritableListID: UUID?
+    var sortOption: TaskSortOption = SchemaPreferences.sortOption {
+        didSet { SchemaPreferences.sortOption = sortOption }
+    }
+    var filterOption: TaskFilterOption = SchemaPreferences.filterOption {
+        didSet { SchemaPreferences.filterOption = filterOption }
+    }
+    var defaultWritableListID: UUID? = SchemaPreferences.defaultWritableListID {
+        didSet { SchemaPreferences.defaultWritableListID = defaultWritableListID }
+    }
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -91,6 +97,7 @@ final class ListViewModel {
         save()
         selectedListID = everything.id
         defaultWritableListID = dailyTodos.id
+        SchemaPreferences.defaultWritableListID = dailyTodos.id
     }
 
     func selectList(_ list: SchemaList?) {
