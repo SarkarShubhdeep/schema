@@ -62,13 +62,17 @@ _Work actively being built. Add branch or PR links as you go._
 
 | Feature | Branch / PR | Notes |
 |---------|-------------|-------|
-| | | |
+| Detailed task view | `feature/task-detail-view` | Return or double-click on a selected task to open |
 
 ---
 
 ## Needs work
 
 Gaps, partial implementations, and planned v0.2 items. See [V0.2_ROADMAP.md](V0.2_ROADMAP.md) for phase order and file touch points.
+
+### Next up
+
+- [ ] **Detailed task view** — Return or double-click opens a dedicated task detail UI (title, description, reminder, etc.)
 
 ### Foundation
 
@@ -90,10 +94,6 @@ Gaps, partial implementations, and planned v0.2 items. See [V0.2_ROADMAP.md](V0.
 - [ ] Surface save failures to the user (today `assertionFailure` in debug only)
 - [ ] Reminder scheduling error feedback when notification permission denied
 
-### Platform
-
-- [ ] iOS app (App Store Connect lists iOS; only macOS ships today)
-
 ---
 
 ## Backlog
@@ -110,6 +110,7 @@ _Ideas and future features — add yours below._
 
 Items explicitly deferred unless promoted. From [V0.2_ROADMAP.md](V0.2_ROADMAP.md).
 
+- **iOS app** — deferred to **v1.0** (App Store Connect lists iOS today; only macOS ships until then)
 - Mac App Store public listing (TestFlight internal only for now)
 - XCTest / CI pipeline
 - App Store listing name change (stays **Schema: Fast, Simple Todos**)
@@ -120,4 +121,5 @@ Items explicitly deferred unless promoted. From [V0.2_ROADMAP.md](V0.2_ROADMAP.m
 
 _Add planning notes, decisions, and open questions here._
 
--
+- **v0.2 first slice:** detailed task view (`feature/task-detail-view`). Return currently inline-edits the task title; detail view will replace that behavior.
+- **iOS:** no work until v1.0.
