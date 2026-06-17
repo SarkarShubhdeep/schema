@@ -70,7 +70,10 @@ Report bugs via GitHub Issues. Include the version from **Settings** (e.g. `0.1 
 
 ## Branching
 
-- `main` — production-ready releases
-- `develop` — integration branch
+- `main` — production-ready releases (currently **v0.1.0**)
+- `develop` — integration branch for **v0.2** work
 - `feature/*` — feature work
 - `enhancement/*` — improvements and polish
+- `fix/*` — bug fixes
+
+See [docs/V0.2_ROADMAP.md](docs/V0.2_ROADMAP.md) for the current v0.2 plan.

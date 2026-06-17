@@ -2,6 +2,22 @@
 
 All notable changes to Schema are documented in this file.
 
+## [Unreleased]
+
+Planned for **v0.2.0** — see [docs/V0.2_ROADMAP.md](docs/V0.2_ROADMAP.md).
+
+### Added
+
+- (pending)
+
+### Fixed
+
+- (pending)
+
+### Changed
+
+- (pending)
+
 ## [0.1.0] — 2026-06-14
 
 ### Added

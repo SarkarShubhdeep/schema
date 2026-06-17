@@ -2,6 +2,8 @@
 
 This document lists intentional limitations and known bugs in Schema v0.1. Items here are expected behavior for this release, not surprises.
 
+**v0.2 targets:** [V0.2_ROADMAP.md](V0.2_ROADMAP.md)
+
 ## Features not yet implemented
 
 ### Task descriptions
