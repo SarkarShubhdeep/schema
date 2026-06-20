@@ -203,6 +203,12 @@ struct ContentView: View {
                 isSequenceBlocked: { task in
                     taskViewModel.isSequenceBlocked(task, in: allTasks)
                 },
+                canMoveTask: { task in
+                    taskViewModel.canMoveTask(task, in: incomplete)
+                },
+                isChainHead: { task in
+                    taskViewModel.isChainHead(task, in: incomplete)
+                },
                 onToggle: { task in
                     withAnimation(SchemaMotion.smooth) {
                         taskViewModel.toggleCompletion(task, in: allTasks)
@@ -251,6 +257,15 @@ struct ContentView: View {
                 },
                 onOpenDetail: { taskID in
                     openTaskDetail(taskID)
+                },
+                onMove: { source, destination in
+                    handleTaskMove(
+                        source: source,
+                        destination: destination,
+                        incomplete: incomplete,
+                        taskViewModel: taskViewModel,
+                        listViewModel: listViewModel
+                    )
                 },
                 selectedTaskIDsBinding: $selectedTaskIDs,
                 primarySelectedTaskIDBinding: $primarySelectedTaskID,
@@ -421,7 +436,8 @@ struct ContentView: View {
                 to: selectedList,
                 title: taskViewModel.quickEntryText,
                 defaultWritableListID: listViewModel.defaultWritableListID,
-                lists: lists
+                lists: lists,
+                allTasks: allTasks
             )
         }
         isAddTaskExpanded = true
@@ -645,7 +661,7 @@ struct ContentView: View {
         guard !orderedTasks.isEmpty else { return }
 
         withAnimation(SchemaMotion.smooth) {
-            let copies = taskViewModel.duplicateTasks(orderedTasks)
+            let copies = taskViewModel.duplicateTasks(orderedTasks, allTasks: allTasks)
             if !copies.isEmpty {
                 selectedTaskIDs = Set(copies.map(\.id))
                 primarySelectedTaskID = copies.last?.id
@@ -677,6 +693,29 @@ struct ContentView: View {
 
     private func refreshNotifications() async {
         notificationItems = await notificationService.fetchPendingReminders()
+    }
+
+    private func handleTaskMove(
+        source: IndexSet,
+        destination: Int,
+        incomplete: [SchemaTask],
+        taskViewModel: TaskViewModel,
+        listViewModel: ListViewModel
+    ) {
+        if listViewModel.sortOption != .manual {
+            withAnimation(SchemaMotion.smooth) {
+                listViewModel.sortOption = .manual
+            }
+        }
+
+        withAnimation(SchemaMotion.smooth) {
+            _ = taskViewModel.moveTasks(
+                from: source,
+                to: destination,
+                in: incomplete,
+                allTasks: allTasks
+            )
+        }
     }
 }
 

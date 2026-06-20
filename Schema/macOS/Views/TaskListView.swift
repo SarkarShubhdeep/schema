@@ -20,6 +20,8 @@ struct TaskListView: View {
     let isEditingListName: Bool
     let isDetailOpen: Bool
     let isSequenceBlocked: (SchemaTask) -> Bool
+    let canMoveTask: (SchemaTask) -> Bool
+    let isChainHead: (SchemaTask) -> Bool
     let onToggle: (SchemaTask) -> Void
     let onDelete: (SchemaTask) -> Void
     let onSetReminder: (SchemaTask, Date?) -> Void
@@ -30,6 +32,7 @@ struct TaskListView: View {
     let onDuplicateSelected: (Set<UUID>) -> Void
     let onSelectAllPending: () -> Void
     let onOpenDetail: (UUID) -> Void
+    let onMove: (IndexSet, Int) -> Void
     @Binding var selectedTaskIDsBinding: Set<UUID>
     @Binding var primarySelectedTaskIDBinding: UUID?
     @Binding var selectionAnchorIDBinding: UUID?
@@ -50,8 +53,8 @@ struct TaskListView: View {
 
     var body: some View {
         ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: 2) {
+            ZStack {
+                List {
                     if incompleteTasks.isEmpty && completedTasks.isEmpty {
                         ContentUnavailableView(
                             "No tasks yet",
@@ -60,19 +63,24 @@ struct TaskListView: View {
                         )
                         .frame(maxWidth: .infinity, minHeight: 280)
                         .transition(.opacity)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 28, bottom: 0, trailing: 28))
                     } else {
                         taskSection
                     }
                 }
-                .padding(.horizontal, 28)
-                .padding(.vertical, 8)
-                .id(contentAnimationKey)
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+
+                Color.clear
+                    .allowsHitTesting(false)
+                    .focusable()
+                    .focused(isTaskListFocused)
+                    .focusEffectDisabled()
             }
             .background(SchemaTheme.background)
             .animation(SchemaMotion.fast, value: contentAnimationKey)
-            .focusable()
-            .focused(isTaskListFocused)
-            .focusEffectDisabled()
             .taskListKeyboardNavigation(
                 navigableTaskIDs: navigableTaskIDs,
                 selectedTaskIDs: $selectedTaskIDsBinding,
@@ -102,9 +110,6 @@ struct TaskListView: View {
                     proxy.scrollTo(taskID, anchor: .center)
                 }
             }
-            .onTapGesture {
-                isTaskListFocused.wrappedValue = true
-            }
         }
     }
 
@@ -114,7 +119,12 @@ struct TaskListView: View {
             taskRow(for: task)
                 .id(task.id)
                 .transition(taskRowTransition)
+                .moveDisabled(!canMoveTask(task))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 1, leading: 28, bottom: 1, trailing: 28))
         }
+        .onMove(perform: onMove)
         .animation(SchemaMotion.fast, value: incompleteTasks.map(\.id))
 
         if !completedTasks.isEmpty {
@@ -139,12 +149,18 @@ struct TaskListView: View {
                 .padding(.bottom, 4)
             }
             .buttonStyle(.plain)
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 0, leading: 28, bottom: 0, trailing: 28))
 
             if showCompleted {
                 ForEach(completedTasks) { task in
                     taskRow(for: task)
                         .id(task.id)
                         .transition(.opacity)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 1, leading: 28, bottom: 1, trailing: 28))
                 }
             }
         }

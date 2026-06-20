@@ -19,6 +19,7 @@ final class SchemaTask {
     var routineDays: [Int] = []
     var lastRoutineReset: Date?
     var afterTaskID: UUID?
+    var manualSortIndex: Double = 0
 
     var list: SchemaList?
 

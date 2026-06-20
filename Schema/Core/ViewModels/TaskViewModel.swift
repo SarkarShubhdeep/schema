@@ -74,6 +74,7 @@ final class TaskViewModel {
         title: String,
         defaultWritableListID: UUID? = nil,
         lists: [SchemaList] = [],
+        allTasks: [SchemaTask] = [],
         recordUndo: Bool = true
     ) -> SchemaTask? {
         guard let list else { return nil }
@@ -96,6 +97,11 @@ final class TaskViewModel {
         guard let targetList else { return nil }
 
         let task = SchemaTask(title: trimmed, list: targetList)
+        
+        let listTasks = allTasks.filter { $0.list?.id == targetList.id }
+        let maxIndex = listTasks.map(\.manualSortIndex).max() ?? 0
+        task.manualSortIndex = maxIndex + 1
+        
         modelContext.insert(task)
         save()
         quickEntryText = ""
@@ -109,6 +115,132 @@ final class TaskViewModel {
 
     func isSequenceBlocked(_ task: SchemaTask, in allTasks: [SchemaTask]) -> Bool {
         RoutineSequenceOrdering.isBlocked(task, in: allTasks)
+    }
+
+    func canMoveTask(_ task: SchemaTask, in tasks: [SchemaTask]) -> Bool {
+        RoutineSequenceOrdering.canMoveIndividually(task, in: tasks)
+    }
+
+    func isChainHead(_ task: SchemaTask, in tasks: [SchemaTask]) -> Bool {
+        RoutineSequenceOrdering.isChainHead(task, in: tasks)
+    }
+
+    @discardableResult
+    func moveTasks(
+        from sourceIndices: IndexSet,
+        to destination: Int,
+        in displayedTasks: [SchemaTask],
+        allTasks: [SchemaTask]
+    ) -> Bool {
+        guard let firstIndex = sourceIndices.first,
+              firstIndex < displayedTasks.count else { return false }
+
+        let sourceTask = displayedTasks[firstIndex]
+
+        if !RoutineSequenceOrdering.canMoveIndividually(sourceTask, in: displayedTasks) {
+            return false
+        }
+
+        var tasksToMove: [SchemaTask]
+        if RoutineSequenceOrdering.isChainHead(sourceTask, in: displayedTasks) {
+            tasksToMove = RoutineSequenceOrdering.getChainMembers(startingFrom: sourceTask, in: displayedTasks)
+        } else {
+            tasksToMove = [sourceTask]
+        }
+
+        let movingIDs = Set(tasksToMove.map(\.id))
+        let effectiveDestination = adjustedDestination(
+            original: destination,
+            sourceIndices: sourceIndices,
+            chainSize: tasksToMove.count,
+            displayedTasks: displayedTasks
+        )
+
+        let tasksWithoutMoving = displayedTasks.filter { !movingIDs.contains($0.id) }
+        
+        let (beforeIndex, afterIndex) = neighborIndices(
+            forDestination: effectiveDestination,
+            in: tasksWithoutMoving,
+            originalTasks: displayedTasks,
+            movingIDs: movingIDs
+        )
+
+        let beforeSortIndex = beforeIndex.map { tasksWithoutMoving[$0].manualSortIndex }
+        let afterSortIndex = afterIndex.map { tasksWithoutMoving[$0].manualSortIndex }
+
+        let newIndices = calculateNewSortIndices(
+            count: tasksToMove.count,
+            before: beforeSortIndex,
+            after: afterSortIndex
+        )
+
+        for (index, task) in tasksToMove.enumerated() {
+            task.manualSortIndex = newIndices[index]
+        }
+
+        save()
+        return true
+    }
+
+    private func adjustedDestination(
+        original: Int,
+        sourceIndices: IndexSet,
+        chainSize: Int,
+        displayedTasks: [SchemaTask]
+    ) -> Int {
+        guard let firstSource = sourceIndices.first else { return original }
+        
+        if original > firstSource {
+            return original - chainSize
+        }
+        return original
+    }
+
+    private func neighborIndices(
+        forDestination destination: Int,
+        in filteredTasks: [SchemaTask],
+        originalTasks: [SchemaTask],
+        movingIDs: Set<UUID>
+    ) -> (before: Int?, after: Int?) {
+        if filteredTasks.isEmpty {
+            return (nil, nil)
+        }
+        
+        if destination <= 0 {
+            return (nil, 0)
+        }
+        
+        if destination >= filteredTasks.count {
+            return (filteredTasks.count - 1, nil)
+        }
+        
+        return (destination - 1, destination)
+    }
+
+    private func calculateNewSortIndices(
+        count: Int,
+        before: Double?,
+        after: Double?
+    ) -> [Double] {
+        let start: Double
+        let gap: Double
+
+        switch (before, after) {
+        case let (b?, a?):
+            gap = (a - b) / Double(count + 1)
+            start = b + gap
+        case let (b?, nil):
+            start = b + 1
+            gap = 1
+        case let (nil, a?):
+            start = a - Double(count)
+            gap = 1
+        case (nil, nil):
+            start = 1
+            gap = 1
+        }
+
+        return (0..<count).map { start + Double($0) * gap }
     }
 
     func toggleCompletion(_ task: SchemaTask, in allTasks: [SchemaTask], recordUndo: Bool = true) {
@@ -131,7 +263,7 @@ final class TaskViewModel {
     }
 
     @discardableResult
-    func duplicateTasks(_ tasks: [SchemaTask], recordUndo: Bool = true) -> [SchemaTask] {
+    func duplicateTasks(_ tasks: [SchemaTask], allTasks: [SchemaTask] = [], recordUndo: Bool = true) -> [SchemaTask] {
         var copies: [SchemaTask] = []
 
         for (index, task) in tasks.enumerated() {
@@ -149,6 +281,7 @@ final class TaskViewModel {
             )
             copy.isCompleted = task.isCompleted
             copy.createdAt = task.createdAt.addingTimeInterval(Double(index + 1) * 0.001)
+            copy.manualSortIndex = task.manualSortIndex + 0.001 * Double(index + 1)
             modelContext.insert(copy)
             copies.append(copy)
 
@@ -298,6 +431,7 @@ final class TaskViewModel {
         task.id = snapshot.id
         task.isCompleted = snapshot.isCompleted
         task.createdAt = snapshot.createdAt
+        task.manualSortIndex = snapshot.manualSortIndex
         modelContext.insert(task)
         save()
 
@@ -359,7 +493,7 @@ final class TaskViewModel {
     private func applySort(_ tasks: [SchemaTask], option: TaskSortOption) -> [SchemaTask] {
         switch option {
         case .manual:
-            return RoutineSequenceOrdering.sorted(tasks)
+            return applyManualSort(tasks)
         case .createdAt:
             return tasks.sorted { $0.createdAt > $1.createdAt }
         case .reminderTime:
@@ -380,6 +514,50 @@ final class TaskViewModel {
                 $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
             }
         }
+    }
+
+    private func applyManualSort(_ tasks: [SchemaTask]) -> [SchemaTask] {
+        let hasChains = tasks.contains { $0.isRoutine && $0.afterTaskID != nil }
+        
+        if !hasChains {
+            return tasks.sorted { $0.manualSortIndex < $1.manualSortIndex }
+        }
+        
+        let sortedByIndex = tasks.sorted { $0.manualSortIndex < $1.manualSortIndex }
+        let taskByID = Dictionary(uniqueKeysWithValues: tasks.map { ($0.id, $0) })
+        let taskIDs = Set(taskByID.keys)
+        var placed = Set<UUID>()
+        var ordered: [SchemaTask] = []
+        
+        for task in sortedByIndex {
+            guard !placed.contains(task.id) else { continue }
+            
+            if task.isRoutine,
+               let afterID = task.afterTaskID,
+               taskIDs.contains(afterID) {
+                continue
+            }
+            
+            if task.isRoutine, RoutineSequenceOrdering.isChainHead(task, in: tasks) {
+                let chain = RoutineSequenceOrdering.getChainMembers(startingFrom: task, in: tasks)
+                for chainTask in chain {
+                    if !placed.contains(chainTask.id) {
+                        ordered.append(chainTask)
+                        placed.insert(chainTask.id)
+                    }
+                }
+            } else {
+                ordered.append(task)
+                placed.insert(task.id)
+            }
+        }
+        
+        for task in sortedByIndex where !placed.contains(task.id) {
+            ordered.append(task)
+            placed.insert(task.id)
+        }
+        
+        return ordered
     }
 
     private func clearSequenceLinks(pointingTo taskID: UUID) {

@@ -102,6 +102,58 @@ enum RoutineSequenceOrdering {
         return false
     }
 
+    static func isChainHead(_ task: SchemaTask, in tasks: [SchemaTask]) -> Bool {
+        guard task.isRoutine else { return false }
+        let taskIDs = Set(tasks.map(\.id))
+        return isChainHead(task, taskIDs: taskIDs)
+    }
+
+    static func getChainMembers(startingFrom head: SchemaTask, in tasks: [SchemaTask]) -> [SchemaTask] {
+        guard head.isRoutine else { return [head] }
+        
+        let taskByID = Dictionary(uniqueKeysWithValues: tasks.map { ($0.id, $0) })
+        var chain: [SchemaTask] = []
+        var current: SchemaTask? = head
+        var visited = Set<UUID>()
+        
+        while let task = current, !visited.contains(task.id) {
+            chain.append(task)
+            visited.insert(task.id)
+            current = taskByID.values.first { $0.afterTaskID == task.id }
+        }
+        
+        return chain
+    }
+
+    static func canMoveIndividually(_ task: SchemaTask, in tasks: [SchemaTask]) -> Bool {
+        guard task.isRoutine, task.afterTaskID != nil else { return true }
+        
+        let taskIDs = Set(tasks.map(\.id))
+        guard let afterID = task.afterTaskID, taskIDs.contains(afterID) else {
+            return true
+        }
+        return false
+    }
+
+    static func findChainHead(for task: SchemaTask, in tasks: [SchemaTask]) -> SchemaTask? {
+        guard task.isRoutine else { return nil }
+        
+        let taskByID = Dictionary(uniqueKeysWithValues: tasks.map { ($0.id, $0) })
+        let taskIDs = Set(taskByID.keys)
+        var current = task
+        var visited = Set<UUID>()
+        
+        while let afterID = current.afterTaskID,
+              taskIDs.contains(afterID),
+              let predecessor = taskByID[afterID],
+              !visited.contains(afterID) {
+            visited.insert(current.id)
+            current = predecessor
+        }
+        
+        return current
+    }
+
     private static func isChainHead(_ task: SchemaTask, taskIDs: Set<UUID>) -> Bool {
         guard let afterID = task.afterTaskID else { return true }
         return !taskIDs.contains(afterID)

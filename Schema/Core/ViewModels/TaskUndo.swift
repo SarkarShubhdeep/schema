@@ -16,6 +16,7 @@ struct TaskSnapshot {
     let isRoutine: Bool
     let routineDays: [Int]
     let afterTaskID: UUID?
+    let manualSortIndex: Double
 
     init(task: SchemaTask) {
         id = task.id
@@ -28,6 +29,7 @@ struct TaskSnapshot {
         isRoutine = task.isRoutine
         routineDays = task.routineDays
         afterTaskID = task.afterTaskID
+        manualSortIndex = task.manualSortIndex
     }
 }
 

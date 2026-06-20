@@ -42,6 +42,7 @@ struct TaskRowView: View {
             .disabled(isSequenceBlocked && !task.isCompleted)
             .help(isSequenceBlocked && !task.isCompleted ? "Complete the previous task in the sequence first" : "")
             .padding(.top, Metrics.checkboxTopInset)
+            .zIndex(1)
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
@@ -86,13 +87,7 @@ struct TaskRowView: View {
         .animation(SchemaMotion.fast, value: isHovered)
         .animation(SchemaMotion.standard, value: isHighlighted)
         .animation(SchemaMotion.standard, value: isKeyboardSelected)
-        .contentShape(Rectangle())
-        .onTapGesture(count: 2) {
-            onOpenDetail()
-        }
-        .onTapGesture {
-            onSelect()
-        }
+        .listRowClickHandling(onSingleClick: onSelect, onDoubleClick: onOpenDetail)
         .onHover { isHovered = $0 }
         .contextMenu {
             Button("Open Details") {
@@ -130,10 +125,12 @@ struct TaskRowView: View {
                 }
             }
             .fixedSize(horizontal: true, vertical: false)
+            .zIndex(1)
         } else {
             reminderColumn
                 .frame(width: Metrics.reminderColumnWidth, alignment: .trailing)
                 .fixedSize(horizontal: true, vertical: false)
+                .zIndex(1)
         }
     }
 
