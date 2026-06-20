@@ -10,19 +10,20 @@ struct TaskListKeyboardNavigation: ViewModifier {
     @Binding var selectedTaskIDs: Set<UUID>
     @Binding var primarySelectedTaskID: UUID?
     @Binding var selectionAnchorID: UUID?
-    @Binding var editingTaskID: UUID?
     @FocusState.Binding var isTaskListFocused: Bool
 
     let isAddTaskFocused: Bool
     let isEditingListName: Bool
+    let isDetailOpen: Bool
     let onToggleSelected: (Set<UUID>) -> Void
     let onDeleteSelected: (Set<UUID>) -> Void
     let onDuplicateSelected: (Set<UUID>) -> Void
     let onSelectAllPending: () -> Void
     let onClearSelection: () -> Void
+    let onOpenDetail: (UUID) -> Void
 
     private var canNavigate: Bool {
-        editingTaskID == nil && !isEditingListName
+        !isEditingListName
     }
 
     private var canPerformActions: Bool {
@@ -62,7 +63,7 @@ struct TaskListKeyboardNavigation: ViewModifier {
                 return .handled
             }
             .onKeyPress(.escape) {
-                guard editingTaskID == nil, !isAddTaskFocused, !isEditingListName else {
+                guard !isDetailOpen, !isAddTaskFocused, !isEditingListName else {
                     return .ignored
                 }
                 onClearSelection()
@@ -76,14 +77,20 @@ struct TaskListKeyboardNavigation: ViewModifier {
                     return .handled
                 }
 
-                guard selectedTaskIDs.count == 1,
-                      let taskID = primarySelectedTaskID ?? selectedTaskIDs.first else {
-                    return .ignored
+                if press.modifiers.contains(.command) {
+                    guard !isDetailOpen else { return .ignored }
+
+                    guard selectedTaskIDs.count == 1,
+                          let taskID = primarySelectedTaskID ?? selectedTaskIDs.first else {
+                        return .ignored
+                    }
+
+                    onOpenDetail(taskID)
+                    isTaskListFocused = false
+                    return .handled
                 }
 
-                editingTaskID = taskID
-                isTaskListFocused = false
-                return .handled
+                return .ignored
             }
             .onKeyPress { press in
                 guard canPerformActions, !selectedTaskIDs.isEmpty else { return .ignored }
@@ -169,15 +176,16 @@ extension View {
         selectedTaskIDs: Binding<Set<UUID>>,
         primarySelectedTaskID: Binding<UUID?>,
         selectionAnchorID: Binding<UUID?>,
-        editingTaskID: Binding<UUID?>,
         isTaskListFocused: FocusState<Bool>.Binding,
         isAddTaskFocused: Bool,
         isEditingListName: Bool,
+        isDetailOpen: Bool,
         onToggleSelected: @escaping (Set<UUID>) -> Void,
         onDeleteSelected: @escaping (Set<UUID>) -> Void,
         onDuplicateSelected: @escaping (Set<UUID>) -> Void,
         onSelectAllPending: @escaping () -> Void,
-        onClearSelection: @escaping () -> Void
+        onClearSelection: @escaping () -> Void,
+        onOpenDetail: @escaping (UUID) -> Void
     ) -> some View {
         modifier(
             TaskListKeyboardNavigation(
@@ -185,15 +193,16 @@ extension View {
                 selectedTaskIDs: selectedTaskIDs,
                 primarySelectedTaskID: primarySelectedTaskID,
                 selectionAnchorID: selectionAnchorID,
-                editingTaskID: editingTaskID,
                 isTaskListFocused: isTaskListFocused,
                 isAddTaskFocused: isAddTaskFocused,
                 isEditingListName: isEditingListName,
+                isDetailOpen: isDetailOpen,
                 onToggleSelected: onToggleSelected,
                 onDeleteSelected: onDeleteSelected,
                 onDuplicateSelected: onDuplicateSelected,
                 onSelectAllPending: onSelectAllPending,
-                onClearSelection: onClearSelection
+                onClearSelection: onClearSelection,
+                onOpenDetail: onOpenDetail
             )
         )
     }

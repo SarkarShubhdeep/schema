@@ -6,11 +6,6 @@ This document lists intentional limitations and known bugs in Schema v0.1. Items
 
 ## Features not yet implemented
 
-### Task descriptions
-
-- `SchemaTask` supports a `taskDescription` field in the data model.
-- There is **no UI** to create or edit descriptions. Descriptions are display-only when present.
-
 ### Manual sort / drag-to-reorder
 
 - The "Manual" sort option orders tasks by **creation date** (oldest first).
@@ -29,7 +24,7 @@ This document lists intentional limitations and known bugs in Schema v0.1. Items
 
 ### iOS
 
-- App Store Connect lists iOS and macOS, but **no iOS app exists yet**. Only macOS builds are distributed for v0.1.
+- App Store Connect lists iOS and macOS, but **no iOS app exists yet**. iOS is deferred to **v1.0**; only macOS builds are distributed for v0.x.
 
 ## Other
 

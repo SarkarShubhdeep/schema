@@ -9,23 +9,19 @@ struct TaskRowView: View {
     @Bindable var task: SchemaTask
     let isHighlighted: Bool
     let isKeyboardSelected: Bool
+    let isSequenceBlocked: Bool
     let showListTag: Bool
-    let isEditing: Bool
     let onToggle: () -> Void
     let onDelete: () -> Void
-    let onUpdateTitle: (String) -> Void
     let onSetReminder: (Date?) -> Void
-    let onEditingChange: (Bool) -> Void
     let onSelect: () -> Void
     let onDeselect: () -> Void
+    let onOpenDetail: () -> Void
 
     @State private var showReminderPicker = false
     @State private var reminderDate = Date()
-    @State private var isEditingTitle = false
-    @State private var editedTitle = ""
     @State private var checkboxScale: CGFloat = 1.0
     @State private var isHovered = false
-    @FocusState private var isTitleFocused: Bool
 
     private enum Metrics {
         static let reminderColumnWidth: CGFloat = 148
@@ -39,14 +35,36 @@ struct TaskRowView: View {
             Button(action: handleToggle) {
                 Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 18))
-                    .foregroundStyle(task.isCompleted ? SchemaTheme.accent : SchemaTheme.mutedText.opacity(0.55))
+                    .foregroundStyle(checkboxColor)
                     .scaleEffect(checkboxScale)
             }
             .buttonStyle(.plain)
+            .disabled(isSequenceBlocked && !task.isCompleted)
+            .help(isSequenceBlocked && !task.isCompleted ? "Complete the previous task in the sequence first" : "")
             .padding(.top, Metrics.checkboxTopInset)
 
             VStack(alignment: .leading, spacing: 3) {
-                titleView
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    Text(task.title)
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundStyle(task.isCompleted ? SchemaTheme.completed : .primary)
+                        .strikethrough(task.isCompleted, color: SchemaTheme.completed)
+                        .opacity(task.isCompleted ? 0.75 : 1)
+                        .lineLimit(2)
+                        .truncationMode(.tail)
+
+                    if task.isRoutine {
+                        Image(systemName: "repeat")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(
+                                task.isCompleted
+                                    ? SchemaTheme.completed.opacity(0.75)
+                                    : SchemaTheme.accent.opacity(0.85)
+                            )
+                            .help("Routine task")
+                    }
+                }
+                .animation(SchemaMotion.fast, value: task.isCompleted)
 
                 if let description = task.displayDescription {
                     Text(description)
@@ -69,20 +87,18 @@ struct TaskRowView: View {
         .animation(SchemaMotion.standard, value: isHighlighted)
         .animation(SchemaMotion.standard, value: isKeyboardSelected)
         .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            onOpenDetail()
+        }
         .onTapGesture {
             onSelect()
         }
         .onHover { isHovered = $0 }
-        .onChange(of: isEditing) { _, shouldEdit in
-            if shouldEdit {
-                if !isEditingTitle {
-                    beginTitleEdit()
-                }
-            } else if isEditingTitle {
-                commitTitleEdit()
-            }
-        }
         .contextMenu {
+            Button("Open Details") {
+                onOpenDetail()
+            }
+
             Button("Set Reminder") {
                 openReminderPicker()
             }
@@ -163,6 +179,16 @@ struct TaskRowView: View {
             .transition(.opacity)
     }
 
+    private var checkboxColor: Color {
+        if task.isCompleted {
+            return SchemaTheme.accent
+        }
+        if isSequenceBlocked {
+            return SchemaTheme.mutedText.opacity(0.25)
+        }
+        return SchemaTheme.mutedText.opacity(0.55)
+    }
+
     private var rowBackground: Color {
         if isHighlighted {
             return SchemaTheme.accent.opacity(0.06)
@@ -174,37 +200,6 @@ struct TaskRowView: View {
             return SchemaTheme.rowHoverBackground()
         }
         return .clear
-    }
-
-    @ViewBuilder
-    private var titleView: some View {
-        if isEditingTitle {
-            TextField("Task title", text: $editedTitle)
-                .textFieldStyle(.plain)
-                .font(.system(size: 15, weight: .regular))
-                .foregroundStyle(task.isCompleted ? SchemaTheme.completed : .primary)
-                .focused($isTitleFocused)
-                .onSubmit(commitTitleEdit)
-                .onKeyPress(.escape) {
-                    cancelTitleEdit()
-                    onDeselect()
-                    return .handled
-                }
-        } else {
-            Text(task.title)
-                .font(.system(size: 15, weight: .regular))
-                .foregroundStyle(task.isCompleted ? SchemaTheme.completed : .primary)
-                .strikethrough(task.isCompleted, color: SchemaTheme.completed)
-                .opacity(task.isCompleted ? 0.75 : 1)
-                .lineLimit(2)
-                .truncationMode(.tail)
-                .animation(SchemaMotion.fast, value: task.isCompleted)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    onSelect()
-                    beginTitleEdit()
-                }
-        }
     }
 
     private var reminderPickerContent: some View {
@@ -246,6 +241,7 @@ struct TaskRowView: View {
     }
 
     private func handleToggle() {
+        guard !isSequenceBlocked || task.isCompleted else { return }
         onDeselect()
         withAnimation(SchemaMotion.spring) {
             checkboxScale = 0.94
@@ -254,32 +250,6 @@ struct TaskRowView: View {
         withAnimation(SchemaMotion.spring.delay(0.08)) {
             checkboxScale = 1.0
         }
-    }
-
-    private func beginTitleEdit() {
-        editedTitle = task.title
-        isEditingTitle = true
-        onEditingChange(true)
-        DispatchQueue.main.async {
-            isTitleFocused = true
-        }
-    }
-
-    private func commitTitleEdit() {
-        let trimmed = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty, trimmed != task.title {
-            onUpdateTitle(trimmed)
-        }
-        isEditingTitle = false
-        isTitleFocused = false
-        onEditingChange(false)
-    }
-
-    private func cancelTitleEdit() {
-        editedTitle = task.title
-        isEditingTitle = false
-        isTitleFocused = false
-        onEditingChange(false)
     }
 
     private func openReminderPicker() {

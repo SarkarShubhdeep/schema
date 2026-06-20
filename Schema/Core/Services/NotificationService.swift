@@ -47,7 +47,7 @@ final class NotificationService: NotificationServiceProtocol {
     }
 
     func scheduleReminder(for task: SchemaTask) async throws {
-        guard let reminderTime = task.reminderTime, reminderTime > Date() else { return }
+        guard let reminderTime = task.reminderTime else { return }
 
         cancelReminder(for: task)
 
@@ -64,29 +64,67 @@ final class NotificationService: NotificationServiceProtocol {
             NotificationUserInfoKey.listID: task.list?.id.uuidString as Any
         ]
 
-        let components = Calendar.current.dateComponents(
-            [.year, .month, .day, .hour, .minute],
-            from: reminderTime
-        )
-        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-        let request = UNNotificationRequest(
-            identifier: notificationID(for: task),
-            content: content,
-            trigger: trigger
-        )
+            if task.isRoutine {
+            let timeComponents = Calendar.current.dateComponents([.hour, .minute], from: reminderTime)
+            let routineDays = task.effectiveRoutineDays
 
-        try await center.add(request)
+            if routineDays.count == 7 {
+                let trigger = UNCalendarNotificationTrigger(dateMatching: timeComponents, repeats: true)
+                let request = UNNotificationRequest(
+                    identifier: notificationID(for: task),
+                    content: content,
+                    trigger: trigger
+                )
+                try await center.add(request)
+            } else {
+                for weekday in routineDays {
+                    var components = timeComponents
+                    components.weekday = weekday
+                    let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+                    let request = UNNotificationRequest(
+                        identifier: notificationID(for: task, weekday: weekday),
+                        content: content,
+                        trigger: trigger
+                    )
+                    try await center.add(request)
+                }
+            }
+        } else {
+            guard reminderTime > Date() else { return }
+
+            let components = Calendar.current.dateComponents(
+                [.year, .month, .day, .hour, .minute],
+                from: reminderTime
+            )
+            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            let request = UNNotificationRequest(
+                identifier: notificationID(for: task),
+                content: content,
+                trigger: trigger
+            )
+
+            try await center.add(request)
+        }
     }
 
     func cancelReminder(for task: SchemaTask) {
-        center.removePendingNotificationRequests(withIdentifiers: [notificationID(for: task)])
-        center.removeDeliveredNotifications(withIdentifiers: [notificationID(for: task)])
+        var identifiers = [notificationID(for: task)]
+
+        for weekday in 1...7 {
+            identifiers.append(notificationID(for: task, weekday: weekday))
+        }
+
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+        center.removeDeliveredNotifications(withIdentifiers: identifiers)
     }
 
     func rescheduleAllReminders(for tasks: [SchemaTask]) async {
         let pendingTasks = tasks.filter { task in
-            guard let reminderTime = task.reminderTime else { return false }
-            return reminderTime > Date() && !task.isCompleted
+            guard task.reminderTime != nil else { return false }
+            if task.isRoutine {
+                return !task.isCompleted
+            }
+            return task.reminderTime! > Date() && !task.isCompleted
         }
 
         guard !pendingTasks.isEmpty else { return }
@@ -129,8 +167,11 @@ final class NotificationService: NotificationServiceProtocol {
             .sorted { $0.fireDate < $1.fireDate }
     }
 
-    private func notificationID(for task: SchemaTask) -> String {
-        "schema.task.\(task.id.uuidString)"
+    private func notificationID(for task: SchemaTask, weekday: Int? = nil) -> String {
+        if let weekday {
+            return "schema.task.\(task.id.uuidString).\(weekday)"
+        }
+        return "schema.task.\(task.id.uuidString)"
     }
 }
 #else

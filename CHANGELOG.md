@@ -8,15 +8,12 @@ Planned for **v0.2.0** — see [docs/V0.2_ROADMAP.md](docs/V0.2_ROADMAP.md).
 
 ### Added
 
-- (pending)
-
-### Fixed
-
-- (pending)
+- Detailed task view sheet — open with Return or double-click on a selected task
+- Edit task title, description, and reminder in the detail sheet
 
 ### Changed
 
-- (pending)
+- Return on a selected task opens the detail sheet (replaces inline title editing)
 
 ## [0.1.0] — 2026-06-14
 

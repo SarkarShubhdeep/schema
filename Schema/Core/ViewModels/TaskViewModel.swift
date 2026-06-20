@@ -104,7 +104,15 @@ final class TaskViewModel {
         return task
     }
 
-    func toggleCompletion(_ task: SchemaTask, recordUndo: Bool = true) {
+    func isSequenceBlocked(_ task: SchemaTask, in allTasks: [SchemaTask]) -> Bool {
+        RoutineSequenceOrdering.isBlocked(task, in: allTasks)
+    }
+
+    func toggleCompletion(_ task: SchemaTask, in allTasks: [SchemaTask], recordUndo: Bool = true) {
+        if !task.isCompleted, isSequenceBlocked(task, in: allTasks) {
+            return
+        }
+
         if recordUndo {
             pushUndo(.toggledCompletion(taskID: task.id, wasCompleted: task.isCompleted))
         }
@@ -114,6 +122,8 @@ final class TaskViewModel {
 
         if task.isCompleted {
             notificationService.cancelReminder(for: task)
+        } else if task.isRoutine, task.reminderTime != nil {
+            Task { await rescheduleReminderIfNeeded(for: task) }
         }
     }
 
@@ -129,7 +139,10 @@ final class TaskViewModel {
                 description: task.taskDescription,
                 list: list,
                 reminderTime: task.reminderTime,
-                tags: task.tags
+                tags: task.tags,
+                isRoutine: task.isRoutine,
+                routineDays: task.routineDays,
+                afterTaskID: nil
             )
             copy.isCompleted = task.isCompleted
             copy.createdAt = task.createdAt.addingTimeInterval(Double(index + 1) * 0.001)
@@ -157,7 +170,16 @@ final class TaskViewModel {
             pushUndo(.deletedTask(TaskSnapshot(task: task)))
         }
 
+        clearSequenceLinks(pointingTo: task.id)
         notificationService.cancelReminder(for: task)
+
+        if task.isRoutine, let listID = task.list?.id {
+            let descriptor = FetchDescriptor<SchemaTask>()
+            if let remaining = try? modelContext.fetch(descriptor) {
+                RoutineSequenceOrdering.persistOrder(in: remaining, forListID: listID)
+            }
+        }
+
         modelContext.delete(task)
         save()
     }
@@ -180,11 +202,45 @@ final class TaskViewModel {
         save()
     }
 
+    func applyDetailChanges(
+        _ task: SchemaTask,
+        title: String,
+        description: String?,
+        reminder: Date?,
+        isRoutine: Bool,
+        routineDays: [Int],
+        afterTaskID: UUID?,
+        allTasks: [SchemaTask]
+    ) async {
+        updateTitle(task, title: title, recordUndo: true)
+        updateDescription(task, description: description)
+        task.isRoutine = isRoutine
+        task.routineDays = isRoutine ? routineDays : []
+        task.afterTaskID = isRoutine ? afterTaskID : nil
+
+        if let afterTaskID = task.afterTaskID,
+           RoutineSequenceOrdering.wouldCreateCycle(taskID: task.id, afterTaskID: afterTaskID, in: allTasks) {
+            task.afterTaskID = nil
+        }
+
+        if task.isRoutine, task.afterTaskID != nil, let listID = task.list?.id {
+            RoutineSequenceOrdering.persistOrder(in: allTasks, forListID: listID)
+        }
+
+        save()
+        await setReminder(task, at: reminder)
+    }
+
     func setReminder(_ task: SchemaTask, at date: Date?) async {
         task.reminderTime = date
         save()
 
-        if let date, date > Date() {
+        if date == nil {
+            notificationService.cancelReminder(for: task)
+            return
+        }
+
+        if task.isRoutine || date! > Date() {
             do {
                 let authorized = try await notificationService.requestAuthorization()
                 guard authorized else { return }
@@ -231,7 +287,10 @@ final class TaskViewModel {
             title: snapshot.title,
             description: snapshot.taskDescription,
             list: list,
-            reminderTime: snapshot.reminderTime
+            reminderTime: snapshot.reminderTime,
+            isRoutine: snapshot.isRoutine,
+            routineDays: snapshot.routineDays,
+            afterTaskID: snapshot.afterTaskID
         )
         task.id = snapshot.id
         task.isCompleted = snapshot.isCompleted
@@ -239,13 +298,14 @@ final class TaskViewModel {
         modelContext.insert(task)
         save()
 
-        if let reminderTime = snapshot.reminderTime, reminderTime > Date(), !snapshot.isCompleted {
+        if snapshot.reminderTime != nil, !snapshot.isCompleted {
             Task { await rescheduleReminderIfNeeded(for: task) }
         }
     }
 
     private func rescheduleReminderIfNeeded(for task: SchemaTask) async {
-        guard let reminderTime = task.reminderTime, reminderTime > Date(), !task.isCompleted else { return }
+        guard let reminderTime = task.reminderTime, !task.isCompleted else { return }
+        guard task.isRoutine || reminderTime > Date() else { return }
         do {
             let authorized = try await notificationService.requestAuthorization()
             guard authorized else { return }
@@ -296,7 +356,7 @@ final class TaskViewModel {
     private func applySort(_ tasks: [SchemaTask], option: TaskSortOption) -> [SchemaTask] {
         switch option {
         case .manual:
-            return tasks.sorted { $0.createdAt < $1.createdAt }
+            return RoutineSequenceOrdering.sorted(tasks)
         case .createdAt:
             return tasks.sorted { $0.createdAt > $1.createdAt }
         case .reminderTime:
@@ -316,6 +376,15 @@ final class TaskViewModel {
             return tasks.sorted {
                 $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
             }
+        }
+    }
+
+    private func clearSequenceLinks(pointingTo taskID: UUID) {
+        let descriptor = FetchDescriptor<SchemaTask>()
+        guard let tasks = try? modelContext.fetch(descriptor) else { return }
+
+        for task in tasks where task.afterTaskID == taskID {
+            task.afterTaskID = nil
         }
     }
 

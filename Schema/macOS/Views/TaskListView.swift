@@ -13,27 +13,26 @@ struct TaskListView: View {
     let primarySelectedTaskID: UUID?
     let showListTags: Bool
     let selectedListID: UUID?
-    let editingTaskID: UUID?
     let sortOption: TaskSortOption
     let filterOption: TaskFilterOption
     let navigableTaskIDs: [UUID]
     let isAddTaskFocused: Bool
     let isEditingListName: Bool
+    let isDetailOpen: Bool
+    let isSequenceBlocked: (SchemaTask) -> Bool
     let onToggle: (SchemaTask) -> Void
     let onDelete: (SchemaTask) -> Void
-    let onUpdateTitle: (SchemaTask, String) -> Void
     let onSetReminder: (SchemaTask, Date?) -> Void
-    let onEditingTaskIDChange: (UUID?) -> Void
     let onSelectTask: (UUID) -> Void
     let onClearSelection: () -> Void
     let onToggleSelected: (Set<UUID>) -> Void
     let onDeleteSelected: (Set<UUID>) -> Void
     let onDuplicateSelected: (Set<UUID>) -> Void
     let onSelectAllPending: () -> Void
+    let onOpenDetail: (UUID) -> Void
     @Binding var selectedTaskIDsBinding: Set<UUID>
     @Binding var primarySelectedTaskIDBinding: UUID?
     @Binding var selectionAnchorIDBinding: UUID?
-    @Binding var editingTaskIDBinding: UUID?
     var isTaskListFocused: FocusState<Bool>.Binding
 
     @State private var showCompleted = false
@@ -79,15 +78,16 @@ struct TaskListView: View {
                 selectedTaskIDs: $selectedTaskIDsBinding,
                 primarySelectedTaskID: $primarySelectedTaskIDBinding,
                 selectionAnchorID: $selectionAnchorIDBinding,
-                editingTaskID: $editingTaskIDBinding,
                 isTaskListFocused: isTaskListFocused,
                 isAddTaskFocused: isAddTaskFocused,
                 isEditingListName: isEditingListName,
+                isDetailOpen: isDetailOpen,
                 onToggleSelected: onToggleSelected,
                 onDeleteSelected: onDeleteSelected,
                 onDuplicateSelected: onDuplicateSelected,
                 onSelectAllPending: onSelectAllPending,
-                onClearSelection: onClearSelection
+                onClearSelection: onClearSelection,
+                onOpenDetail: onOpenDetail
             )
             .onChange(of: primarySelectedTaskID) { _, taskID in
                 guard let taskID else { return }
@@ -155,20 +155,17 @@ struct TaskListView: View {
             task: task,
             isHighlighted: highlightedTaskID == task.id,
             isKeyboardSelected: selectedTaskIDs.contains(task.id),
+            isSequenceBlocked: isSequenceBlocked(task),
             showListTag: showListTags,
-            isEditing: editingTaskID == task.id,
             onToggle: { onToggle(task) },
             onDelete: { onDelete(task) },
-            onUpdateTitle: { title in onUpdateTitle(task, title) },
             onSetReminder: { date in onSetReminder(task, date) },
-            onEditingChange: { isEditing in
-                onEditingTaskIDChange(isEditing ? task.id : nil)
-            },
             onSelect: {
                 onSelectTask(task.id)
                 isTaskListFocused.wrappedValue = true
             },
-            onDeselect: onClearSelection
+            onDeselect: onClearSelection,
+            onOpenDetail: { onOpenDetail(task.id) }
         )
     }
 }

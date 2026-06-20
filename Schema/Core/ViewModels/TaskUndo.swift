@@ -13,6 +13,9 @@ struct TaskSnapshot {
     let createdAt: Date
     let reminderTime: Date?
     let listID: UUID?
+    let isRoutine: Bool
+    let routineDays: [Int]
+    let afterTaskID: UUID?
 
     init(task: SchemaTask) {
         id = task.id
@@ -22,6 +25,9 @@ struct TaskSnapshot {
         createdAt = task.createdAt
         reminderTime = task.reminderTime
         listID = task.list?.id
+        isRoutine = task.isRoutine
+        routineDays = task.routineDays
+        afterTaskID = task.afterTaskID
     }
 }
 

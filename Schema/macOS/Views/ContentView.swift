@@ -25,7 +25,7 @@ struct ContentView: View {
     @State private var notificationItems: [SchemaNotificationItem] = []
     @State private var isAddTaskExpanded = false
     @State private var skipAddTaskDismiss = false
-    @State private var editingTaskID: UUID?
+    @State private var taskDetailEditor: TaskDetailEditor?
     @State private var selectedTaskIDs: Set<UUID> = []
     @State private var primarySelectedTaskID: UUID?
     @State private var selectionAnchorID: UUID?
@@ -189,35 +189,27 @@ struct ContentView: View {
                 primarySelectedTaskID: primarySelectedTaskID,
                 showListTags: selectedList?.isEverythingList == true,
                 selectedListID: listViewModel.selectedListID,
-                editingTaskID: editingTaskID,
                 sortOption: listViewModel.sortOption,
                 filterOption: listViewModel.filterOption,
                 navigableTaskIDs: navigableTaskIDs,
                 isAddTaskFocused: isAddTaskFocused,
                 isEditingListName: isEditingListName,
+                isDetailOpen: taskDetailEditor != nil,
+                isSequenceBlocked: { task in
+                    taskViewModel.isSequenceBlocked(task, in: allTasks)
+                },
                 onToggle: { task in
                     withAnimation(SchemaMotion.smooth) {
-                        taskViewModel.toggleCompletion(task)
+                        taskViewModel.toggleCompletion(task, in: allTasks)
                     }
                 },
                 onDelete: { task in
                     taskViewModel.deleteTask(task)
                 },
-                onUpdateTitle: { task, title in
-                    taskViewModel.updateTitle(task, title: title)
-                },
                 onSetReminder: { task, date in
                     Task {
                         await taskViewModel.setReminder(task, at: date)
                         await refreshNotifications()
-                    }
-                },
-                onEditingTaskIDChange: { taskID in
-                    editingTaskID = taskID
-                    if taskID == nil {
-                        DispatchQueue.main.async {
-                            isTaskListFocused = true
-                        }
                     }
                 },
                 onSelectTask: { taskID in
@@ -252,17 +244,44 @@ struct ContentView: View {
                 onSelectAllPending: {
                     selectAllPendingTasks(in: incomplete)
                 },
+                onOpenDetail: { taskID in
+                    openTaskDetail(taskID)
+                },
                 selectedTaskIDsBinding: $selectedTaskIDs,
                 primarySelectedTaskIDBinding: $primarySelectedTaskID,
                 selectionAnchorIDBinding: $selectionAnchorID,
-                editingTaskIDBinding: $editingTaskID,
                 isTaskListFocused: $isTaskListFocused
             )
         }
+        .overlay(alignment: .topTrailing) {
+            if let taskDetailEditor,
+               let task = allTasks.first(where: { $0.id == taskDetailEditor.taskID }) {
+                TaskDetailSheet(
+                    editor: taskDetailEditor,
+                    listTagLabel: task.list?.displayTagLabel,
+                    sequenceCandidates: routineSequenceCandidates(for: task, in: allTasks),
+                    isCompleted: task.isCompleted,
+                    onCloseRequest: {
+                        saveAndCloseTaskDetail(taskViewModel: taskViewModel)
+                    },
+                    onToggleCompletion: {
+                        withAnimation(SchemaMotion.smooth) {
+                            taskViewModel.toggleCompletion(task, in: allTasks)
+                        }
+                    },
+                    onDelete: {
+                        taskViewModel.deleteTask(task)
+                        closeTaskDetail()
+                    }
+                )
+                .padding(.top, 12)
+                .padding(.trailing, 16)
+            }
+        }
         .frame(minWidth: 720, minHeight: 520)
         .background(SchemaTheme.background)
-        .clickOutsideDismiss(isActive: isAddTaskExpanded || editingTaskID != nil || !selectedTaskIDs.isEmpty) {
-            dismissActiveEditing()
+        .clickOutsideDismiss(isActive: isAddTaskExpanded || taskDetailEditor != nil || !selectedTaskIDs.isEmpty) {
+            dismissActiveEditing(taskViewModel: taskViewModel)
         }
         .onChange(of: isAddTaskExpanded) { _, expanded in
             if expanded {
@@ -372,6 +391,9 @@ struct ContentView: View {
             notificationService: notificationService
         )
 
+        let routineResetService = RoutineResetService(modelContext: modelContext)
+        routineResetService.resetRoutineTasksIfNeeded(tasks: allTasks)
+
         Task {
             await notificationService.rescheduleAllReminders(for: allTasks)
             await refreshNotifications()
@@ -432,8 +454,68 @@ struct ContentView: View {
         isTaskListFocused = true
     }
 
+    private func routineSequenceCandidates(for task: SchemaTask, in tasks: [SchemaTask]) -> [SchemaTask] {
+        guard let listID = task.list?.id else { return [] }
+
+        return tasks.filter { candidate in
+            candidate.id != task.id
+                && candidate.isRoutine
+                && candidate.list?.id == listID
+        }
+        .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+    }
+
+    private func openTaskDetail(_ taskID: UUID) {
+        guard let task = allTasks.first(where: { $0.id == taskID }) else { return }
+
+        taskDetailEditor = TaskDetailEditor(task: task)
+        selectSingleTask(taskID)
+        isTaskListFocused = false
+    }
+
+    private func closeTaskDetail() {
+        taskDetailEditor = nil
+        DispatchQueue.main.async {
+            isTaskListFocused = true
+        }
+    }
+
+    private func saveAndCloseTaskDetail(taskViewModel: TaskViewModel) {
+        guard let editor = taskDetailEditor,
+              let task = allTasks.first(where: { $0.id == editor.taskID }) else {
+            closeTaskDetail()
+            return
+        }
+
+        let draft = editor.draft
+        let title = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else {
+            closeTaskDetail()
+            return
+        }
+
+        let description = draft.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        let descriptionValue = description.isEmpty ? nil : description
+        let reminder = draft.computedReminderDate
+
+        Task {
+            await taskViewModel.applyDetailChanges(
+                task,
+                title: title,
+                description: descriptionValue,
+                reminder: reminder,
+                isRoutine: draft.isRoutine,
+                routineDays: draft.normalizedRoutineDays,
+                afterTaskID: draft.afterTaskID,
+                allTasks: allTasks
+            )
+            await refreshNotifications()
+            closeTaskDetail()
+        }
+    }
+
     private func moveSingleTaskSelection(by offset: Int, in navigableTaskIDs: [UUID]) {
-        guard editingTaskID == nil, !isEditingListName else { return }
+        guard !isEditingListName else { return }
         guard !navigableTaskIDs.isEmpty else {
             clearTaskSelection()
             return
@@ -470,8 +552,9 @@ struct ContentView: View {
         let tasksToUncheck = selectedTasks.filter(\.isCompleted)
 
         withAnimation(SchemaMotion.smooth) {
+            let visibleTasks = incomplete + completed
             for task in tasksToCheckOff + tasksToUncheck {
-                taskViewModel.toggleCompletion(task)
+                taskViewModel.toggleCompletion(task, in: visibleTasks)
             }
         }
 
@@ -552,12 +635,13 @@ struct ContentView: View {
         isTaskListFocused = true
     }
 
-    private func dismissActiveEditing() {
+    private func dismissActiveEditing(taskViewModel: TaskViewModel) {
         if isAddTaskExpanded {
             closeAddTask()
         }
-        if editingTaskID != nil {
-            editingTaskID = nil
+        if taskDetailEditor != nil {
+            saveAndCloseTaskDetail(taskViewModel: taskViewModel)
+            return
         }
         clearTaskSelection()
     }
