@@ -7,6 +7,7 @@ import SwiftUI
 
 struct ListPreferencesMenu: View {
     @Bindable var listViewModel: ListViewModel
+    let requiresManualSort: Bool
 
     var body: some View {
         Menu {
@@ -24,6 +25,7 @@ struct ListPreferencesMenu: View {
                             }
                         }
                     }
+                    .disabled(requiresManualSort && option != .manual)
                 }
             }
 

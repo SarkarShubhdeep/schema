@@ -6,6 +6,32 @@
 import Foundation
 
 enum RoutineSequenceOrdering {
+    static func hasConnectedRoutineTasks(in tasks: [SchemaTask], forListID listID: UUID) -> Bool {
+        let routineTasks = tasks.filter { $0.list?.id == listID && $0.isRoutine }
+        guard routineTasks.count >= 2 else { return false }
+
+        let routineIDs = Set(routineTasks.map(\.id))
+        let linkedTasks = routineTasks.filter { task in
+            if let afterID = task.afterTaskID, routineIDs.contains(afterID) {
+                return true
+            }
+            return routineTasks.contains { $0.afterTaskID == task.id }
+        }
+
+        return linkedTasks.count >= 2
+    }
+
+    static func requiresManualSort(for list: SchemaList?, in tasks: [SchemaTask]) -> Bool {
+        guard let list else { return false }
+
+        if list.isEverythingList {
+            let listIDs = Set(tasks.compactMap { $0.list?.id })
+            return listIDs.contains { hasConnectedRoutineTasks(in: tasks, forListID: $0) }
+        }
+
+        return hasConnectedRoutineTasks(in: tasks, forListID: list.id)
+    }
+
     static func persistOrder(in tasks: [SchemaTask], forListID listID: UUID) {
         let listTasks = tasks.filter { $0.list?.id == listID }
         guard listTasks.contains(where: { $0.isRoutine && $0.afterTaskID != nil }) else { return }

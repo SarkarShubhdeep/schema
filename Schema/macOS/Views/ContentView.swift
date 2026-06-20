@@ -140,6 +140,10 @@ struct ContentView: View {
             filterOption: listViewModel.filterOption
         )
         let navigableTaskIDs = (incomplete + completed).map(\.id)
+        let requiresManualSort = RoutineSequenceOrdering.requiresManualSort(
+            for: selectedList,
+            in: allTasks
+        )
 
         VStack(spacing: 0) {
             ListContextBar(
@@ -147,7 +151,8 @@ struct ContentView: View {
                     clearTaskSelection()
                     navigationPath.append(WorkspaceRoute.allLists)
                 },
-                listViewModel: listViewModel
+                listViewModel: listViewModel,
+                requiresManualSort: requiresManualSort
             )
 
             ListNavigationBar(
@@ -294,6 +299,12 @@ struct ContentView: View {
         }
         .onChange(of: listViewModel.selectedListID) { _, _ in
             clearTaskSelection()
+            enforceManualSortIfNeeded(listViewModel: listViewModel)
+        }
+        .onChange(of: requiresManualSort) { _, required in
+            if required {
+                enforceManualSortIfNeeded(listViewModel: listViewModel)
+            }
         }
         .onChange(of: listViewModel.sortOption) { _, _ in
             clearTaskSelection()
@@ -452,6 +463,16 @@ struct ContentView: View {
         selectionAnchorID = incomplete.first?.id
         primarySelectedTaskID = incomplete.last?.id
         isTaskListFocused = true
+    }
+
+    private func enforceManualSortIfNeeded(listViewModel: ListViewModel) {
+        guard RoutineSequenceOrdering.requiresManualSort(for: selectedList, in: allTasks) else {
+            return
+        }
+
+        if listViewModel.sortOption != .manual {
+            listViewModel.sortOption = .manual
+        }
     }
 
     private func routineSequenceCandidates(for task: SchemaTask, in tasks: [SchemaTask]) -> [SchemaTask] {

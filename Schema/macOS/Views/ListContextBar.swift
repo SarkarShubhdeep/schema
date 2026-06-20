@@ -8,6 +8,7 @@ import SwiftUI
 struct ListContextBar: View {
     let onAllLists: () -> Void
     @Bindable var listViewModel: ListViewModel
+    let requiresManualSort: Bool
 
     var body: some View {
         HStack {
@@ -24,7 +25,10 @@ struct ListContextBar: View {
 
             Spacer()
 
-            ListPreferencesMenu(listViewModel: listViewModel)
+            ListPreferencesMenu(
+                listViewModel: listViewModel,
+                requiresManualSort: requiresManualSort
+            )
         }
         .padding(.horizontal, 28)
         .padding(.vertical, 10)

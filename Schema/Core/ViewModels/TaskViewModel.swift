@@ -42,7 +42,10 @@ final class TaskViewModel {
         }
 
         result = applyFilter(result, option: filterOption)
-        return applySort(result, option: sortOption)
+        let effectiveSort = RoutineSequenceOrdering.requiresManualSort(for: list, in: allTasks)
+            ? .manual
+            : sortOption
+        return applySort(result, option: effectiveSort)
     }
 
     func incompleteTasks(
