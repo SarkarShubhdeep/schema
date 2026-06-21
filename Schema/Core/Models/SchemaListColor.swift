@@ -15,6 +15,21 @@ enum SchemaListColorName: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    static var selectable: [SchemaListColorName] {
+        allCases.filter { $0 != .neutral }
+    }
+
+    var displayName: String {
+        switch self {
+        case .neutral: "Neutral"
+        case .grey: "Grey"
+        case .blue: "Blue"
+        case .purple: "Purple"
+        case .green: "Green"
+        case .orange: "Orange"
+        }
+    }
+
     static func fallback(for title: String) -> SchemaListColorName {
         switch title {
         case SchemaList.everythingTitle:

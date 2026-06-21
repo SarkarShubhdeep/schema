@@ -10,6 +10,7 @@ enum SchemaPreferences {
         static let sortOption = "schema.preferences.sortOption"
         static let filterOption = "schema.preferences.filterOption"
         static let defaultWritableListID = "schema.preferences.defaultWritableListID"
+        static let allowIndependentFollowerRoutineCompletion = "schema.preferences.allowIndependentFollowerRoutineCompletion"
     }
 
     private static let defaults = UserDefaults.standard
@@ -53,6 +54,15 @@ enum SchemaPreferences {
             } else {
                 defaults.removeObject(forKey: Key.defaultWritableListID)
             }
+        }
+    }
+
+    static var allowIndependentFollowerRoutineCompletion: Bool {
+        get {
+            defaults.bool(forKey: Key.allowIndependentFollowerRoutineCompletion)
+        }
+        set {
+            defaults.set(newValue, forKey: Key.allowIndependentFollowerRoutineCompletion)
         }
     }
 }

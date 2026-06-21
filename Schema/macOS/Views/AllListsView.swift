@@ -10,6 +10,9 @@ struct AllListsView: View {
     @Bindable var listViewModel: ListViewModel
     let onSelectList: (SchemaList) -> Void
 
+    @State private var listToRename: SchemaList?
+    @State private var renameTitle = ""
+
     private enum CardMetrics {
         static let minHeight: CGFloat = 140
         static let cornerRadius: CGFloat = 16
@@ -51,6 +54,31 @@ struct AllListsView: View {
                 }
             )
         }
+        .sheet(isPresented: renameSheetPresented) {
+            if let list = listToRename {
+                RenameListSheet(
+                    title: $renameTitle,
+                    onSave: {
+                        listViewModel.updateListTitle(list, title: renameTitle)
+                        listToRename = nil
+                    },
+                    onCancel: {
+                        listToRename = nil
+                    }
+                )
+            }
+        }
+    }
+
+    private var renameSheetPresented: Binding<Bool> {
+        Binding(
+            get: { listToRename != nil },
+            set: { isPresented in
+                if !isPresented {
+                    listToRename = nil
+                }
+            }
+        )
     }
 
     private var newListCard: some View {
@@ -115,9 +143,38 @@ struct AllListsView: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
+            Button("Rename") {
+                listToRename = list
+                renameTitle = list.title
+            }
+
+            Menu("Change Color") {
+                ForEach(SchemaListColorName.selectable) { color in
+                    Button {
+                        listViewModel.updateListAccentColor(list, colorName: color)
+                    } label: {
+                        listColorMenuLabel(color: color, isSelected: listColorName(for: list) == color)
+                    }
+                }
+            }
+
+            Divider()
+
             Button("Delete List", role: .destructive) {
                 listViewModel.deleteList(list, from: lists)
             }
+        }
+    }
+
+    private func listColorMenuLabel(color: SchemaListColorName, isSelected: Bool) -> some View {
+        HStack {
+            if isSelected {
+                Image(systemName: "checkmark")
+            }
+            Circle()
+                .fill(color.accentColor)
+                .frame(width: 8, height: 8)
+            Text(color.displayName)
         }
     }
 

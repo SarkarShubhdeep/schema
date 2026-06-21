@@ -11,6 +11,7 @@ struct SettingsView: View {
 
     let lists: [SchemaList]
     let notificationService: any NotificationServiceProtocol
+    @Binding var allowIndependentFollowerRoutineCompletion: Bool
 
     @State private var authorizationStatus: NotificationAuthorizationStatus = .notDetermined
     @State private var isRequestingAuthorization = false
@@ -20,48 +21,55 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 0) {
             Text("Settings")
                 .font(.title2.weight(.semibold))
+                .padding(.bottom, 20)
 
-            GroupBox("Notifications") {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("Permission Status")
-                        Spacer()
-                        Text(statusLabel)
+            settingsSection(title: "Notifications") {
+                settingsRow(title: "Permission Status") {
+                    Text(statusLabel)
+                        .foregroundStyle(SchemaTheme.mutedText)
+                }
+
+                Button("Request Notification Access") {
+                    requestAuthorization()
+                }
+                .disabled(isRequestingAuthorization || authorizationStatus == .authorized)
+            }
+
+            sectionDivider
+
+            settingsSection(title: "Default List") {
+                Text("Tasks added from Everything go to:")
+                    .font(.system(size: 13))
+                    .foregroundStyle(SchemaTheme.mutedText)
+
+                Picker("Default List", selection: defaultListBinding) {
+                    ForEach(writableLists) { list in
+                        Text(list.title).tag(Optional(list.id))
+                    }
+                }
+                .labelsHidden()
+            }
+
+            sectionDivider
+
+            settingsSection(title: "Routine") {
+                Toggle(isOn: $allowIndependentFollowerRoutineCompletion) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Complete follower routines independently")
+                        Text("Allow routine tasks later in a sequence to be checked off before earlier tasks.")
+                            .font(.system(size: 12))
                             .foregroundStyle(SchemaTheme.mutedText)
                     }
-
-                    Button("Request Notification Access") {
-                        requestAuthorization()
-                    }
-                    .disabled(isRequestingAuthorization || authorizationStatus == .authorized)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 4)
+                .toggleStyle(.switch)
             }
 
-            GroupBox("Default List") {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Tasks added from Everything go to:")
-                        .font(.system(size: 13))
-                        .foregroundStyle(SchemaTheme.mutedText)
+            sectionDivider
 
-                    Picker("Default List", selection: defaultListBinding) {
-                        ForEach(writableLists) { list in
-                            Text(list.title).tag(Optional(list.id))
-                        }
-                    }
-                    .labelsHidden()
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 4)
-            }
-
-            HStack {
-                Text("Version")
-                Spacer()
+            settingsRow(title: "Version") {
                 Text(versionLabel)
                     .foregroundStyle(SchemaTheme.mutedText)
             }
@@ -73,11 +81,41 @@ struct SettingsView: View {
                 }
                 .keyboardShortcut(.defaultAction)
             }
+            .padding(.top, 20)
         }
         .padding(24)
-        .frame(width: 400)
+        .frame(width: 420)
         .task {
             authorizationStatus = await notificationService.authorizationStatus()
+        }
+    }
+
+    private var sectionDivider: some View {
+        Divider()
+            .padding(.vertical, 16)
+    }
+
+    private func settingsSection<Content: View>(
+        title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(SchemaTheme.mutedText)
+
+            content()
+        }
+    }
+
+    private func settingsRow<Content: View>(
+        title: String,
+        @ViewBuilder trailing: () -> Content
+    ) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+            Spacer()
+            trailing()
         }
     }
 

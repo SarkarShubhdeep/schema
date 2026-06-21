@@ -103,7 +103,14 @@ enum RoutineSequenceOrdering {
         return ordered
     }
 
-    static func isBlocked(_ task: SchemaTask, in tasks: [SchemaTask]) -> Bool {
+    static func isBlocked(
+        _ task: SchemaTask,
+        in tasks: [SchemaTask],
+        allowIndependentFollowerCompletion: Bool? = nil
+    ) -> Bool {
+        let allowsIndependentFollowerCompletion = allowIndependentFollowerCompletion
+            ?? SchemaPreferences.allowIndependentFollowerRoutineCompletion
+        guard !allowsIndependentFollowerCompletion else { return false }
         guard task.isRoutine, let afterID = task.afterTaskID else { return false }
         guard let predecessor = tasks.first(where: { $0.id == afterID }) else { return false }
         return !predecessor.isCompleted

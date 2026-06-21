@@ -22,6 +22,7 @@ struct ContentView: View {
     @State private var navigationPath = NavigationPath()
     @State private var showNotifications = false
     @State private var showSettings = false
+    @State private var allowIndependentFollowerRoutineCompletion = SchemaPreferences.allowIndependentFollowerRoutineCompletion
     @State private var notificationItems: [SchemaNotificationItem] = []
     @State private var isAddTaskExpanded = false
     @State private var quickEntryListCandidateIndex = 0
@@ -86,8 +87,12 @@ struct ContentView: View {
                     SettingsView(
                         listViewModel: listViewModel,
                         lists: lists,
-                        notificationService: notificationService
+                        notificationService: notificationService,
+                        allowIndependentFollowerRoutineCompletion: $allowIndependentFollowerRoutineCompletion
                     )
+                }
+                .onChange(of: allowIndependentFollowerRoutineCompletion) { _, newValue in
+                    SchemaPreferences.allowIndependentFollowerRoutineCompletion = newValue
                 }
                 .task {
                     await refreshNotifications()
@@ -205,7 +210,11 @@ struct ContentView: View {
                 isEditingListName: isEditingListName,
                 isDetailOpen: taskDetailEditor != nil,
                 isSequenceBlocked: { task in
-                    taskViewModel.isSequenceBlocked(task, in: allTasks)
+                    RoutineSequenceOrdering.isBlocked(
+                        task,
+                        in: allTasks,
+                        allowIndependentFollowerCompletion: allowIndependentFollowerRoutineCompletion
+                    )
                 },
                 canMoveTask: { task in
                     taskViewModel.canMoveTask(task, in: incomplete)
