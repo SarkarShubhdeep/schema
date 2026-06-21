@@ -39,16 +39,21 @@ struct TaskListView: View {
     var isTaskListFocused: FocusState<Bool>.Binding
 
     @State private var showCompleted = false
+    @State private var hasLoaded = false
 
     private var contentAnimationKey: String {
         "\(selectedListID?.uuidString ?? "")-\(sortOption.rawValue)-\(filterOption.rawValue)"
     }
 
+    // Plain opacity only. `.move(edge:)` transitions fight `List`'s own row
+    // layout, which leaves rows squished/misaligned until a scroll forces a
+    // re-layout.
     private var taskRowTransition: AnyTransition {
-        .asymmetric(
-            insertion: .opacity.combined(with: .move(edge: .top)),
-            removal: .opacity.combined(with: .move(edge: .bottom))
-        )
+        .opacity
+    }
+
+    private var contentAnimation: Animation? {
+        hasLoaded ? SchemaMotion.fast : nil
     }
 
     var body: some View {
@@ -80,7 +85,12 @@ struct TaskListView: View {
                     .focusEffectDisabled()
             }
             .background(SchemaTheme.background)
-            .animation(SchemaMotion.fast, value: contentAnimationKey)
+            .animation(contentAnimation, value: contentAnimationKey)
+            .onAppear {
+                // Avoid animating the initial population, which is what produces
+                // the first-load layout glitch.
+                DispatchQueue.main.async { hasLoaded = true }
+            }
             .taskListKeyboardNavigation(
                 navigableTaskIDs: navigableTaskIDs,
                 selectedTaskIDs: $selectedTaskIDsBinding,
@@ -125,7 +135,7 @@ struct TaskListView: View {
                 .listRowInsets(EdgeInsets(top: 1, leading: 28, bottom: 1, trailing: 28))
         }
         .onMove(perform: onMove)
-        .animation(SchemaMotion.fast, value: incompleteTasks.map(\.id))
+        .animation(contentAnimation, value: incompleteTasks.map(\.id))
 
         if !completedTasks.isEmpty {
             Button {

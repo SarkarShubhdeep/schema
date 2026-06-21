@@ -60,7 +60,9 @@ extension View {
         onSingleClick: @escaping () -> Void,
         onDoubleClick: @escaping () -> Void
     ) -> some View {
-        overlay {
+        // Sits behind the row so interactive controls (checkbox, reminder button)
+        // receive their own clicks; inert areas fall through to this handler.
+        background {
             ListRowMouseHandler(
                 onSingleClick: onSingleClick,
                 onDoubleClick: onDoubleClick
