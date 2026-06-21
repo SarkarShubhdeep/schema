@@ -17,10 +17,11 @@ This document lists intentional limitations and known bugs in Schema v0.1. Items
 
 ## Data & migration
 
-### No SwiftData migration plan
+### SwiftData migration plan
 
-- v0.1 uses a default local SwiftData store with no `VersionedSchema` or migration stages.
-- Fresh installs work fine. **Schema changes in future updates may require deleting and reinstalling** until migration is implemented.
+- Schema versions V1–V4 are defined in `Schema/Core/Persistence/SchemaMigrationPlan.swift`.
+- Upgrades from v0.1 stores run lightweight stages for list colors and routine fields, then backfill `manualSortIndex` on V4.
+- If the store cannot be opened, the app shows a recoverable error screen (Retry / Reset Data) instead of crashing.
 
 ### iOS
 
@@ -30,7 +31,6 @@ This document lists intentional limitations and known bugs in Schema v0.1. Items
 
 ### Error handling
 
-- `ModelContainer` creation failure calls `fatalError` (app will crash on launch if the store is corrupted).
 - Save and reminder failures log via `assertionFailure` in debug builds only.
 
 ### App Store name

@@ -74,11 +74,11 @@ Gaps, partial implementations, and planned v0.2 items. See [V0.2_ROADMAP.md](V0.
 
 ### Next up (after Phase 1 merges)
 
-- [ ] SwiftData `VersionedSchema` + migration plan (Phase 0 — required before drag-reorder)
+- [x] SwiftData `VersionedSchema` + migration plan (Phase 0 — `feature/swiftdata-migration`)
 
 ### Foundation
 
-- [ ] Recoverable error UI when `ModelContainer` fails (replace `fatalError`)
+- [x] Recoverable error UI when `ModelContainer` fails (replace `fatalError`)
 
 ### Sorting & reordering
 
