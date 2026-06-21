@@ -10,7 +10,7 @@ Living document for what Schema has shipped, what is in progress, and what still
 
 **Integration branch:** `develop`  
 **Active branch:** `feature/task-detail-view`  
-**Current release:** v0.1.0 (macOS, TestFlight)
+**Current release:** v0.2.0 (macOS, TestFlight)
 
 ---
 
