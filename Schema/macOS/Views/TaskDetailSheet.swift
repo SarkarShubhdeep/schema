@@ -99,6 +99,11 @@ struct TaskDetailDraft {
         afterTaskID = nil
     }
 
+    mutating func clearReminder() {
+        selectedTime = nil
+        selectedDate = nil
+    }
+
     func isDaySelected(_ weekday: Int) -> Bool {
         routineDays.contains(weekday)
     }
@@ -217,10 +222,12 @@ struct TaskDetailSheet: View {
     @Bindable var editor: TaskDetailEditor
     let listTagLabel: String?
     let sequenceCandidates: [SchemaTask]
+    let allTasks: [SchemaTask]
     let isCompleted: Bool
     let onCloseRequest: () -> Void
     let onToggleCompletion: () -> Void
     let onDelete: () -> Void
+    let onClearFollowerTimes: ([UUID]) -> Void
 
     @FocusState private var focusedField: Field?
     @State private var showTimePicker = false
@@ -237,6 +244,7 @@ struct TaskDetailSheet: View {
         static let width: CGFloat = 460
         static let cornerRadius: CGFloat = 20
         static let descriptionMinHeight: CGFloat = 120
+        static let metadataSectionSpacing: CGFloat = 18
     }
 
     var body: some View {
@@ -244,19 +252,24 @@ struct TaskDetailSheet: View {
             titleField
 
             metadataRow
-                .padding(.top, 14)
+                .padding(.top, 20)
 
             if let listTagLabel {
                 listTag(label: listTagLabel)
-                    .padding(.top, 10)
+                    .padding(.top, Metrics.metadataSectionSpacing)
             }
 
             routineRow
-                .padding(.top, 10)
+                .padding(.top, Metrics.metadataSectionSpacing)
 
             if editor.draft.isRoutine {
                 afterRow
-                    .padding(.top, 8)
+                    .padding(.top, Metrics.metadataSectionSpacing)
+            }
+
+            if let sequenceValidation {
+                sequenceValidationBanner(sequenceValidation)
+                    .padding(.top, Metrics.metadataSectionSpacing)
             }
 
             descriptionSection
@@ -265,12 +278,16 @@ struct TaskDetailSheet: View {
             footerActions
                 .padding(.top, 28)
         }
-        .padding(28)
+        .padding(24)
         .fixedSize(horizontal: false, vertical: true)
         .frame(width: Metrics.width)
         .background(
             RoundedRectangle(cornerRadius: Metrics.cornerRadius, style: .continuous)
                 .fill(SchemaTheme.controlFill)
+                .overlay(
+                    RoundedRectangle(cornerRadius: Metrics.cornerRadius, style: .continuous)
+                        .strokeBorder(SchemaTheme.divider, lineWidth: 1)
+                )
                 .shadow(color: .black.opacity(0.08), radius: 14, y: 6)
         )
         .background(TaskDetailPanelHostRepresentable(onCloseRequest: onCloseRequest))
@@ -279,6 +296,21 @@ struct TaskDetailSheet: View {
             DispatchQueue.main.async {
                 focusedField = .title
             }
+        }
+        .onChange(of: afterPickerInvalidationKey) { _, _ in
+            reconcileAfterSelection()
+        }
+    }
+
+    private var afterPickerInvalidationKey: String {
+        let timeKey = editor.draft.selectedTime?.timeIntervalSinceReferenceDate ?? -1
+        return "\(editor.draft.title)-\(timeKey)-\(editor.draft.isRoutine)"
+    }
+
+    private func reconcileAfterSelection() {
+        guard let selectedAfterID = editor.draft.afterTaskID else { return }
+        if !timeValidAfterCandidates.contains(where: { $0.id == selectedAfterID }) {
+            editor.draft.afterTaskID = nil
         }
     }
 
@@ -416,7 +448,7 @@ struct TaskDetailSheet: View {
             Picker("After", selection: $editor.draft.afterTaskID) {
                 Text("None").tag(UUID?.none)
 
-                ForEach(validSequenceCandidates, id: \.id) { candidate in
+                ForEach(timeValidAfterCandidates, id: \.id) { candidate in
                     Text(candidate.title).tag(Optional(candidate.id))
                 }
             }
@@ -425,13 +457,76 @@ struct TaskDetailSheet: View {
         }
     }
 
-    private var validSequenceCandidates: [SchemaTask] {
-        sequenceCandidates.filter { candidate in
-            !RoutineSequenceOrdering.wouldCreateCycle(
-                taskID: editor.taskID,
-                afterTaskID: candidate.id,
-                in: sequenceCandidates
-            )
+    private var timeValidAfterCandidates: [SchemaTask] {
+        RoutineSequenceOrdering.validAfterCandidates(
+            for: editor.taskID,
+            title: editor.draft.title,
+            reminderTime: editor.draft.computedReminderDate,
+            candidates: sequenceCandidates,
+            in: allTasks
+        )
+    }
+
+    private var sequenceValidation: RoutineSequenceValidationResult? {
+        RoutineSequenceOrdering.validateProposedSequenceState(
+            for: editor.taskID,
+            title: editor.draft.title,
+            isRoutine: editor.draft.isRoutine,
+            afterTaskID: editor.draft.afterTaskID,
+            reminderTime: editor.draft.computedReminderDate,
+            in: allTasks
+        )
+    }
+
+    private func sequenceValidationBanner(_ validation: RoutineSequenceValidationResult) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(validation.message, systemImage: "exclamationmark.triangle.fill")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.orange)
+
+            Text(validation.suggestion)
+                .font(.system(size: 11))
+                .foregroundStyle(SchemaTheme.mutedText)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button("Remove follower times") {
+                removeFollowerTimes()
+            }
+            .buttonStyle(.plain)
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(SchemaTheme.accent)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.orange.opacity(0.08))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.orange.opacity(0.25), lineWidth: 1)
+        )
+    }
+
+    private func removeFollowerTimes() {
+        let followerIDs = RoutineSequenceOrdering.followerIDsInProposedChain(
+            containing: editor.taskID,
+            title: editor.draft.title,
+            isRoutine: editor.draft.isRoutine,
+            afterTaskID: editor.draft.afterTaskID,
+            reminderTime: editor.draft.computedReminderDate,
+            in: allTasks
+        )
+
+        guard !followerIDs.isEmpty else { return }
+
+        if followerIDs.contains(editor.taskID) {
+            editor.draft.clearReminder()
+        }
+
+        let otherFollowerIDs = followerIDs.filter { $0 != editor.taskID }
+        if !otherFollowerIDs.isEmpty {
+            onClearFollowerTimes(otherFollowerIDs)
         }
     }
 

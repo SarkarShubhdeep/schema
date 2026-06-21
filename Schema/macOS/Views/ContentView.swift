@@ -30,6 +30,7 @@ struct ContentView: View {
     @State private var primarySelectedTaskID: UUID?
     @State private var selectionAnchorID: UUID?
     @State private var isEditingListName = false
+    @State private var sequenceValidationAlert: RoutineSequenceValidationResult?
     @FocusState private var isAddTaskFocused: Bool
     @FocusState private var isTaskListFocused: Bool
 
@@ -280,6 +281,7 @@ struct ContentView: View {
                     editor: taskDetailEditor,
                     listTagLabel: task.list?.displayTagLabel,
                     sequenceCandidates: routineSequenceCandidates(for: task, in: allTasks),
+                    allTasks: allTasks,
                     isCompleted: task.isCompleted,
                     onCloseRequest: {
                         saveAndCloseTaskDetail(taskViewModel: taskViewModel)
@@ -292,6 +294,12 @@ struct ContentView: View {
                     onDelete: {
                         taskViewModel.deleteTask(task)
                         closeTaskDetail()
+                    },
+                    onClearFollowerTimes: { taskIDs in
+                        Task {
+                            await taskViewModel.clearReminderTimes(for: taskIDs, in: allTasks)
+                            await refreshNotifications()
+                        }
                     }
                 )
                 .padding(.top, 12)
@@ -333,6 +341,23 @@ struct ContentView: View {
             if let primarySelectedTaskID, !validIDs.contains(primarySelectedTaskID) {
                 self.primarySelectedTaskID = selectedTaskIDs.first
                 selectionAnchorID = selectedTaskIDs.first
+            }
+        }
+        .alert("Routine Sequence", isPresented: Binding(
+            get: { sequenceValidationAlert != nil },
+            set: { isPresented in
+                if !isPresented {
+                    sequenceValidationAlert = nil
+                }
+            }
+        )) {
+            Button("Remove follower times") {
+                removeFollowerTimesFromDetailEditor(taskViewModel: taskViewModel)
+            }
+            Button("OK", role: .cancel) {}
+        } message: {
+            if let sequenceValidationAlert {
+                Text("\(sequenceValidationAlert.message)\n\n\(sequenceValidationAlert.suggestion)")
             }
         }
         .workspaceKeyboardShortcuts(
@@ -536,7 +561,7 @@ struct ContentView: View {
         let reminder = draft.computedReminderDate
 
         Task {
-            await taskViewModel.applyDetailChanges(
+            if let failure = await taskViewModel.applyDetailChanges(
                 task,
                 title: title,
                 description: descriptionValue,
@@ -545,7 +570,10 @@ struct ContentView: View {
                 routineDays: draft.normalizedRoutineDays,
                 afterTaskID: draft.afterTaskID,
                 allTasks: allTasks
-            )
+            ) {
+                sequenceValidationAlert = failure
+                return
+            }
             await refreshNotifications()
             closeTaskDetail()
         }
@@ -715,6 +743,35 @@ struct ContentView: View {
                 in: incomplete,
                 allTasks: allTasks
             )
+        }
+    }
+
+    private func removeFollowerTimesFromDetailEditor(taskViewModel: TaskViewModel) {
+        guard let editor = taskDetailEditor else { return }
+
+        let followerIDs = RoutineSequenceOrdering.followerIDsInProposedChain(
+            containing: editor.taskID,
+            title: editor.draft.title,
+            isRoutine: editor.draft.isRoutine,
+            afterTaskID: editor.draft.afterTaskID,
+            reminderTime: editor.draft.computedReminderDate,
+            in: allTasks
+        )
+
+        guard !followerIDs.isEmpty else { return }
+
+        if followerIDs.contains(editor.taskID) {
+            editor.draft.clearReminder()
+        }
+
+        let otherFollowerIDs = followerIDs.filter { $0 != editor.taskID }
+        sequenceValidationAlert = nil
+
+        Task {
+            if !otherFollowerIDs.isEmpty {
+                await taskViewModel.clearReminderTimes(for: otherFollowerIDs, in: allTasks)
+                await refreshNotifications()
+            }
         }
     }
 }

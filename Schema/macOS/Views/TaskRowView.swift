@@ -144,13 +144,6 @@ struct TaskRowView: View {
                         .foregroundStyle(SchemaTheme.accent.opacity(0.85))
                 }
                 .buttonStyle(.plain)
-            } else if isHovered, !task.isCompleted {
-                Button(action: openReminderPicker) {
-                    Text("Add time")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(SchemaTheme.mutedText)
-                }
-                .buttonStyle(.plain)
             } else {
                 Color.clear
                     .frame(

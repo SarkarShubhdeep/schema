@@ -178,6 +178,10 @@ final class TaskViewModel {
             task.manualSortIndex = newIndices[index]
         }
 
+        if let listID = sourceTask.list?.id {
+            compactManualSortIndices(forListID: listID, in: allTasks)
+        }
+
         save()
         return true
     }
@@ -241,6 +245,23 @@ final class TaskViewModel {
         }
 
         return (0..<count).map { start + Double($0) * gap }
+    }
+
+    func clearReminderTimes(for taskIDs: [UUID], in allTasks: [SchemaTask]) async {
+        for taskID in taskIDs {
+            guard let task = allTasks.first(where: { $0.id == taskID }) else { continue }
+            await setReminder(task, at: nil)
+        }
+    }
+
+    private func compactManualSortIndices(forListID listID: UUID, in allTasks: [SchemaTask]) {
+        let listTasks = allTasks.filter { $0.list?.id == listID }
+        guard !listTasks.isEmpty else { return }
+
+        let ordered = applyManualSort(listTasks)
+        for (index, task) in ordered.enumerated() {
+            task.manualSortIndex = Double(index + 1)
+        }
     }
 
     func toggleCompletion(_ task: SchemaTask, in allTasks: [SchemaTask], recordUndo: Bool = true) {
@@ -338,6 +359,7 @@ final class TaskViewModel {
         save()
     }
 
+    @discardableResult
     func applyDetailChanges(
         _ task: SchemaTask,
         title: String,
@@ -347,9 +369,25 @@ final class TaskViewModel {
         routineDays: [Int],
         afterTaskID: UUID?,
         allTasks: [SchemaTask]
-    ) async {
+    ) async -> RoutineSequenceValidationResult? {
+        if let validationFailure = RoutineSequenceOrdering.validateProposedSequenceState(
+            for: task.id,
+            title: title,
+            isRoutine: isRoutine,
+            afterTaskID: afterTaskID,
+            reminderTime: reminder,
+            in: allTasks
+        ) {
+            return validationFailure
+        }
+
         updateTitle(task, title: title, recordUndo: true)
         updateDescription(task, description: description)
+
+        if !isRoutine {
+            RoutineSequenceOrdering.detachFollowers(from: task.id, in: allTasks)
+        }
+
         task.isRoutine = isRoutine
         task.routineDays = isRoutine ? routineDays : []
         task.afterTaskID = isRoutine ? afterTaskID : nil
@@ -365,6 +403,7 @@ final class TaskViewModel {
 
         save()
         await setReminder(task, at: reminder)
+        return nil
     }
 
     func setReminder(_ task: SchemaTask, at date: Date?) async {
