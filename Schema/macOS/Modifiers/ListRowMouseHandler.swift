@@ -60,13 +60,22 @@ extension View {
         onSingleClick: @escaping () -> Void,
         onDoubleClick: @escaping () -> Void
     ) -> some View {
-        // Sits behind the row so interactive controls (checkbox, reminder button)
-        // receive their own clicks; inert areas fall through to this handler.
-        background {
-            ListRowMouseHandler(
-                onSingleClick: onSingleClick,
-                onDoubleClick: onDoubleClick
+        self
+            // Background handler: sits behind interactive controls so checkbox/reminder
+            // buttons receive their own clicks. The SwiftUI hosting layer absorbs events
+            // over the content, so this NSView only reliably sees events on inert areas
+            // and drag operations (needed for onMove reordering).
+            .background {
+                ListRowMouseHandler(
+                    onSingleClick: onSingleClick,
+                    onDoubleClick: onDoubleClick
+                )
+            }
+            // SwiftUI-level double-tap: catches double-clicks on the content area that
+            // the background NSView never receives. simultaneousGesture lets the Button
+            // still handle its own single-tap on the checkbox.
+            .simultaneousGesture(
+                TapGesture(count: 2).onEnded { onDoubleClick() }
             )
-        }
     }
 }
