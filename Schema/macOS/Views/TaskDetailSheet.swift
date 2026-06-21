@@ -142,6 +142,7 @@ struct TaskDetailDraft {
 final class TaskDetailEditor {
     let taskID: UUID
     var draft: TaskDetailDraft
+    var selectedListCandidateIndex = 0
 
     init(task: SchemaTask) {
         taskID = task.id
@@ -221,6 +222,7 @@ private struct TaskDetailPanelHostRepresentable: NSViewRepresentable {
 struct TaskDetailSheet: View {
     @Bindable var editor: TaskDetailEditor
     let listTagLabel: String?
+    let availableLists: [SchemaList]
     let sequenceCandidates: [SchemaTask]
     let allTasks: [SchemaTask]
     let isCompleted: Bool
@@ -315,11 +317,199 @@ struct TaskDetailSheet: View {
     }
 
     private var titleField: some View {
-        TextField("Task title", text: $editor.draft.title, axis: .vertical)
-            .font(.system(size: 24, weight: .bold))
-            .textFieldStyle(.plain)
-            .lineLimit(3)
-            .focused($focusedField, equals: .title)
+        VStack(alignment: .leading, spacing: 8) {
+            TextField("Task title", text: $editor.draft.title, axis: .vertical)
+                .font(.system(size: 24, weight: .bold))
+                .textFieldStyle(.plain)
+                .lineLimit(3)
+                .focused($focusedField, equals: .title)
+                .onKeyPress(keys: [.upArrow], phases: [.down, .repeat]) { _ in
+                    moveListCandidateSelection(by: -1)
+                }
+                .onKeyPress(keys: [.downArrow], phases: [.down, .repeat]) { _ in
+                    moveListCandidateSelection(by: 1)
+                }
+                .onChange(of: titlePreviewMentions.listCandidates.map(\.id)) { _, newIDs in
+                    clampListCandidateSelection(candidateCount: newIDs.count)
+                }
+
+            if titlePreviewMentions.hasPreviewContent {
+                titleMentionPreview(titlePreviewMentions)
+            }
+        }
+    }
+
+    private var listSuggestionCandidates: [SchemaList] {
+        titlePreviewMentions.listCandidates
+    }
+
+    private var selectedListCandidate: SchemaList? {
+        titlePreviewMentions.resolvedList(at: editor.selectedListCandidateIndex)
+    }
+
+    private func moveListCandidateSelection(by offset: Int) -> KeyPress.Result {
+        let candidates = listSuggestionCandidates
+        guard candidates.count > 1 else { return .ignored }
+
+        let nextIndex = min(
+            max(editor.selectedListCandidateIndex + offset, 0),
+            candidates.count - 1
+        )
+        guard nextIndex != editor.selectedListCandidateIndex else { return .handled }
+
+        withAnimation(SchemaMotion.fast) {
+            editor.selectedListCandidateIndex = nextIndex
+        }
+        return .handled
+    }
+
+    private func clampListCandidateSelection(candidateCount: Int) {
+        guard candidateCount > 0 else {
+            editor.selectedListCandidateIndex = 0
+            return
+        }
+        editor.selectedListCandidateIndex = min(editor.selectedListCandidateIndex, candidateCount - 1)
+    }
+
+    private var titlePreviewMentions: ParsedAtMentions {
+        AtMentionParser.preview(editor.draft.title, lists: availableLists)
+    }
+
+    @ViewBuilder
+    private func titleMentionPreview(_ mentions: ParsedAtMentions) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if mentions.hasResolvedMentions {
+                HStack(spacing: 8) {
+                    if let time = mentions.detectedTime {
+                        titlePreviewChip(
+                            icon: "clock",
+                            label: time.formatted(date: .omitted, time: .shortened)
+                        )
+                    }
+
+                    if let date = mentions.detectedDate {
+                        titlePreviewChip(
+                            icon: "calendar",
+                            label: previewDateLabel(for: date)
+                        )
+                    }
+
+                    if let list = mentions.detectedList {
+                        titlePreviewListChip(list: list)
+                    } else if mentions.listCandidates.count > 1, let selected = selectedListCandidate {
+                        titlePreviewListChip(list: selected, suffix: " (selected)")
+                    }
+                }
+            }
+
+            if !mentions.listCandidates.isEmpty {
+                titleListSuggestions(
+                    mentions.listCandidates,
+                    activePrefix: mentions.activeListPrefix,
+                    selectedIndex: editor.selectedListCandidateIndex
+                )
+            }
+        }
+    }
+
+    private func titlePreviewChip(icon: String, label: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .semibold))
+            Text(label)
+                .font(.system(size: 11, weight: .medium))
+        }
+        .foregroundStyle(SchemaTheme.accent)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(
+            Capsule(style: .continuous)
+                .fill(SchemaTheme.accent.opacity(0.12))
+        )
+    }
+
+    private func titlePreviewListChip(list: SchemaList, suffix: String = "") -> some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(SchemaTheme.listAccent(for: list))
+                .frame(width: 6, height: 6)
+            Text("\(list.displayTagLabel)\(suffix)")
+                .font(.system(size: 11, weight: .medium))
+        }
+        .foregroundStyle(SchemaTheme.listAccent(for: list))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(
+            Capsule(style: .continuous)
+                .fill(SchemaTheme.listAccent(for: list).opacity(0.12))
+        )
+    }
+
+    private func titleListSuggestions(
+        _ candidates: [SchemaList],
+        activePrefix: String?,
+        selectedIndex: Int
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if let activePrefix {
+                Text("Lists matching \"\(activePrefix)\" — ↑↓ to select, applied on save")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(SchemaTheme.mutedText)
+            }
+
+            ForEach(Array(candidates.enumerated()), id: \.element.id) { index, list in
+                Button {
+                    withAnimation(SchemaMotion.fast) {
+                        editor.selectedListCandidateIndex = index
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(SchemaTheme.listAccent(for: list))
+                            .frame(width: 6, height: 6)
+
+                        Text(list.displayTagLabel)
+                            .font(.system(size: 11, weight: index == selectedIndex ? .semibold : .medium))
+
+                        if index == selectedIndex, candidates.count > 1 {
+                            Text("selected")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundStyle(SchemaTheme.mutedText)
+                        }
+                    }
+                    .foregroundStyle(index == selectedIndex ? SchemaTheme.accent : SchemaTheme.mutedText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(index == selectedIndex ? SchemaTheme.accent.opacity(0.12) : .clear)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(SchemaTheme.surface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(SchemaTheme.divider, lineWidth: 1)
+                )
+        )
+    }
+
+    private func previewDateLabel(for date: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) {
+            return "Today"
+        }
+        if calendar.isDateInTomorrow(date) {
+            return "Tomorrow"
+        }
+        return date.formatted(.dateTime.month(.abbreviated).day())
     }
 
     private var metadataRow: some View {

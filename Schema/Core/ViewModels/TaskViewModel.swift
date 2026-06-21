@@ -75,6 +75,7 @@ final class TaskViewModel {
         defaultWritableListID: UUID? = nil,
         lists: [SchemaList] = [],
         allTasks: [SchemaTask] = [],
+        reminderTime: Date? = nil,
         recordUndo: Bool = true
     ) -> SchemaTask? {
         guard let list else { return nil }
@@ -96,7 +97,7 @@ final class TaskViewModel {
 
         guard let targetList else { return nil }
 
-        let task = SchemaTask(title: trimmed, list: targetList)
+        let task = SchemaTask(title: trimmed, list: targetList, reminderTime: reminderTime)
         
         let listTasks = allTasks.filter { $0.list?.id == targetList.id }
         let maxIndex = listTasks.map(\.manualSortIndex).max() ?? 0
@@ -110,7 +111,23 @@ final class TaskViewModel {
             pushUndo(.addedTask(task.id))
         }
 
+        if reminderTime != nil, !task.isCompleted {
+            Task { await setReminder(task, at: reminderTime) }
+        }
+
         return task
+    }
+
+    func moveTask(_ task: SchemaTask, to list: SchemaList, allTasks: [SchemaTask]) {
+        guard !list.isEverythingList, task.list?.id != list.id else { return }
+
+        task.list = list
+
+        let listTasks = allTasks.filter { $0.list?.id == list.id && $0.id != task.id }
+        let maxIndex = listTasks.map(\.manualSortIndex).max() ?? 0
+        task.manualSortIndex = maxIndex + 1
+
+        save()
     }
 
     func isSequenceBlocked(_ task: SchemaTask, in allTasks: [SchemaTask]) -> Bool {

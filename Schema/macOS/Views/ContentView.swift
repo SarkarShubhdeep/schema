@@ -24,6 +24,7 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var notificationItems: [SchemaNotificationItem] = []
     @State private var isAddTaskExpanded = false
+    @State private var quickEntryListCandidateIndex = 0
     @State private var skipAddTaskDismiss = false
     @State private var taskDetailEditor: TaskDetailEditor?
     @State private var selectedTaskIDs: Set<UUID> = []
@@ -177,6 +178,8 @@ struct ContentView: View {
                 ),
                 isExpanded: $isAddTaskExpanded,
                 placeholder: quickEntryPlaceholder,
+                parsedMentions: quickEntryParsedMentions(for: taskViewModel),
+                selectedListCandidateIndex: $quickEntryListCandidateIndex,
                 onSubmit: {
                     submitQuickEntry(taskViewModel: taskViewModel, listViewModel: listViewModel)
                 },
@@ -280,6 +283,7 @@ struct ContentView: View {
                 TaskDetailSheet(
                     editor: taskDetailEditor,
                     listTagLabel: task.list?.displayTagLabel,
+                    availableLists: lists,
                     sequenceCandidates: routineSequenceCandidates(for: task, in: allTasks),
                     allTasks: allTasks,
                     isCompleted: task.isCompleted,
@@ -425,6 +429,11 @@ struct ContentView: View {
         return "Add a task..."
     }
 
+    private func quickEntryParsedMentions(for taskViewModel: TaskViewModel) -> ParsedAtMentions? {
+        let parsed = AtMentionParser.preview(taskViewModel.quickEntryText, lists: lists)
+        return parsed.hasPreviewContent ? parsed : nil
+    }
+
     private func bootstrapIfNeeded() {
         guard listViewModel == nil else { return }
 
@@ -455,16 +464,29 @@ struct ContentView: View {
         guard !taskViewModel.quickEntryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return
         }
+
+        let parsed = AtMentionParser.commit(taskViewModel.quickEntryText, lists: lists)
+        let targetList = parsed.resolvedList(at: quickEntryListCandidateIndex)
+            ?? parsed.detectedList
+            ?? selectedList
+        let title = parsed.cleanTitle.isEmpty ? taskViewModel.quickEntryText : parsed.cleanTitle
+
+        guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return
+        }
+
         skipAddTaskDismiss = true
         withAnimation(SchemaMotion.smooth) {
             _ = taskViewModel.addTask(
-                to: selectedList,
-                title: taskViewModel.quickEntryText,
+                to: targetList,
+                title: title,
                 defaultWritableListID: listViewModel.defaultWritableListID,
                 lists: lists,
-                allTasks: allTasks
+                allTasks: allTasks,
+                reminderTime: parsed.mergedReminderDate()
             )
         }
+        quickEntryListCandidateIndex = 0
         isAddTaskExpanded = true
         DispatchQueue.main.async {
             isAddTaskFocused = true
@@ -474,6 +496,7 @@ struct ContentView: View {
 
     private func closeAddTask() {
         taskViewModel?.quickEntryText = ""
+        quickEntryListCandidateIndex = 0
         isAddTaskExpanded = false
         isAddTaskFocused = false
         skipAddTaskDismiss = false
@@ -547,6 +570,21 @@ struct ContentView: View {
               let task = allTasks.first(where: { $0.id == editor.taskID }) else {
             closeTaskDetail()
             return
+        }
+
+        let parsed = AtMentionParser.commit(editor.draft.title, lists: lists)
+        editor.draft.title = parsed.cleanTitle
+
+        if let time = parsed.detectedTime {
+            editor.draft.selectedTime = time
+        }
+
+        if let date = parsed.detectedDate, !editor.draft.isRoutine {
+            editor.draft.selectedDate = date
+        }
+
+        if let list = parsed.resolvedList(at: editor.selectedListCandidateIndex) {
+            taskViewModel.moveTask(task, to: list, allTasks: allTasks)
         }
 
         let draft = editor.draft
