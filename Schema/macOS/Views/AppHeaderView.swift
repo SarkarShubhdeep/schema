@@ -28,7 +28,7 @@ struct AppHeaderToolbar: ToolbarContent {
 
                     if pendingNotificationCount > 0 {
                         Circle()
-                            .fill(SchemaTheme.accent)
+                            .fill(SchemaTheme.ink)
                             .frame(width: 7, height: 7)
                             .offset(x: 3, y: -3)
                     }
@@ -55,6 +55,6 @@ struct AppHeaderToolbar: ToolbarContent {
             .resizable()
             .scaledToFit()
             .frame(width: size, height: size)
-            .foregroundStyle(SchemaTheme.mutedText)
+            .foregroundStyle(SchemaTheme.inkMuted)
     }
 }

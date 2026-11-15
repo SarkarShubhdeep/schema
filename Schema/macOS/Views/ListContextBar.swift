@@ -19,7 +19,7 @@ struct ListContextBar: View {
                     Text("All Lists")
                         .font(.system(size: 13, weight: .medium))
                 }
-                .foregroundStyle(SchemaTheme.mutedText)
+                .foregroundStyle(SchemaTheme.inkMuted)
             }
             .buttonStyle(.plain)
 
@@ -32,6 +32,6 @@ struct ListContextBar: View {
         }
         .padding(.horizontal, 28)
         .padding(.vertical, 10)
-        .background(SchemaTheme.background)
+        .background(SchemaTheme.canvas)
     }
 }

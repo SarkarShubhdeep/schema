@@ -129,7 +129,7 @@ struct WorkspaceView: View {
             detailPanel
         }
         .frame(minWidth: 720, minHeight: 520)
-        .background(SchemaTheme.background)
+        .background(SchemaTheme.canvas)
         .clickOutsideDismiss(isActive: workspace.hasDismissibleState) {
             dismissActiveEditing()
         }

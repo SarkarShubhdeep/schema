@@ -285,10 +285,10 @@ struct TaskDetailSheet: View {
         .frame(width: Metrics.width)
         .background(
             RoundedRectangle(cornerRadius: Metrics.cornerRadius, style: .continuous)
-                .fill(SchemaTheme.controlFill)
+                .fill(SchemaTheme.surfaceSunken)
                 .overlay(
                     RoundedRectangle(cornerRadius: Metrics.cornerRadius, style: .continuous)
-                        .strokeBorder(SchemaTheme.divider, lineWidth: 1)
+                        .strokeBorder(SchemaTheme.line, lineWidth: 1)
                 )
                 .shadow(color: .black.opacity(0.08), radius: 14, y: 6)
         )
@@ -419,29 +419,29 @@ struct TaskDetailSheet: View {
             Text(label)
                 .font(.system(size: 11, weight: .medium))
         }
-        .foregroundStyle(SchemaTheme.accent)
+        .foregroundStyle(SchemaTheme.ink)
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
         .background(
             Capsule(style: .continuous)
-                .fill(SchemaTheme.accent.opacity(0.12))
+                .fill(SchemaTheme.surfaceHover)
         )
     }
 
     private func titlePreviewListChip(list: SchemaList, suffix: String = "") -> some View {
         HStack(spacing: 5) {
             Circle()
-                .fill(SchemaTheme.listAccent(for: list))
+                .fill(SchemaTheme.inkMuted)
                 .frame(width: 6, height: 6)
             Text("\(list.displayTagLabel)\(suffix)")
                 .font(.system(size: 11, weight: .medium))
         }
-        .foregroundStyle(SchemaTheme.listAccent(for: list))
+        .foregroundStyle(SchemaTheme.inkMuted)
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
         .background(
             Capsule(style: .continuous)
-                .fill(SchemaTheme.listAccent(for: list).opacity(0.12))
+                .fill(SchemaTheme.surfaceHover)
         )
     }
 
@@ -454,7 +454,7 @@ struct TaskDetailSheet: View {
             if let activePrefix {
                 Text("Lists matching \"\(activePrefix)\" — ↑↓ to select, applied on save")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(SchemaTheme.mutedText)
+                    .foregroundStyle(SchemaTheme.inkMuted)
             }
 
             ForEach(Array(candidates.enumerated()), id: \.element.id) { index, list in
@@ -465,7 +465,7 @@ struct TaskDetailSheet: View {
                 } label: {
                     HStack(spacing: 6) {
                         Circle()
-                            .fill(SchemaTheme.listAccent(for: list))
+                            .fill(SchemaTheme.inkMuted)
                             .frame(width: 6, height: 6)
 
                         Text(list.displayTagLabel)
@@ -474,16 +474,16 @@ struct TaskDetailSheet: View {
                         if index == selectedIndex, candidates.count > 1 {
                             Text("selected")
                                 .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(SchemaTheme.mutedText)
+                                .foregroundStyle(SchemaTheme.inkMuted)
                         }
                     }
-                    .foregroundStyle(index == selectedIndex ? SchemaTheme.accent : SchemaTheme.mutedText)
+                    .foregroundStyle(index == selectedIndex ? SchemaTheme.ink : SchemaTheme.inkMuted)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 4)
                     .background(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(index == selectedIndex ? SchemaTheme.accent.opacity(0.12) : .clear)
+                            .fill(index == selectedIndex ? SchemaTheme.surfaceHover : .clear)
                     )
                 }
                 .buttonStyle(.plain)
@@ -496,7 +496,7 @@ struct TaskDetailSheet: View {
                 .fill(SchemaTheme.surface)
                 .overlay(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .strokeBorder(SchemaTheme.divider, lineWidth: 1)
+                        .strokeBorder(SchemaTheme.line, lineWidth: 1)
                 )
         )
     }
@@ -531,7 +531,7 @@ struct TaskDetailSheet: View {
                 Text(timeLabel)
                     .font(.system(size: 12, weight: .medium))
             }
-            .foregroundStyle(editor.draft.selectedTime != nil ? SchemaTheme.accent : SchemaTheme.mutedText)
+            .foregroundStyle(editor.draft.selectedTime != nil ? SchemaTheme.ink : SchemaTheme.inkMuted)
         }
         .buttonStyle(.plain)
         .popover(isPresented: $showTimePicker) {
@@ -560,8 +560,8 @@ struct TaskDetailSheet: View {
             }
             .foregroundStyle(
                 editor.draft.isRoutine
-                    ? SchemaTheme.mutedText.opacity(0.4)
-                    : (editor.draft.selectedDate != nil ? SchemaTheme.accent : SchemaTheme.mutedText)
+                    ? SchemaTheme.inkMuted.opacity(0.4)
+                    : (editor.draft.selectedDate != nil ? SchemaTheme.ink : SchemaTheme.inkMuted)
             )
         }
         .buttonStyle(.plain)
@@ -607,7 +607,7 @@ struct TaskDetailSheet: View {
             }
             .toggleStyle(.switch)
             .controlSize(.small)
-            .tint(SchemaTheme.accent)
+            .tint(SchemaTheme.ink)
 
             if editor.draft.isRoutine {
                 Spacer()
@@ -633,7 +633,7 @@ struct TaskDetailSheet: View {
         HStack(spacing: 10) {
             Text("After")
                 .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(SchemaTheme.mutedText)
+                .foregroundStyle(SchemaTheme.inkMuted)
 
             Picker("After", selection: $editor.draft.afterTaskID) {
                 Text("None").tag(UUID?.none)
@@ -676,7 +676,7 @@ struct TaskDetailSheet: View {
 
             Text(validation.suggestion)
                 .font(.system(size: 11))
-                .foregroundStyle(SchemaTheme.mutedText)
+                .foregroundStyle(SchemaTheme.inkMuted)
                 .fixedSize(horizontal: false, vertical: true)
 
             Button("Remove follower times") {
@@ -684,7 +684,7 @@ struct TaskDetailSheet: View {
             }
             .buttonStyle(.plain)
             .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(SchemaTheme.accent)
+            .foregroundStyle(SchemaTheme.ink)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -736,15 +736,15 @@ struct TaskDetailSheet: View {
             Text(info.shortLabel)
                 .font(.system(size: 10, weight: .semibold))
                 .frame(width: 24, height: 24)
-                .foregroundStyle(isSelected ? .white : SchemaTheme.mutedText)
+                .foregroundStyle(isSelected ? SchemaTheme.canvas : SchemaTheme.inkMuted)
                 .background(
                     Circle()
-                        .fill(isSelected ? SchemaTheme.accent : Color.clear)
+                        .fill(isSelected ? SchemaTheme.ink : Color.clear)
                 )
                 .overlay(
                     Circle()
                         .strokeBorder(
-                            isSelected ? Color.clear : SchemaTheme.mutedText.opacity(0.3),
+                            isSelected ? Color.clear : SchemaTheme.inkMuted.opacity(0.3),
                             lineWidth: 1
                         )
                 )
@@ -756,12 +756,12 @@ struct TaskDetailSheet: View {
     private func listTag(label: String) -> some View {
         Text(label)
             .font(.system(size: 12, weight: .medium))
-            .foregroundStyle(SchemaTheme.mutedText.opacity(0.9))
+            .foregroundStyle(SchemaTheme.inkMuted.opacity(0.9))
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             .background(
                 Capsule(style: .continuous)
-                    .fill(SchemaTheme.countBadgeBackground)
+                    .fill(SchemaTheme.surfaceHover)
             )
     }
 
@@ -769,7 +769,7 @@ struct TaskDetailSheet: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Description")
                 .font(.subheadline)
-                .foregroundStyle(SchemaTheme.mutedText)
+                .foregroundStyle(SchemaTheme.inkMuted)
 
             TextEditor(text: $editor.draft.description)
                 .font(.body)
@@ -782,7 +782,7 @@ struct TaskDetailSheet: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(SchemaTheme.divider, lineWidth: 1)
+                        .strokeBorder(SchemaTheme.line, lineWidth: 1)
                 )
                 .focused($focusedField, equals: .description)
         }
@@ -798,7 +798,7 @@ struct TaskDetailSheet: View {
                     Text(isCompleted ? "Mark as incomplete" : "Mark as completed")
                         .font(.system(size: 13, weight: .medium))
                 }
-                .foregroundStyle(isCompleted ? SchemaTheme.accent : SchemaTheme.mutedText)
+                .foregroundStyle(isCompleted ? SchemaTheme.ink : SchemaTheme.inkMuted)
             }
             .buttonStyle(.plain)
             .help(isCompleted ? "Mark as incomplete" : "Mark as completed")
@@ -808,7 +808,7 @@ struct TaskDetailSheet: View {
             Button {} label: {
                 Image(systemName: "archivebox")
                     .font(.system(size: 16, weight: .regular))
-                    .foregroundStyle(SchemaTheme.mutedText.opacity(0.45))
+                    .foregroundStyle(SchemaTheme.inkMuted.opacity(0.45))
             }
             .buttonStyle(.plain)
             .disabled(true)
@@ -817,7 +817,7 @@ struct TaskDetailSheet: View {
             Button(action: onDelete) {
                 Image(systemName: "trash")
                     .font(.system(size: 16, weight: .regular))
-                    .foregroundStyle(SchemaTheme.mutedText)
+                    .foregroundStyle(SchemaTheme.inkMuted)
             }
             .buttonStyle(.plain)
             .help("Delete task")
@@ -847,7 +847,7 @@ struct TaskDetailSheet: View {
                 let dayText = calendar.isDateInToday(nextDate) ? "today" : "tomorrow"
                 Text("Reminder will be set for \(dayText) at \(pickerTime.formatted(date: .omitted, time: .shortened))")
                     .font(.caption)
-                    .foregroundStyle(SchemaTheme.mutedText)
+                    .foregroundStyle(SchemaTheme.inkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
 

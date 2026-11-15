@@ -9,7 +9,7 @@ extension View {
     func schemaWindowToolbar() -> some View {
         self
             .navigationTitle("Schema")
-            .toolbarBackground(SchemaTheme.background, for: .windowToolbar)
+            .toolbarBackground(SchemaTheme.canvas, for: .windowToolbar)
             .toolbarBackground(.visible, for: .windowToolbar)
     }
 }

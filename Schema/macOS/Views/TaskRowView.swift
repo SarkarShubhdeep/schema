@@ -96,8 +96,8 @@ struct TaskRowView: View {
             HStack(alignment: .firstTextBaseline, spacing: 5) {
                 Text(task.title)
                     .font(.system(size: 15, weight: .regular))
-                    .foregroundStyle(task.isCompleted ? SchemaTheme.completed : .primary)
-                    .strikethrough(task.isCompleted, color: SchemaTheme.completed)
+                    .foregroundStyle(task.isCompleted ? SchemaTheme.inkFaint : .primary)
+                    .strikethrough(task.isCompleted, color: SchemaTheme.inkFaint)
                     .opacity(task.isCompleted ? 0.75 : 1)
                     .lineLimit(2)
                     .truncationMode(.tail)
@@ -107,8 +107,8 @@ struct TaskRowView: View {
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(
                             task.isCompleted
-                                ? SchemaTheme.completed.opacity(0.75)
-                                : SchemaTheme.accent.opacity(0.85)
+                                ? SchemaTheme.inkFaint.opacity(0.75)
+                                : SchemaTheme.inkMuted
                         )
                         .help("Routine task")
                 }
@@ -118,7 +118,7 @@ struct TaskRowView: View {
             if let description = task.displayDescription {
                 Text(description)
                     .font(.system(size: 12))
-                    .foregroundStyle(SchemaTheme.mutedText)
+                    .foregroundStyle(SchemaTheme.inkMuted)
                     .lineLimit(2)
             }
         }
@@ -152,7 +152,7 @@ struct TaskRowView: View {
                 Button(action: openReminderPicker) {
                     Text(ReminderFormatting.displayString(for: reminderTime))
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(SchemaTheme.accent.opacity(0.85))
+                        .foregroundStyle(SchemaTheme.inkMuted)
                 }
                 .buttonStyle(.plain)
             } else {
@@ -170,38 +170,35 @@ struct TaskRowView: View {
     private func listTag(for list: SchemaList) -> some View {
         Text(list.displayTagLabel)
             .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(SchemaTheme.listTagForeground(for: list))
+            .foregroundStyle(SchemaTheme.inkMuted)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
             .background(
                 Capsule(style: .continuous)
-                    .fill(SchemaTheme.listTagBackground(for: list))
+                    .fill(SchemaTheme.surfaceHover)
             )
             .transition(.opacity)
     }
 
     private var checkboxColor: Color {
         if task.isCompleted {
-            return SchemaTheme.accent
+            return SchemaTheme.inkFaint
         }
         if isSequenceBlocked {
-            return SchemaTheme.mutedText.opacity(0.25)
+            return SchemaTheme.lineStrong.opacity(0.5)
         }
-        return SchemaTheme.mutedText.opacity(0.55)
+        return SchemaTheme.lineStrong
     }
 
     private var rowBackground: Color {
         if isLifted {
-            return SchemaTheme.background
+            return SchemaTheme.surface
         }
-        if isHighlighted {
-            return SchemaTheme.accent.opacity(0.06)
-        }
-        if isKeyboardSelected {
-            return SchemaTheme.accent.opacity(0.08)
+        if isHighlighted || isKeyboardSelected {
+            return SchemaTheme.surfaceHover
         }
         if isHovered {
-            return SchemaTheme.rowHoverBackground()
+            return SchemaTheme.surfaceHover.opacity(0.6)
         }
         return .clear
     }

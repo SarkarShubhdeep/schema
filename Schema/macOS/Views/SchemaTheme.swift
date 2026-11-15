@@ -2,168 +2,65 @@
 //  SchemaTheme.swift
 //  Schema
 //
+//  Color tokens from the Schema design system
+//  (https://claude.ai/artifact/5fDFJNPDcbr1nWJwyGSG9L): neutral greys and a
+//  single yellow accent, each with a light and a dark value.
+//
 
 import AppKit
 import SwiftUI
 
 enum SchemaTheme {
-    static let background = dynamicColor(
-        light: (0.98, 0.98, 0.99),
-        dark: (0.11, 0.11, 0.12)
-    )
-    static let surface = dynamicColor(
-        light: (1.0, 1.0, 1.0),
-        dark: (0.16, 0.16, 0.17)
-    )
-    static let accent = dynamicColor(
-        light: (0.39, 0.40, 0.95),
-        dark: (0.52, 0.53, 0.98)
-    )
-    static let completed = dynamicColor(
-        light: (0.61, 0.64, 0.69),
-        dark: (0.50, 0.52, 0.56)
-    )
-    static let divider = dynamicColor(
-        light: (0.90, 0.91, 0.92),
-        dark: (0.28, 0.28, 0.30)
-    )
-    static let mutedText = dynamicColor(
-        light: (0.55, 0.57, 0.60),
-        dark: (0.62, 0.64, 0.67)
-    )
-    static let tabInactive = dynamicColor(
-        light: (0.75, 0.77, 0.82),
-        dark: (0.52, 0.54, 0.58)
-    )
-    static let countBadgeBackground = dynamicColor(
-        light: (0.93, 0.93, 0.94),
-        dark: (0.22, 0.22, 0.24)
-    )
-    static let controlFill = dynamicColor(
-        light: (0.95, 0.95, 0.96),
-        dark: (0.20, 0.20, 0.22)
-    )
-    static let newListCardFill = dynamicColor(
-        light: (0.96, 0.96, 0.97),
-        dark: (0.15, 0.15, 0.16)
-    )
-    static let rowHover = dynamicColor(
-        light: (0.0, 0.0, 0.0),
-        dark: (1.0, 1.0, 1.0)
-    )
+    // MARK: Grounds, back to front
 
-    static func listColorName(for list: SchemaList) -> SchemaListColorName {
-        if let stored = list.accentColorName,
-           let color = SchemaListColorName(rawValue: stored) {
-            return color
-        }
-        return SchemaListColorName.fallback(for: list.title)
-    }
+    /// Sidebar background; one step away from `canvas` so it reads as chrome.
+    static let surfaceSunken = color(light: 0xEBEBE8, dark: 0x0A0A0A)
+    /// Main content area behind lists and dashboard panels.
+    static let canvas = color(light: 0xF4F4F2, dark: 0x111111)
+    /// Raised panels: cards, inputs, popovers, the detail panel.
+    static let surface = color(light: 0xFFFFFF, dark: 0x1A1A1A)
+    /// Hovered and selected rows. Selection is neutral, never tinted.
+    static let surfaceHover = color(light: 0xE6E6E3, dark: 0x252525)
 
-    static func listAccent(for list: SchemaList) -> Color {
-        listColorName(for: list).accentColor
-    }
+    // MARK: Lines
 
-    static func listTagBackground(for list: SchemaList) -> Color {
-        listColorName(for: list).tagBackgroundColor
-    }
+    /// Hairline dividers and panel borders.
+    static let line = color(light: 0xE0E0DC, dark: 0x2A2A2A)
+    /// Checkbox rings and input borders that must be seen (3:1 on surface and canvas).
+    static let lineStrong = color(light: 0x8A8A85, dark: 0x6F6F6C)
 
-    static func listTagForeground(for list: SchemaList) -> Color {
-        listColorName(for: list).tagForegroundColor
-    }
+    // MARK: Text and icons
 
-    static func tabColor(for list: SchemaList, isSelected: Bool) -> Color {
-        if list.isEverythingList {
-            return isSelected ? .primary : tabInactive
-        }
-        return listAccent(for: list).opacity(isSelected ? 1.0 : 0.72)
-    }
+    /// Primary text and icons.
+    static let ink = color(light: 0x151515, dark: 0xF2F2EF)
+    /// Secondary text: descriptions, counts, times, labels (4.5:1 or better).
+    static let inkMuted = color(light: 0x5C5C58, dark: 0xA3A3A0)
+    /// Placeholders and completed titles only; below 4.5:1 by design.
+    static let inkFaint = color(light: 0x8A8A85, dark: 0x6F6F6C)
 
-    static func listCardBackground(for list: SchemaList) -> Color {
-        listColorName(for: list).cardBackgroundColor
-    }
+    // MARK: Accent and states
 
-    static func listCardForeground(for list: SchemaList) -> Color {
-        listColorName(for: list).cardForegroundColor
-    }
+    /// The one accent. Fills only (primary action); never text or a thin line on light grounds.
+    static let accent = color(light: 0xF5C518, dark: 0xF5C518)
+    /// Text and glyphs on an `accent` fill.
+    static let onAccent = color(light: 0x151515, dark: 0x151515)
+    /// Keyboard focus outline: ink on light, yellow on dark.
+    static let focusRing = color(light: 0x151515, dark: 0xF5C518)
+    /// Destructive actions only, always next to the word Delete.
+    static let danger = color(light: 0xB42318, dark: 0xFF7A66)
 
-    static func rowHoverBackground(opacity: Double = 0.04) -> Color {
-        rowHover.opacity(opacity)
-    }
+    // MARK: Helpers
 
-    private static func dynamicColor(light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat)) -> Color {
-        Color(
-            nsColor: NSColor(name: nil, dynamicProvider: { appearance in
-                let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-                let rgb = isDark ? dark : light
-                return NSColor(red: rgb.0, green: rgb.1, blue: rgb.2, alpha: 1)
-            })
-        )
-    }
-}
-
-extension SchemaListColorName {
-    var accentColor: Color {
-        switch self {
-        case .neutral:
-            Color.primary
-        case .grey:
-            SchemaTheme.dynamicListAccent(
-                light: (0.55, 0.57, 0.60),
-                dark: (0.62, 0.64, 0.67)
+    private static func color(light: UInt32, dark: UInt32) -> Color {
+        Color(nsColor: NSColor(name: nil, dynamicProvider: { appearance in
+            let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            let hex = isDark ? dark : light
+            return NSColor(
+                srgbRed: CGFloat((hex >> 16) & 0xFF) / 255,
+                green: CGFloat((hex >> 8) & 0xFF) / 255,
+                blue: CGFloat(hex & 0xFF) / 255,
+                alpha: 1
             )
-        case .blue:
-            SchemaTheme.dynamicListAccent(
-                light: (0.39, 0.55, 0.95),
-                dark: (0.52, 0.65, 0.98)
-            )
-        case .purple:
-            SchemaTheme.dynamicListAccent(
-                light: (0.62, 0.45, 0.92),
-                dark: (0.72, 0.58, 0.98)
-            )
-        case .green:
-            SchemaTheme.dynamicListAccent(
-                light: (0.35, 0.72, 0.52),
-                dark: (0.45, 0.82, 0.62)
-            )
-        case .orange:
-            SchemaTheme.dynamicListAccent(
-                light: (0.95, 0.58, 0.32),
-                dark: (0.98, 0.68, 0.42)
-            )
-        }
-    }
-
-    var tagBackgroundColor: Color {
-        accentColor.opacity(0.14)
-    }
-
-    var tagForegroundColor: Color {
-        accentColor.opacity(0.95)
-    }
-
-    var cardBackgroundColor: Color {
-        switch self {
-        case .neutral, .grey:
-            SchemaTheme.surface
-        default:
-            accentColor.opacity(0.12)
-        }
-    }
-
-    var cardForegroundColor: Color {
-        switch self {
-        case .neutral, .grey:
-            Color.primary
-        default:
-            accentColor.opacity(0.9)
-        }
-    }
-}
-
-private extension SchemaTheme {
-    static func dynamicListAccent(light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat)) -> Color {
-        dynamicColor(light: light, dark: dark)
+        }))
     }
 }

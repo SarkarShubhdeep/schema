@@ -29,7 +29,7 @@ struct SettingsView: View {
             settingsSection(title: "Notifications") {
                 settingsRow(title: "Permission Status") {
                     Text(statusLabel)
-                        .foregroundStyle(SchemaTheme.mutedText)
+                        .foregroundStyle(SchemaTheme.inkMuted)
                 }
 
                 Button("Request Notification Access") {
@@ -43,7 +43,7 @@ struct SettingsView: View {
             settingsSection(title: "Default List") {
                 Text("Tasks added from Everything go to:")
                     .font(.system(size: 13))
-                    .foregroundStyle(SchemaTheme.mutedText)
+                    .foregroundStyle(SchemaTheme.inkMuted)
 
                 Picker("Default List", selection: defaultListBinding) {
                     ForEach(writableLists) { list in
@@ -61,7 +61,7 @@ struct SettingsView: View {
                         Text("Complete follower routines independently")
                         Text("Allow routine tasks later in a sequence to be checked off before earlier tasks.")
                             .font(.system(size: 12))
-                            .foregroundStyle(SchemaTheme.mutedText)
+                            .foregroundStyle(SchemaTheme.inkMuted)
                     }
                 }
                 .toggleStyle(.switch)
@@ -71,7 +71,7 @@ struct SettingsView: View {
 
             settingsRow(title: "Version") {
                 Text(versionLabel)
-                    .foregroundStyle(SchemaTheme.mutedText)
+                    .foregroundStyle(SchemaTheme.inkMuted)
             }
 
             HStack {
@@ -102,7 +102,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(SchemaTheme.mutedText)
+                .foregroundStyle(SchemaTheme.inkMuted)
 
             content()
         }

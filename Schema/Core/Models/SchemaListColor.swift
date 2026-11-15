@@ -5,6 +5,8 @@
 
 import Foundation
 
+/// Per-list colors are retired (v0.4): every list renders in neutral tokens.
+/// The enum stays so `SchemaList.accentColorName` values in existing stores still decode.
 enum SchemaListColorName: String, CaseIterable, Identifiable {
     case neutral
     case grey

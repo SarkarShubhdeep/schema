@@ -23,7 +23,7 @@ struct NotificationsPopover: View {
             if items.isEmpty {
                 Text("No upcoming reminders")
                     .font(.system(size: 13))
-                    .foregroundStyle(SchemaTheme.mutedText)
+                    .foregroundStyle(SchemaTheme.inkMuted)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(16)
             } else {
@@ -42,13 +42,13 @@ struct NotificationsPopover: View {
                                     if let subtitle = item.subtitle {
                                         Text(subtitle)
                                             .font(.system(size: 11))
-                                            .foregroundStyle(SchemaTheme.mutedText)
+                                            .foregroundStyle(SchemaTheme.inkMuted)
                                             .lineLimit(1)
                                     }
 
                                     Text(ReminderFormatting.displayString(for: item.fireDate))
                                         .font(.system(size: 11, weight: .medium))
-                                        .foregroundStyle(SchemaTheme.accent.opacity(0.85))
+                                        .foregroundStyle(SchemaTheme.inkMuted)
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal, 16)
