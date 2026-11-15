@@ -17,16 +17,16 @@ struct ModelContainerErrorView: View {
                 .foregroundStyle(SchemaTheme.inkMuted)
 
             Text("Schema couldn't open your data")
-                .font(.title2.weight(.semibold))
+                .font(.spaceGrotesk(20, weight: .semibold))
 
             Text(error.message)
-                .font(.system(size: 13))
+                .font(.satoshi(13))
                 .foregroundStyle(SchemaTheme.inkMuted)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 360)
 
             Text("Your tasks are stored locally. You can retry opening the store or reset it and start fresh.")
-                .font(.system(size: 12))
+                .font(.satoshi(12))
                 .foregroundStyle(SchemaTheme.inkMuted)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 360)

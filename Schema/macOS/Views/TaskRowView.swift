@@ -95,7 +95,7 @@ struct TaskRowView: View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .firstTextBaseline, spacing: 5) {
                 Text(task.title)
-                    .font(.system(size: 15, weight: .regular))
+                    .font(.schemaTask)
                     .foregroundStyle(task.isCompleted ? SchemaTheme.inkFaint : .primary)
                     .strikethrough(task.isCompleted, color: SchemaTheme.inkFaint)
                     .opacity(task.isCompleted ? 0.75 : 1)
@@ -117,7 +117,7 @@ struct TaskRowView: View {
 
             if let description = task.displayDescription {
                 Text(description)
-                    .font(.system(size: 12))
+                    .font(.satoshi(12))
                     .foregroundStyle(SchemaTheme.inkMuted)
                     .lineLimit(2)
             }
@@ -151,7 +151,7 @@ struct TaskRowView: View {
             if let reminderTime = task.reminderTime {
                 Button(action: openReminderPicker) {
                     Text(ReminderFormatting.displayString(for: reminderTime))
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.spaceGrotesk(12, weight: .medium).monospacedDigit())
                         .foregroundStyle(SchemaTheme.inkMuted)
                 }
                 .buttonStyle(.plain)
@@ -169,7 +169,7 @@ struct TaskRowView: View {
 
     private func listTag(for list: SchemaList) -> some View {
         Text(list.displayTagLabel)
-            .font(.system(size: 11, weight: .medium))
+            .font(.spaceGrotesk(11, weight: .medium))
             .foregroundStyle(SchemaTheme.inkMuted)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
@@ -206,7 +206,7 @@ struct TaskRowView: View {
     private var reminderPickerContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Reminder")
-                .font(.headline)
+                .font(.spaceGrotesk(15, weight: .semibold))
 
             DatePicker(
                 "Reminder Time",

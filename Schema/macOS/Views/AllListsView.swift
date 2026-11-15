@@ -89,7 +89,7 @@ struct AllListsView: View {
                 Spacer(minLength: 0)
 
                 Text("+ New list")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.satoshi(15, weight: .medium))
                     .foregroundStyle(SchemaTheme.inkMuted)
                     .frame(maxWidth: .infinity)
 
@@ -119,7 +119,7 @@ struct AllListsView: View {
         } label: {
             VStack(alignment: .leading, spacing: 0) {
                 Text(list.title)
-                    .font(.system(size: 17, weight: .bold))
+                    .font(.spaceGrotesk(17, weight: .semibold))
                     .foregroundStyle(SchemaTheme.ink)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
@@ -127,7 +127,7 @@ struct AllListsView: View {
                 Spacer(minLength: 0)
 
                 Text(taskCountLabel(for: list))
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.spaceGrotesk(13, weight: .medium).monospacedDigit())
                     .foregroundStyle(SchemaTheme.inkMuted)
             }
             .frame(maxWidth: .infinity, minHeight: CardMetrics.minHeight, alignment: .leading)

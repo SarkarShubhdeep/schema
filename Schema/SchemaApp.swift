@@ -13,6 +13,7 @@ struct SchemaApp: App {
     @State private var showResetConfirmation = false
 
     init() {
+        SchemaFont.registerBundledFonts()
 #if os(macOS)
         NotificationHandler.shared.configure()
 #endif
@@ -23,6 +24,7 @@ struct SchemaApp: App {
             Group {
                 if let modelContainer {
                     ContentView()
+                        .font(.schemaBody)
                         .modelContainer(modelContainer)
                 } else if let loadError {
                     ModelContainerErrorView(

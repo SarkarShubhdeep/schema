@@ -60,7 +60,7 @@ struct AddTaskBar: View {
                     .foregroundStyle(SchemaTheme.inkMuted)
 
                 Text("Add task")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.satoshi(15, weight: .medium))
                     .foregroundStyle(SchemaTheme.inkMuted)
 
                 shortcutBadge
@@ -78,7 +78,7 @@ struct AddTaskBar: View {
 
                 TextField(placeholder, text: $text)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 15))
+                    .font(.satoshi(15))
                     .frame(height: Metrics.contentHeight)
                     .focused(focusBinding)
                     .onSubmit(onSubmit)
@@ -209,7 +209,7 @@ struct AddTaskBar: View {
         VStack(alignment: .leading, spacing: 4) {
             if let activePrefix {
                 Text("Lists matching \"\(activePrefix)\" — ↑↓ to select")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.satoshi(10, weight: .medium))
                     .foregroundStyle(SchemaTheme.inkMuted)
             }
 
@@ -225,11 +225,11 @@ struct AddTaskBar: View {
                             .frame(width: 6, height: 6)
 
                         Text(list.displayTagLabel)
-                            .font(.system(size: 11, weight: index == selectedIndex ? .semibold : .medium))
+                            .font(.satoshi(11, weight: index == selectedIndex ? .semibold : .medium))
 
                         if index == selectedIndex, candidates.count > 1 {
                             Text("selected")
-                                .font(.system(size: 10, weight: .medium))
+                                .font(.satoshi(10, weight: .medium))
                                 .foregroundStyle(SchemaTheme.inkMuted)
                         }
                     }
@@ -285,7 +285,7 @@ struct AddTaskBar: View {
             }
 
             Text(label)
-                .font(.system(size: 11, weight: .medium))
+                .font(.satoshi(11, weight: .medium))
         }
         .foregroundStyle(accentColor)
         .padding(.horizontal, 10)
@@ -324,7 +324,7 @@ struct AddTaskBar: View {
 
     private var shortcutBadge: some View {
         Text("n")
-            .font(.system(size: 11, weight: .medium, design: .rounded))
+            .font(.spaceGrotesk(11, weight: .medium))
             .foregroundStyle(SchemaTheme.inkMuted)
             .padding(.horizontal, 7)
             .padding(.vertical, 5)

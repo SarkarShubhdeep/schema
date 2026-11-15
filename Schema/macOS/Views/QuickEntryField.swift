@@ -19,7 +19,7 @@ struct QuickEntryField: View {
 
             TextField(placeholder, text: $text)
                 .textFieldStyle(.plain)
-                .font(.system(size: 15))
+                .font(.satoshi(15))
                 .focused(focusBinding)
                 .onSubmit(onSubmit)
         }

@@ -12,7 +12,7 @@ struct NotificationsPopover: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Notifications")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.spaceGrotesk(13, weight: .semibold))
                 .foregroundStyle(.primary)
                 .padding(.horizontal, 16)
                 .padding(.top, 14)
@@ -22,7 +22,7 @@ struct NotificationsPopover: View {
 
             if items.isEmpty {
                 Text("No upcoming reminders")
-                    .font(.system(size: 13))
+                    .font(.satoshi(13))
                     .foregroundStyle(SchemaTheme.inkMuted)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(16)
@@ -35,19 +35,19 @@ struct NotificationsPopover: View {
                             } label: {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(item.title)
-                                        .font(.system(size: 13, weight: .medium))
+                                        .font(.satoshi(13, weight: .medium))
                                         .foregroundStyle(.primary)
                                         .lineLimit(1)
 
                                     if let subtitle = item.subtitle {
                                         Text(subtitle)
-                                            .font(.system(size: 11))
+                                            .font(.satoshi(11))
                                             .foregroundStyle(SchemaTheme.inkMuted)
                                             .lineLimit(1)
                                     }
 
                                     Text(ReminderFormatting.displayString(for: item.fireDate))
-                                        .font(.system(size: 11, weight: .medium))
+                                        .font(.spaceGrotesk(11, weight: .medium).monospacedDigit())
                                         .foregroundStyle(SchemaTheme.inkMuted)
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
