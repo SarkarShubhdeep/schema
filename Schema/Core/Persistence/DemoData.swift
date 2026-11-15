@@ -25,6 +25,11 @@ enum DemoData {
         let suite = "com.sarkarshubhdeep.schema.demo"
         let defaults = UserDefaults(suiteName: suite) ?? .standard
         defaults.removePersistentDomain(forName: suite)
+        if CommandLine.arguments.contains("-SchemaDemoCollapsed") {
+            // Start with both side panels collapsed, for screenshots.
+            defaults.set(true, forKey: "schema.preferences.isSidebarCollapsed")
+            defaults.set(true, forKey: "schema.preferences.isDetailsPanelCollapsed")
+        }
         return defaults
     }()
 

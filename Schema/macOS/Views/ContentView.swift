@@ -87,6 +87,7 @@ struct ContentView: View {
         }
         .background(SchemaTheme.canvas.ignoresSafeArea())
         .frame(minWidth: ShellMetrics.minimumWindowWidth, minHeight: 520)
+        .focusedSceneValue(\.workspaceState, workspace)
         .sheet(isPresented: $workspace.showSettings) {
             SettingsView(
                 listViewModel: listViewModel,

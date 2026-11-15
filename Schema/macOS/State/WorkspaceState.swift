@@ -50,6 +50,15 @@ final class WorkspaceState {
         }
     }
 
+    // MARK: Side panels
+
+    var isSidebarCollapsed = SchemaPreferences.isSidebarCollapsed {
+        didSet { SchemaPreferences.isSidebarCollapsed = isSidebarCollapsed }
+    }
+    var isDetailsPanelCollapsed = SchemaPreferences.isDetailsPanelCollapsed {
+        didSet { SchemaPreferences.isDetailsPanelCollapsed = isDetailsPanelCollapsed }
+    }
+
     // MARK: Focus
 
     private(set) var focusRequest: FocusRequest?

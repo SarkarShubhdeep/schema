@@ -61,6 +61,9 @@ struct SchemaApp: App {
             }
         }
         .windowStyle(.hiddenTitleBar)
+        .commands {
+            PanelCommands()
+        }
         .defaultSize(width: 1280, height: 800)
     }
 

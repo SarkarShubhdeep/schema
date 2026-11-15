@@ -11,6 +11,8 @@ enum SchemaPreferences {
         static let filterOption = "schema.preferences.filterOption"
         static let defaultWritableListID = "schema.preferences.defaultWritableListID"
         static let allowIndependentFollowerRoutineCompletion = "schema.preferences.allowIndependentFollowerRoutineCompletion"
+        static let isSidebarCollapsed = "schema.preferences.isSidebarCollapsed"
+        static let isDetailsPanelCollapsed = "schema.preferences.isDetailsPanelCollapsed"
     }
 
     #if DEBUG
@@ -68,5 +70,15 @@ enum SchemaPreferences {
         set {
             defaults.set(newValue, forKey: Key.allowIndependentFollowerRoutineCompletion)
         }
+    }
+
+    static var isSidebarCollapsed: Bool {
+        get { defaults.bool(forKey: Key.isSidebarCollapsed) }
+        set { defaults.set(newValue, forKey: Key.isSidebarCollapsed) }
+    }
+
+    static var isDetailsPanelCollapsed: Bool {
+        get { defaults.bool(forKey: Key.isDetailsPanelCollapsed) }
+        set { defaults.set(newValue, forKey: Key.isDetailsPanelCollapsed) }
     }
 }
