@@ -27,12 +27,27 @@ struct WorkspaceView: View {
 
     /// Open tasks grouped into Today, Later this week, Later and Someday.
     var incompleteSections: [TaskSectionGroup] {
-        TaskSection.group(inSmartView(taskViewModel.incompleteTasks(
+        let open = inSmartView(taskViewModel.incompleteTasks(
             for: selectedList,
             from: allTasks,
             sortOption: listViewModel.sortOption,
             filterOption: listViewModel.filterOption
-        )))
+        ))
+        switch listViewModel.smartView {
+        case .today: return TaskSection.groupByPage(open, pages: listViewModel.pages(from: lists))
+        case .upcoming: return TaskSection.groupByDay(open, calendar: calendar)
+        case nil: return TaskSection.group(open, calendar: calendar)
+        }
+    }
+
+    /// Reads the week-start setting through `workspace`, so changing it in
+    /// Settings redraws the sections and the week chart.
+    var calendar: Calendar {
+        Calendar.schema(weekStart: workspace.weekStart)
+    }
+
+    var dayStats: DayStats {
+        DayStats(tasks: allTasks, pages: listViewModel.pages(from: lists), calendar: calendar)
     }
 
     /// Open tasks in display order (section by section). Keyboard navigation
@@ -79,6 +94,10 @@ struct WorkspaceView: View {
                         isEditingListName: $workspace.isEditingListName
                     )
 
+                    if listViewModel.smartView == .today {
+                        TodaySummaryTiles(stats: dayStats)
+                    }
+
                     AddTaskBar(
                         text: Binding(
                             get: { taskViewModel.quickEntryText },
@@ -99,7 +118,8 @@ struct WorkspaceView: View {
                 incompleteTasks: incomplete,
                 sections: sections,
                 completedTasks: completed,
-                showListTags: selectedList?.isEverythingList == true,
+                // Today groups by page, so the page tag would repeat the heading.
+                showListTags: selectedList?.isEverythingList == true && listViewModel.smartView != .today,
                 taskViewModel: taskViewModel,
                 isSequenceBlocked: { task in
                     RoutineSequenceOrdering.isBlocked(
@@ -137,7 +157,11 @@ struct WorkspaceView: View {
         .frame(minWidth: ShellMetrics.mainMinWidth, maxWidth: .infinity, minHeight: 520)
         .clipped()
 
-            DetailsPanelView(detail: taskDetail, onCloseDetail: saveAndCloseTaskDetail)
+            DetailsPanelView(
+                detail: taskDetail,
+                onCloseDetail: saveAndCloseTaskDetail,
+                overview: OverviewPanel(stats: dayStats)
+            )
         }
         .animation(SchemaMotion.animation(SchemaMotion.standard, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion), value: workspace.isDetailOpen)
         .background(SchemaTheme.canvas)
@@ -302,11 +326,21 @@ struct WorkspaceView: View {
     }
 
     private func headerModel(openCount: Int, doneCount: Int) -> PageHeaderModel {
+        if listViewModel.smartView == .today {
+            return PageHeaderModel(
+                crumb: "Views", title: Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)),
+                kindLabel: "Today", kindSystemImage: SmartView.today.systemImage,
+                openCount: openCount, doneCount: doneCount, renamableList: nil,
+                showsProgress: false
+            )
+        }
         if let smartView = listViewModel.smartView {
             return PageHeaderModel(
                 crumb: "Views", title: smartView.title,
                 kindLabel: "View", kindSystemImage: smartView.systemImage,
-                openCount: openCount, doneCount: doneCount, renamableList: nil
+                openCount: openCount, doneCount: doneCount, renamableList: nil,
+                // Upcoming only holds open tasks, so done-of-total says nothing.
+                showsProgress: false
             )
         }
         if let selectedList, !selectedList.isEverythingList {

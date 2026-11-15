@@ -35,7 +35,7 @@ enum TaskSection: Int, CaseIterable, Identifiable {
         }
     }
 
-    static func section(for task: SchemaTask, now: Date = .now, calendar: Calendar = .current) -> TaskSection {
+    static func section(for task: SchemaTask, now: Date = .now, calendar: Calendar = .schema()) -> TaskSection {
         let startOfToday = calendar.startOfDay(for: now)
         let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? now
         let startOfNextWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.end ?? startOfTomorrow
@@ -53,7 +53,7 @@ enum TaskSection: Int, CaseIterable, Identifiable {
 
     /// Non-empty sections in display order. Tasks keep their incoming order
     /// within a section.
-    static func group(_ tasks: [SchemaTask], now: Date = .now, calendar: Calendar = .current) -> [TaskSectionGroup] {
+    static func group(_ tasks: [SchemaTask], now: Date = .now, calendar: Calendar = .schema()) -> [TaskSectionGroup] {
         let byID = Dictionary(tasks.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         var sectionByID: [UUID: TaskSection] = [:]
 
@@ -75,13 +75,58 @@ enum TaskSection: Int, CaseIterable, Identifiable {
         }
         return allCases.compactMap { section in
             guard let tasks = buckets[section], !tasks.isEmpty else { return nil }
-            return TaskSectionGroup(section: section, tasks: tasks)
+            return TaskSectionGroup(id: "section-\(section.rawValue)", title: section.title, hint: section.hint, tasks: tasks)
+        }
+    }
+
+    /// Today view: one group per page, in sidebar order.
+    static func groupByPage(_ tasks: [SchemaTask], pages: [SchemaList]) -> [TaskSectionGroup] {
+        let byList = Dictionary(grouping: tasks) { $0.list?.id }
+        var groups = pages.compactMap { page -> TaskSectionGroup? in
+            guard let tasks = byList[page.id], !tasks.isEmpty else { return nil }
+            return TaskSectionGroup(id: "page-\(page.id)", title: page.title, hint: "", tasks: tasks)
+        }
+        let known = Set(pages.map(\.id))
+        let other = tasks.filter { task in task.list.map { !known.contains($0.id) } ?? true }
+        if !other.isEmpty {
+            groups.append(TaskSectionGroup(id: "page-other", title: "Other", hint: "", tasks: other))
+        }
+        return groups
+    }
+
+    /// Upcoming view: one group per day, earliest first.
+    static func groupByDay(_ tasks: [SchemaTask], now: Date = .now, calendar: Calendar = .current) -> [TaskSectionGroup] {
+        let dated = tasks.filter { $0.reminderTime != nil }
+            .sorted { ($0.reminderTime ?? .distantFuture) < ($1.reminderTime ?? .distantFuture) }
+        let byDay = Dictionary(grouping: dated) { calendar.startOfDay(for: $0.reminderTime ?? now) }
+        return byDay.keys.sorted().map { day in
+            TaskSectionGroup(
+                id: "day-\(Int(day.timeIntervalSinceReferenceDate))",
+                title: DayLabel.title(for: day, now: now, calendar: calendar),
+                hint: calendar.isDateInTomorrow(day) ? "" : day.formatted(.dateTime.month(.abbreviated).day()),
+                tasks: byDay[day] ?? []
+            )
         }
     }
 }
 
+/// A titled group of tasks shown as one card.
 struct TaskSectionGroup: Identifiable {
-    let section: TaskSection
+    let id: String
+    let title: String
+    let hint: String
     let tasks: [SchemaTask]
-    var id: Int { section.id }
+}
+
+enum DayLabel {
+    /// "Today", "Tomorrow", a weekday within the next week, else "Mon, Nov 30".
+    static func title(for day: Date, now: Date = .now, calendar: Calendar = .current) -> String {
+        if calendar.isDate(day, inSameDayAs: now) { return "Today" }
+        if calendar.isDateInTomorrow(day) { return "Tomorrow" }
+        let startOfToday = calendar.startOfDay(for: now)
+        if let days = calendar.dateComponents([.day], from: startOfToday, to: calendar.startOfDay(for: day)).day, days < 7 {
+            return day.formatted(.dateTime.weekday(.wide))
+        }
+        return day.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
+    }
 }

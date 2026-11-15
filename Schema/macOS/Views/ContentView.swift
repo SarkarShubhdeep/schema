@@ -90,7 +90,8 @@ struct ContentView: View {
                 listViewModel: listViewModel,
                 lists: lists,
                 notificationService: notificationService,
-                allowIndependentFollowerRoutineCompletion: $workspace.allowIndependentFollowerRoutineCompletion
+                allowIndependentFollowerRoutineCompletion: $workspace.allowIndependentFollowerRoutineCompletion,
+                weekStart: $workspace.weekStart
             )
         }
         .task {
@@ -116,6 +117,12 @@ struct ContentView: View {
         #if DEBUG
         if DemoData.isEnabled, DemoData.opensToday {
             listVM.selectSmartView(.today, from: lists)
+        }
+        if DemoData.isEnabled, DemoData.opensUpcoming {
+            listVM.selectSmartView(.upcoming, from: lists)
+        }
+        if DemoData.isEnabled, DemoData.opensSettings {
+            workspace.showSettings = true
         }
         if DemoData.isEnabled, DemoData.opensFirstPage {
             listVM.selectList(listVM.pages(from: lists).first)

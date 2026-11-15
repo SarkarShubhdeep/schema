@@ -124,14 +124,14 @@ struct TaskListView<Header: View>: View {
     private func sectionCard(_ group: TaskSectionGroup) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text(group.section.title)
+                Text(group.title)
                     .font(.spaceGrotesk(15, weight: .semibold, relativeTo: .headline))
                     .foregroundStyle(SchemaTheme.ink)
                     .accessibilityAddTraits(.isHeader)
                 SchemaBadge(count: group.tasks.count)
                 Spacer(minLength: 8)
-                if !group.section.hint.isEmpty {
-                    Text(group.section.hint)
+                if !group.hint.isEmpty {
+                    Text(group.hint)
                         .font(.schemaCaption)
                         .foregroundStyle(SchemaTheme.inkMuted)
                         .lineLimit(1)

@@ -48,6 +48,9 @@ final class WorkspaceState {
     var taskDetailEditor: TaskDetailEditor?
     var isEditingListName = false
     var sequenceValidationAlert: RoutineSequenceValidationResult?
+    var weekStart = SchemaPreferences.weekStart {
+        didSet { SchemaPreferences.weekStart = weekStart }
+    }
     var allowIndependentFollowerRoutineCompletion = SchemaPreferences.allowIndependentFollowerRoutineCompletion {
         didSet {
             SchemaPreferences.allowIndependentFollowerRoutineCompletion = allowIndependentFollowerRoutineCompletion
