@@ -4,6 +4,10 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Setting a reminder could crash Schema, and then crash it again at every launch, when macOS refused to schedule the notification. Notification errors are now logged and the reminder time is still saved.
+
 ### Changed
 
 - New color tokens from the Schema design system: neutral greys with a single yellow accent, in light and dark (#6).

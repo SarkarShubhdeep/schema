@@ -21,6 +21,12 @@ enum NotificationAuthorizationStatus {
     case authorized
 }
 
+import OSLog
+
+/// Notification problems are expected at runtime (permission denied, a build
+/// that isn't allowed to notify), so they are logged, never fatal.
+let notificationLog = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Schema", category: "Notifications")
+
 #if os(macOS)
 import UserNotifications
 
@@ -135,15 +141,22 @@ final class NotificationService: NotificationServiceProtocol {
 
         guard !pendingTasks.isEmpty else { return }
 
+        let authorized: Bool
         do {
-            let authorized = try await requestAuthorization()
-            guard authorized else { return }
-
-            for task in pendingTasks {
-                try await scheduleReminder(for: task)
-            }
+            authorized = try await requestAuthorization()
         } catch {
-            assertionFailure("Failed to reschedule reminders: \(error)")
+            notificationLog.error("Notification permission request failed: \(error.localizedDescription, privacy: .public)")
+            return
+        }
+        guard authorized else { return }
+
+        // One task failing to schedule shouldn't stop the others.
+        for task in pendingTasks {
+            do {
+                try await scheduleReminder(for: task)
+            } catch {
+                notificationLog.error("Failed to schedule a reminder: \(error.localizedDescription, privacy: .public)")
+            }
         }
     }
 
