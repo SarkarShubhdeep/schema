@@ -17,23 +17,38 @@ struct SidebarView: View {
     let listViewModel: ListViewModel
     let onNotificationSelect: (SchemaNotificationItem) -> Void
 
+    @Namespace private var namespace
+
     var body: some View {
         let isCollapsed = workspace.isSidebarCollapsed
 
         ScrollView {
-            Group {
+            VStack(alignment: .leading, spacing: 2) {
+                header(isCollapsed: isCollapsed)
+
+                SidebarNavigation(lists: lists, allTasks: allTasks, listViewModel: listViewModel, isCollapsed: isCollapsed)
+
                 if isCollapsed {
-                    rail
-                } else {
-                    expanded
+                    Rectangle()
+                        .fill(SchemaTheme.line)
+                        .frame(width: 28, height: 1)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                        .transition(.opacity)
+                    notificationsButton
+                        .matchedGeometryEffect(id: "notifications", in: namespace)
+                    settingsButton
+                        .matchedGeometryEffect(id: "settings", in: namespace)
                 }
             }
+            .padding(.horizontal, isCollapsed ? 16 : 12)
             .padding(.top, 6)
             .padding(.bottom, 16)
         }
         .scrollIndicators(.never)
         .frame(width: isCollapsed ? ShellMetrics.sidebarRailWidth : ShellMetrics.sidebarWidth)
         .frame(maxHeight: .infinity)
+        .clipped()
         .background(SchemaTheme.surfaceSunken.ignoresSafeArea())
         .overlay(alignment: .topTrailing) {
             if !isCollapsed {
@@ -43,6 +58,7 @@ struct SidebarView: View {
                 .padding(.trailing, 12)
                 .offset(y: ShellMetrics.windowControlsCenterY - 14)
                 .ignoresSafeArea()
+                .transition(.opacity)
             }
         }
         .overlay(alignment: .trailing) {
@@ -53,8 +69,23 @@ struct SidebarView: View {
         }
     }
 
-    private var expanded: some View {
-        VStack(alignment: .leading, spacing: 2) {
+    /// Open: wordmark, notifications and settings. Collapsed: the expand
+    /// button; notifications and settings move to the bottom of the rail.
+    @ViewBuilder
+    private func header(isCollapsed: Bool) -> some View {
+        if isCollapsed {
+            VStack(alignment: .leading, spacing: 4) {
+                SchemaIconButton(systemImage: "sidebar.left", label: "Expand sidebar", shortcut: "⌘⌥←", size: 40) {
+                    workspace.toggleSidebar()
+                }
+                Rectangle()
+                    .fill(SchemaTheme.line)
+                    .frame(width: 28, height: 1)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+            }
+            .transition(.opacity)
+        } else {
             HStack(spacing: 2) {
                 Text("Schema")
                     .font(.spaceGrotesk(19, weight: .bold, relativeTo: .title3))
@@ -62,39 +93,16 @@ struct SidebarView: View {
                     .foregroundStyle(SchemaTheme.ink)
                     .lineLimit(1)
                     .fixedSize()
+                    .transition(.opacity)
                 Spacer(minLength: 8)
                 notificationsButton
+                    .matchedGeometryEffect(id: "notifications", in: namespace)
                 settingsButton
+                    .matchedGeometryEffect(id: "settings", in: namespace)
             }
             .padding(.leading, 12)
             .padding(.bottom, 10)
-
-            SidebarNavigation(lists: lists, allTasks: allTasks, listViewModel: listViewModel, isRail: false)
         }
-        .padding(.horizontal, 12)
-        .transition(.opacity)
-    }
-
-    private var rail: some View {
-        VStack(spacing: 4) {
-            SchemaIconButton(systemImage: "sidebar.left", label: "Expand sidebar", shortcut: "⌘⌥←", size: 40) {
-                workspace.toggleSidebar()
-            }
-            railDivider
-            SidebarNavigation(lists: lists, allTasks: allTasks, listViewModel: listViewModel, isRail: true)
-            railDivider
-            notificationsButton
-            settingsButton
-        }
-        .frame(maxWidth: .infinity)
-        .transition(.opacity)
-    }
-
-    private var railDivider: some View {
-        Rectangle()
-            .fill(SchemaTheme.line)
-            .frame(width: 28, height: 1)
-            .padding(.vertical, 6)
     }
 
     private var buttonSize: CGFloat { workspace.isSidebarCollapsed ? 40 : 32 }

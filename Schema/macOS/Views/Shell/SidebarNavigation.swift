@@ -2,9 +2,10 @@
 //  SidebarNavigation.swift
 //  Schema
 //
-//  The sidebar's Views (Today, Upcoming, Everything) and Pages, as full rows
-//  when the sidebar is open and as round icons on the collapsed rail.
-//  The active item is a dark pill.
+//  The sidebar's Views (Today, Upcoming, Everything) and Pages. The same rows
+//  serve the open sidebar and the collapsed rail: as the sidebar narrows,
+//  each pill tightens into a circle around its icon and the label slides out
+//  of view, so collapsing reads as one motion rather than a swap.
 //
 
 import SwiftUI
@@ -13,115 +14,110 @@ struct SidebarNavigation: View {
     let lists: [SchemaList]
     let allTasks: [SchemaTask]
     let listViewModel: ListViewModel
-    let isRail: Bool
+    let isCollapsed: Bool
 
     private var pages: [SchemaList] { listViewModel.pages(from: lists) }
 
     var body: some View {
-        if isRail {
-            railItems
-        } else {
-            rows
-        }
-    }
-
-    // MARK: Open sidebar
-
-    private var rows: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            SchemaSectionLabel("Views")
-                .padding(.horizontal, 12)
-                .padding(.top, 12)
-                .padding(.bottom, 4)
+        VStack(alignment: .leading, spacing: isCollapsed ? 4 : 2) {
+            sectionHeader("Views")
 
             ForEach(SmartView.allCases) { view in
                 SidebarRow(
                     title: view.title,
-                    systemImage: view.systemImage,
                     isActive: listViewModel.smartView == view,
-                    trailing: .count(count(for: view))
+                    isCollapsed: isCollapsed,
+                    trailing: .count(count(for: view)),
+                    tooltip: view.title
                 ) {
+                    Image(systemName: view.systemImage)
+                } action: {
                     listViewModel.selectSmartView(view, from: lists)
                 }
             }
 
             SidebarRow(
                 title: SchemaList.everythingTitle,
-                systemImage: "tray.full",
                 isActive: isEverythingActive,
-                trailing: .keys("/")
+                isCollapsed: isCollapsed,
+                trailing: .keys("/"),
+                tooltip: "\(SchemaList.everythingTitle)  /"
             ) {
-                listViewModel.selectEverythingList(from: lists)
-            }
-
-            HStack {
-                SchemaSectionLabel("Pages")
-                Spacer(minLength: 8)
-                SchemaIconButton(systemImage: "plus", label: "New page", shortcut: "⌘N", size: 24) {
-                    listViewModel.showNewListSheet = true
-                }
-            }
-            .padding(.leading, 12)
-            .padding(.top, 14)
-            .padding(.bottom, 2)
-
-            ForEach(Array(pages.enumerated()), id: \.element.id) { index, page in
-                SidebarRow(
-                    title: page.title,
-                    systemImage: "checklist",
-                    isActive: isActive(page),
-                    trailing: index < 9 ? .keys("⌘\(index + 1)") : .none
-                ) {
-                    listViewModel.selectList(page)
-                }
-                .help("To-do list")
-            }
-
-            SidebarRow(title: "New page", systemImage: "plus", isActive: false, isSubtle: true, trailing: .keys("⌘N")) {
-                listViewModel.showNewListSheet = true
-            }
-            .padding(.top, 6)
-        }
-    }
-
-    // MARK: Rail
-
-    private var railItems: some View {
-        VStack(spacing: 4) {
-            ForEach(SmartView.allCases) { view in
-                RailItem(label: view.title, isActive: listViewModel.smartView == view) {
-                    Image(systemName: view.systemImage)
-                } action: {
-                    listViewModel.selectSmartView(view, from: lists)
-                }
-            }
-            RailItem(label: "\(SchemaList.everythingTitle)  /", isActive: isEverythingActive) {
                 Image(systemName: "tray.full")
             } action: {
                 listViewModel.selectEverythingList(from: lists)
             }
 
-            Rectangle()
-                .fill(SchemaTheme.line)
-                .frame(width: 28, height: 1)
-                .padding(.vertical, 6)
+            sectionHeader("Pages", showsNewPage: true)
 
             ForEach(Array(pages.enumerated()), id: \.element.id) { index, page in
-                RailItem(
-                    label: index < 9 ? "\(page.title) (to-do list)  ⌘\(index + 1)" : "\(page.title) (to-do list)",
-                    isActive: isActive(page)
+                let shortcut = index < 9 ? "⌘\(index + 1)" : nil
+                SidebarRow(
+                    title: page.title,
+                    isActive: isActive(page),
+                    isCollapsed: isCollapsed,
+                    trailing: shortcut.map { .keys($0) } ?? .none,
+                    tooltip: isCollapsed
+                        ? "\(page.title) (to-do list)" + (shortcut.map { "  \($0)" } ?? "")
+                        : "To-do list"
                 ) {
-                    Text(page.title.prefix(1).uppercased())
-                        .font(.spaceGrotesk(14, weight: .semibold, relativeTo: .body))
+                    ZStack {
+                        if isCollapsed {
+                            Text(page.title.prefix(1).uppercased())
+                                .font(.spaceGrotesk(14, weight: .semibold, relativeTo: .body))
+                                .transition(.opacity)
+                        } else {
+                            Image(systemName: "checklist")
+                                .transition(.opacity)
+                        }
+                    }
                 } action: {
                     listViewModel.selectList(page)
                 }
             }
 
-            RailItem(label: "New page  ⌘N", isActive: false) {
+            SidebarRow(
+                title: "New page",
+                isActive: false,
+                isCollapsed: isCollapsed,
+                isSubtle: true,
+                trailing: .keys("⌘N"),
+                tooltip: "New page  ⌘N"
+            ) {
                 Image(systemName: "plus")
             } action: {
                 listViewModel.showNewListSheet = true
+            }
+            .padding(.top, isCollapsed ? 0 : 6)
+        }
+    }
+
+    /// Open: an uppercase label. Collapsed: a short divider in the same place.
+    @ViewBuilder
+    private func sectionHeader(_ title: String, showsNewPage: Bool = false) -> some View {
+        ZStack(alignment: .leading) {
+            if isCollapsed {
+                Rectangle()
+                    .fill(SchemaTheme.line)
+                    .frame(width: 28, height: 1)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+                    .transition(.opacity)
+            } else {
+                HStack {
+                    SchemaSectionLabel(title)
+                        .fixedSize()
+                    Spacer(minLength: 8)
+                    if showsNewPage {
+                        SchemaIconButton(systemImage: "plus", label: "New page", shortcut: "⌘N", size: 24) {
+                            listViewModel.showNewListSheet = true
+                        }
+                    }
+                }
+                .padding(.leading, 12)
+                .padding(.top, showsNewPage ? 14 : 12)
+                .padding(.bottom, showsNewPage ? 2 : 4)
+                .transition(.opacity)
             }
         }
     }
@@ -150,12 +146,18 @@ private enum SidebarRowTrailing {
     case none
 }
 
-private struct SidebarRow: View {
+/// One navigation item. Open: a 34pt pill with icon, label and trailing hint.
+/// Collapsed: the same pill narrowed to a 40pt circle around the icon. The
+/// icon keeps its horizontal position, so it stays put while the sidebar
+/// changes width.
+private struct SidebarRow<Icon: View>: View {
     let title: String
-    let systemImage: String
     let isActive: Bool
+    let isCollapsed: Bool
     var isSubtle = false
     let trailing: SidebarRowTrailing
+    let tooltip: String
+    @ViewBuilder let icon: () -> Icon
     let action: () -> Void
 
     @State private var isHovered = false
@@ -163,26 +165,35 @@ private struct SidebarRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 12, weight: .medium))
-                    .frame(width: 16)
-                Text(title)
-                    .font(.schemaControl)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                Spacer(minLength: 6)
-                trailingView
+                icon()
+                    .font(.system(size: isCollapsed ? 15 : 12, weight: .medium))
+                    .frame(width: 16, height: 16)
+
+                if !isCollapsed {
+                    Text(title)
+                        .font(.schemaControl)
+                        .lineLimit(1)
+                        .fixedSize()
+                        .transition(.opacity)
+                    Spacer(minLength: 6)
+                    trailingView
+                        .fixedSize()
+                        .transition(.opacity)
+                }
             }
             .foregroundStyle(foreground)
-            .padding(.leading, 14)
-            .padding(.trailing, 10)
-            .frame(height: 34)
+            .padding(.leading, isCollapsed ? 12 : 14)
+            .padding(.trailing, isCollapsed ? 0 : 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: isCollapsed ? 40 : 34)
             .background(Capsule(style: .continuous).fill(background))
+            .clipShape(Capsule(style: .continuous))
             .contentShape(Capsule(style: .continuous))
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
         .animation(SchemaMotion.fast, value: isHovered)
+        .help(tooltip)
         .accessibilityLabel(title)
         .accessibilityAddTraits(isActive ? .isSelected : [])
     }
@@ -221,33 +232,5 @@ private struct SidebarRow: View {
     private var background: Color {
         if isActive { return SchemaTheme.ink }
         return isHovered ? SchemaTheme.surfaceHover : .clear
-    }
-}
-
-// MARK: - Rail item
-
-private struct RailItem<Icon: View>: View {
-    let label: String
-    let isActive: Bool
-    @ViewBuilder let icon: () -> Icon
-    let action: () -> Void
-
-    @State private var isHovered = false
-
-    var body: some View {
-        Button(action: action) {
-            icon()
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(isActive ? SchemaTheme.canvas : (isHovered ? SchemaTheme.ink : SchemaTheme.inkMuted))
-                .frame(width: 40, height: 40)
-                .background(Circle().fill(isActive ? SchemaTheme.ink : (isHovered ? SchemaTheme.surfaceHover : .clear)))
-                .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .onHover { isHovered = $0 }
-        .animation(SchemaMotion.fast, value: isHovered)
-        .help(label)
-        .accessibilityLabel(label)
-        .accessibilityAddTraits(isActive ? .isSelected : [])
     }
 }
