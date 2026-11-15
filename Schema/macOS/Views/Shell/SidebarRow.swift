@@ -103,7 +103,7 @@ struct SidebarRow<Icon: View>: View {
 
     private var foreground: Color {
         if isActive { return SchemaTheme.canvas }
-        if isSubtle { return isHovered ? SchemaTheme.ink : SchemaTheme.inkFaint }
+        if isSubtle { return isHovered ? SchemaTheme.ink : SchemaTheme.inkMuted }
         return isHovered ? SchemaTheme.ink : SchemaTheme.inkMuted
     }
 

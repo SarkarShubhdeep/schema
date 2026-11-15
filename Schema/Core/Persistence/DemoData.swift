@@ -44,6 +44,7 @@ enum DemoData {
     static let windowWidth: CGFloat = {
         if CommandLine.arguments.contains("-SchemaDemoNarrow") { return 880 }
         if CommandLine.arguments.contains("-SchemaDemoMedium") { return 1100 }
+        if CommandLine.arguments.contains("-SchemaDemoWide") { return 1440 }
         return 1280
     }()
 
