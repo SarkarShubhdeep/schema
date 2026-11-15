@@ -35,7 +35,7 @@ enum TaskSection: Int, CaseIterable, Identifiable {
         }
     }
 
-    static func section(for task: SchemaTask, now: Date = .now, calendar: Calendar = .current) -> TaskSection {
+    static func section(for task: SchemaTask, now: Date = .now, calendar: Calendar = .schema()) -> TaskSection {
         let startOfToday = calendar.startOfDay(for: now)
         let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? now
         let startOfNextWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.end ?? startOfTomorrow
@@ -53,7 +53,7 @@ enum TaskSection: Int, CaseIterable, Identifiable {
 
     /// Non-empty sections in display order. Tasks keep their incoming order
     /// within a section.
-    static func group(_ tasks: [SchemaTask], now: Date = .now, calendar: Calendar = .current) -> [TaskSectionGroup] {
+    static func group(_ tasks: [SchemaTask], now: Date = .now, calendar: Calendar = .schema()) -> [TaskSectionGroup] {
         let byID = Dictionary(tasks.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         var sectionByID: [UUID: TaskSection] = [:]
 

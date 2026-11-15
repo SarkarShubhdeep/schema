@@ -13,6 +13,7 @@ enum SchemaPreferences {
         static let allowIndependentFollowerRoutineCompletion = "schema.preferences.allowIndependentFollowerRoutineCompletion"
         static let isSidebarCollapsed = "schema.preferences.isSidebarCollapsed"
         static let isDetailsPanelCollapsed = "schema.preferences.isDetailsPanelCollapsed"
+        static let weekStart = "schema.preferences.weekStart"
     }
 
     #if DEBUG
@@ -80,5 +81,42 @@ enum SchemaPreferences {
     static var isDetailsPanelCollapsed: Bool {
         get { defaults.bool(forKey: Key.isDetailsPanelCollapsed) }
         set { defaults.set(newValue, forKey: Key.isDetailsPanelCollapsed) }
+    }
+
+    /// First day of the week for the week chart and "Later this week". Monday unless changed.
+    static var weekStart: WeekStart {
+        get { defaults.string(forKey: Key.weekStart).flatMap(WeekStart.init(rawValue:)) ?? .monday }
+        set { defaults.set(newValue.rawValue, forKey: Key.weekStart) }
+    }
+}
+
+enum WeekStart: String, CaseIterable, Identifiable {
+    case monday
+    case sunday
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .monday: "Monday"
+        case .sunday: "Sunday"
+        }
+    }
+
+    /// `Calendar.firstWeekday` value (1 = Sunday, 2 = Monday).
+    var firstWeekday: Int {
+        switch self {
+        case .monday: 2
+        case .sunday: 1
+        }
+    }
+}
+
+extension Calendar {
+    /// The user's calendar with Schema's week start applied.
+    static func schema(weekStart: WeekStart = SchemaPreferences.weekStart) -> Calendar {
+        var calendar = Calendar.current
+        calendar.firstWeekday = weekStart.firstWeekday
+        return calendar
     }
 }

@@ -12,6 +12,7 @@ struct SettingsView: View {
     let lists: [SchemaList]
     let notificationService: any NotificationServiceProtocol
     @Binding var allowIndependentFollowerRoutineCompletion: Bool
+    @Binding var weekStart: WeekStart
 
     @State private var authorizationStatus: NotificationAuthorizationStatus = .notDetermined
     @State private var isRequestingAuthorization = false
@@ -51,6 +52,24 @@ struct SettingsView: View {
                     }
                 }
                 .labelsHidden()
+            }
+
+            sectionDivider
+
+            settingsSection(title: "Calendar") {
+                settingsRow(title: "Week starts on") {
+                    Picker("Week starts on", selection: $weekStart) {
+                        ForEach(WeekStart.allCases) { option in
+                            Text(option.label).tag(option)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .fixedSize()
+                }
+                Text("Used for This week and the Later this week section.")
+                    .font(.satoshi(12))
+                    .foregroundStyle(SchemaTheme.inkMuted)
             }
 
             sectionDivider

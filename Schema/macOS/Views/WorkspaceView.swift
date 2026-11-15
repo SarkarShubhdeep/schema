@@ -35,13 +35,19 @@ struct WorkspaceView: View {
         ))
         switch listViewModel.smartView {
         case .today: return TaskSection.groupByPage(open, pages: listViewModel.pages(from: lists))
-        case .upcoming: return TaskSection.groupByDay(open)
-        case nil: return TaskSection.group(open)
+        case .upcoming: return TaskSection.groupByDay(open, calendar: calendar)
+        case nil: return TaskSection.group(open, calendar: calendar)
         }
     }
 
+    /// Reads the week-start setting through `workspace`, so changing it in
+    /// Settings redraws the sections and the week chart.
+    var calendar: Calendar {
+        Calendar.schema(weekStart: workspace.weekStart)
+    }
+
     var dayStats: DayStats {
-        DayStats(tasks: allTasks, pages: listViewModel.pages(from: lists))
+        DayStats(tasks: allTasks, pages: listViewModel.pages(from: lists), calendar: calendar)
     }
 
     /// Open tasks in display order (section by section). Keyboard navigation

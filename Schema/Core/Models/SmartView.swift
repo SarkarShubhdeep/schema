@@ -32,7 +32,7 @@ enum SmartView: String, CaseIterable, Identifiable {
     /// Today: open tasks due today, overdue, or routines that run today;
     /// plus tasks completed today.
     /// Upcoming: open tasks due after today.
-    func includes(_ task: SchemaTask, now: Date = .now, calendar: Calendar = .current) -> Bool {
+    func includes(_ task: SchemaTask, now: Date = .now, calendar: Calendar = .schema()) -> Bool {
         switch self {
         case .today:
             if task.isCompleted {

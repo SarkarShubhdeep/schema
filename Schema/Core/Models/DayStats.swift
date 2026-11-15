@@ -44,7 +44,7 @@ struct DayStats {
 
     var totalToday: Int { doneToday + dueToday }
 
-    init(tasks: [SchemaTask], pages: [SchemaList], now: Date = .now, calendar: Calendar = .current, reminderLimit: Int = 4) {
+    init(tasks: [SchemaTask], pages: [SchemaList], now: Date = .now, calendar: Calendar = .schema(), reminderLimit: Int = 4) {
         doneToday = tasks.count { $0.wasCompleted(onSameDayAs: now, calendar: calendar) }
 
         let openToday = tasks.filter { !$0.isCompleted && TaskSection.section(for: $0, now: now, calendar: calendar) == .today }

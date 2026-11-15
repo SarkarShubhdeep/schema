@@ -26,6 +26,8 @@ enum DemoData {
     static let opensToday = CommandLine.arguments.contains("-SchemaDemoToday")
     /// `-SchemaDemoUpcoming` opens on the Upcoming view.
     static let opensUpcoming = CommandLine.arguments.contains("-SchemaDemoUpcoming")
+    /// `-SchemaDemoSettings` opens Settings.
+    static let opensSettings = CommandLine.arguments.contains("-SchemaDemoSettings")
 
     /// `-SchemaDemoPage` opens on the first page (Daily Todos).
     static let opensFirstPage = CommandLine.arguments.contains("-SchemaDemoPage")

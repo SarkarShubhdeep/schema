@@ -34,6 +34,7 @@ All notable changes to Schema are documented in this file.
 - Tasks now record when they were completed (#16). The data migrates to schema V5 automatically; tasks completed before the update keep an empty completion date. This feeds Done today and the week chart (#17).
 - Today is now a dashboard (#17): the date as title, tiles for Done today (with progress), Due today (with the next time) and This week, then today's tasks grouped by page. Today also counts routines that run today and tasks completed today.
 - Upcoming lists future tasks grouped by day (Tomorrow, weekday, then date).
+- Weeks start on Monday. Settings → Calendar → Week starts on can switch to Sunday; it applies to This week and the Later this week section.
 - With no task open, the right panel shows an overview: the next four reminders, completions per day this week (today in yellow) and today's routines per page.
 
 ## [0.3.0] — 2026-11-12
