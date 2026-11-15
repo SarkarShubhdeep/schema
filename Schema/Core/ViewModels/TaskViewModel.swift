@@ -142,142 +142,74 @@ final class TaskViewModel {
         RoutineSequenceOrdering.isChainHead(task, in: tasks)
     }
 
+    /// Rows that move together when `task` is dragged: a whole routine chain
+    /// when dragging its head, otherwise just the task.
+    func dragGroup(for task: SchemaTask, in displayedTasks: [SchemaTask]) -> [SchemaTask] {
+        if RoutineSequenceOrdering.isChainHead(task, in: displayedTasks) {
+            return RoutineSequenceOrdering.getChainMembers(startingFrom: task, in: displayedTasks)
+        }
+        return [task]
+    }
+
+    /// Insertion index (0...count) adjusted so a drop never lands inside a
+    /// routine chain: if the row at `index` is a chain follower, slide past it.
+    func validInsertionIndex(_ index: Int, in displayedTasks: [SchemaTask], excluding movingIDs: Set<UUID>) -> Int {
+        var index = max(0, min(index, displayedTasks.count))
+        while index < displayedTasks.count {
+            let task = displayedTasks[index]
+            if movingIDs.contains(task.id) || RoutineSequenceOrdering.canMoveIndividually(task, in: displayedTasks) {
+                break
+            }
+            index += 1
+        }
+        return index
+    }
+
+    /// Moves `taskID` (and its chain, if it is a chain head) so it sits before
+    /// the row currently at `insertionIndex` in `displayedTasks`
+    /// (`displayedTasks.count` means "at the end").
+    ///
+    /// The displayed rows keep the same pool of `manualSortIndex` values; they
+    /// are just reassigned in the new order. That keeps hidden rows (other
+    /// lists, filtered-out or completed tasks) exactly where they were, which
+    /// makes the result correct in the Everything view and under filters, and
+    /// makes the manual order match what was on screen even if another sort
+    /// was active when the drag started.
     @discardableResult
-    func moveTasks(
-        from sourceIndices: IndexSet,
-        to destination: Int,
-        in displayedTasks: [SchemaTask],
-        allTasks: [SchemaTask]
-    ) -> Bool {
-        guard let firstIndex = sourceIndices.first,
-              firstIndex < displayedTasks.count else { return false }
-
-        let sourceTask = displayedTasks[firstIndex]
-
-        if !RoutineSequenceOrdering.canMoveIndividually(sourceTask, in: displayedTasks) {
+    func reorder(taskID: UUID, toInsertionIndex insertionIndex: Int, in displayedTasks: [SchemaTask]) -> Bool {
+        guard let task = displayedTasks.first(where: { $0.id == taskID }),
+              RoutineSequenceOrdering.canMoveIndividually(task, in: displayedTasks) else {
             return false
         }
 
-        var tasksToMove: [SchemaTask]
-        if RoutineSequenceOrdering.isChainHead(sourceTask, in: displayedTasks) {
-            tasksToMove = RoutineSequenceOrdering.getChainMembers(startingFrom: sourceTask, in: displayedTasks)
-        } else {
-            tasksToMove = [sourceTask]
+        let group = dragGroup(for: task, in: displayedTasks)
+        let movingIDs = Set(group.map(\.id))
+        let target = validInsertionIndex(insertionIndex, in: displayedTasks, excluding: movingIDs)
+
+        // Insertion point expressed in the list with the moving rows removed.
+        let removedBefore = displayedTasks[..<target].filter { movingIDs.contains($0.id) }.count
+        var newOrder = displayedTasks.filter { !movingIDs.contains($0.id) }
+        newOrder.insert(contentsOf: group, at: target - removedBefore)
+
+        guard newOrder.map(\.id) != displayedTasks.map(\.id) else { return false }
+
+        var slots = displayedTasks.map(\.manualSortIndex).sorted()
+        for index in slots.indices.dropFirst() where slots[index] <= slots[index - 1] {
+            slots[index] = slots[index - 1] + 0.0001
         }
 
-        let movingIDs = Set(tasksToMove.map(\.id))
-        let effectiveDestination = adjustedDestination(
-            original: destination,
-            sourceIndices: sourceIndices,
-            chainSize: tasksToMove.count,
-            displayedTasks: displayedTasks
-        )
-
-        let tasksWithoutMoving = displayedTasks.filter { !movingIDs.contains($0.id) }
-        
-        let (beforeIndex, afterIndex) = neighborIndices(
-            forDestination: effectiveDestination,
-            in: tasksWithoutMoving,
-            originalTasks: displayedTasks,
-            movingIDs: movingIDs
-        )
-
-        let beforeSortIndex = beforeIndex.map { tasksWithoutMoving[$0].manualSortIndex }
-        let afterSortIndex = afterIndex.map { tasksWithoutMoving[$0].manualSortIndex }
-
-        let newIndices = calculateNewSortIndices(
-            count: tasksToMove.count,
-            before: beforeSortIndex,
-            after: afterSortIndex
-        )
-
-        for (index, task) in tasksToMove.enumerated() {
-            task.manualSortIndex = newIndices[index]
-        }
-
-        if let listID = sourceTask.list?.id {
-            compactManualSortIndices(forListID: listID, in: allTasks)
+        for (task, slot) in zip(newOrder, slots) {
+            task.manualSortIndex = slot
         }
 
         save()
         return true
     }
 
-    private func adjustedDestination(
-        original: Int,
-        sourceIndices: IndexSet,
-        chainSize: Int,
-        displayedTasks: [SchemaTask]
-    ) -> Int {
-        guard let firstSource = sourceIndices.first else { return original }
-        
-        if original > firstSource {
-            return original - chainSize
-        }
-        return original
-    }
-
-    private func neighborIndices(
-        forDestination destination: Int,
-        in filteredTasks: [SchemaTask],
-        originalTasks: [SchemaTask],
-        movingIDs: Set<UUID>
-    ) -> (before: Int?, after: Int?) {
-        if filteredTasks.isEmpty {
-            return (nil, nil)
-        }
-        
-        if destination <= 0 {
-            return (nil, 0)
-        }
-        
-        if destination >= filteredTasks.count {
-            return (filteredTasks.count - 1, nil)
-        }
-        
-        return (destination - 1, destination)
-    }
-
-    private func calculateNewSortIndices(
-        count: Int,
-        before: Double?,
-        after: Double?
-    ) -> [Double] {
-        let start: Double
-        let gap: Double
-
-        switch (before, after) {
-        case let (b?, a?):
-            gap = (a - b) / Double(count + 1)
-            start = b + gap
-        case let (b?, nil):
-            start = b + 1
-            gap = 1
-        case let (nil, a?):
-            start = a - Double(count)
-            gap = 1
-        case (nil, nil):
-            start = 1
-            gap = 1
-        }
-
-        return (0..<count).map { start + Double($0) * gap }
-    }
-
     func clearReminderTimes(for taskIDs: [UUID], in allTasks: [SchemaTask]) async {
         for taskID in taskIDs {
             guard let task = allTasks.first(where: { $0.id == taskID }) else { continue }
             await setReminder(task, at: nil)
-        }
-    }
-
-    private func compactManualSortIndices(forListID listID: UUID, in allTasks: [SchemaTask]) {
-        let listTasks = allTasks.filter { $0.list?.id == listID }
-        guard !listTasks.isEmpty else { return }
-
-        let ordered = applyManualSort(listTasks)
-        for (index, task) in ordered.enumerated() {
-            task.manualSortIndex = Double(index + 1)
         }
     }
 

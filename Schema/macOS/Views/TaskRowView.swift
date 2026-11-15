@@ -11,6 +11,7 @@ struct TaskRowView: View {
     let isKeyboardSelected: Bool
     let isSequenceBlocked: Bool
     let showListTag: Bool
+    var isLifted: Bool = false
     let onToggle: () -> Void
     let onDelete: () -> Void
     let onSetReminder: (Date?) -> Void
@@ -44,50 +45,27 @@ struct TaskRowView: View {
             .padding(.top, Metrics.checkboxTopInset)
             .zIndex(1)
 
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text(task.title)
-                        .font(.system(size: 15, weight: .regular))
-                        .foregroundStyle(task.isCompleted ? SchemaTheme.completed : .primary)
-                        .strikethrough(task.isCompleted, color: SchemaTheme.completed)
-                        .opacity(task.isCompleted ? 0.75 : 1)
-                        .lineLimit(2)
-                        .truncationMode(.tail)
-
-                    if task.isRoutine {
-                        Image(systemName: "repeat")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(
-                                task.isCompleted
-                                    ? SchemaTheme.completed.opacity(0.75)
-                                    : SchemaTheme.accent.opacity(0.85)
-                            )
-                            .help("Routine task")
-                    }
-                }
-                .animation(SchemaMotion.fast, value: task.isCompleted)
-
-                if let description = task.displayDescription {
-                    Text(description)
-                        .font(.system(size: 12))
-                        .foregroundStyle(SchemaTheme.mutedText)
-                        .lineLimit(2)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            titleColumn
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .rowClickHandling(onSingleClick: onSelect, onDoubleClick: onOpenDetail)
 
             trailingMetadata
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 10)
-        .background(
+        .background {
+            // Clicks on padding/gaps land here; controls in front keep their own clicks.
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(rowBackground)
-        )
+                .shadow(color: .black.opacity(isLifted ? 0.12 : 0), radius: 8, y: 2)
+                .contentShape(Rectangle())
+                .rowClickHandling(onSingleClick: onSelect, onDoubleClick: onOpenDetail)
+        }
         .animation(SchemaMotion.fast, value: isHovered)
+        .animation(SchemaMotion.fast, value: isLifted)
         .animation(SchemaMotion.standard, value: isHighlighted)
         .animation(SchemaMotion.standard, value: isKeyboardSelected)
-        .listRowClickHandling(onSingleClick: onSelect, onDoubleClick: onOpenDetail)
         .onHover { isHovered = $0 }
         .contextMenu {
             Button("Open Details") {
@@ -110,6 +88,39 @@ struct TaskRowView: View {
         }
         .popover(isPresented: $showReminderPicker) {
             reminderPickerContent
+        }
+    }
+
+    private var titleColumn: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                Text(task.title)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(task.isCompleted ? SchemaTheme.completed : .primary)
+                    .strikethrough(task.isCompleted, color: SchemaTheme.completed)
+                    .opacity(task.isCompleted ? 0.75 : 1)
+                    .lineLimit(2)
+                    .truncationMode(.tail)
+
+                if task.isRoutine {
+                    Image(systemName: "repeat")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(
+                            task.isCompleted
+                                ? SchemaTheme.completed.opacity(0.75)
+                                : SchemaTheme.accent.opacity(0.85)
+                        )
+                        .help("Routine task")
+                }
+            }
+            .animation(SchemaMotion.fast, value: task.isCompleted)
+
+            if let description = task.displayDescription {
+                Text(description)
+                    .font(.system(size: 12))
+                    .foregroundStyle(SchemaTheme.mutedText)
+                    .lineLimit(2)
+            }
         }
     }
 
@@ -180,6 +191,9 @@ struct TaskRowView: View {
     }
 
     private var rowBackground: Color {
+        if isLifted {
+            return SchemaTheme.background
+        }
         if isHighlighted {
             return SchemaTheme.accent.opacity(0.06)
         }
@@ -246,5 +260,19 @@ struct TaskRowView: View {
         onDeselect()
         reminderDate = task.reminderTime ?? Date().addingTimeInterval(3600)
         showReminderPicker = true
+    }
+}
+
+private extension View {
+    /// Single click selects immediately; a second click opens details. Using a
+    /// simultaneous single tap avoids the delay `onTapGesture(count: 1)` would
+    /// add while waiting to rule out a double click.
+    func rowClickHandling(
+        onSingleClick: @escaping () -> Void,
+        onDoubleClick: @escaping () -> Void
+    ) -> some View {
+        self
+            .onTapGesture(count: 2, perform: onDoubleClick)
+            .simultaneousGesture(TapGesture().onEnded(onSingleClick))
     }
 }
