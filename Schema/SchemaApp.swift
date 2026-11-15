@@ -36,6 +36,8 @@ struct SchemaApp: App {
                 #if DEBUG && os(macOS)
                 if DemoData.forcesDarkAppearance {
                     NSApplication.shared.appearance = NSAppearance(named: .darkAqua)
+                } else if DemoData.forcesLightAppearance {
+                    NSApplication.shared.appearance = NSAppearance(named: .aqua)
                 }
                 if DemoData.isEnabled {
                     // Screenshots always use a fixed window size, not the last saved frame.

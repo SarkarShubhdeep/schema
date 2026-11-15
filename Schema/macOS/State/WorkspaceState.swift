@@ -15,6 +15,11 @@ enum WorkspaceFocus: Equatable {
     case none
 }
 
+struct DeleteRequest: Equatable {
+    let taskIDs: Set<UUID>
+    let token = UUID()
+}
+
 struct FocusRequest: Equatable {
     let target: WorkspaceFocus
     let token = UUID()
@@ -61,6 +66,32 @@ final class WorkspaceState {
     /// Last measured window width and its breakpoint; set by `windowWidthChanged(to:)`.
     @ObservationIgnored var windowWidth: CGFloat?
     @ObservationIgnored var windowWidthTier: WindowWidthTier?
+
+    // MARK: Delete confirmation
+
+    /// Tasks waiting for the delete dialog's answer; `nil` when it is closed.
+    var pendingDeleteIDs: Set<UUID>?
+    /// Set when the dialog is confirmed; the workspace performs the delete.
+    private(set) var confirmedDelete: DeleteRequest?
+
+    var isConfirmingDelete: Bool { pendingDeleteIDs != nil }
+
+    func requestDelete(_ taskIDs: Set<UUID>) {
+        guard !taskIDs.isEmpty else { return }
+        pendingDeleteIDs = taskIDs
+    }
+
+    func confirmPendingDelete() {
+        if let ids = pendingDeleteIDs {
+            confirmedDelete = DeleteRequest(taskIDs: ids)
+        }
+        pendingDeleteIDs = nil
+    }
+
+    func cancelPendingDelete() {
+        pendingDeleteIDs = nil
+        requestFocus(.taskList)
+    }
 
     // MARK: Focus
 
