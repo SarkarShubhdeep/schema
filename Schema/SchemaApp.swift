@@ -37,10 +37,14 @@ struct SchemaApp: App {
                 if DemoData.forcesDarkAppearance {
                     NSApplication.shared.appearance = NSAppearance(named: .darkAqua)
                 }
-                if DemoData.isEnabled, let window = NSApplication.shared.windows.first {
-                    // Screenshots always use the design's window size, not the last saved frame.
-                    window.setContentSize(NSSize(width: DemoData.windowWidth, height: 800))
-                    window.center()
+                if DemoData.isEnabled {
+                    // Screenshots always use a fixed window size, not the last saved frame.
+                    // Wait a turn so the window exists and frame restoration has run.
+                    DispatchQueue.main.async {
+                        guard let window = NSApplication.shared.windows.first(where: { $0.isVisible && $0.canBecomeMain }) else { return }
+                        window.setContentSize(NSSize(width: DemoData.windowWidth, height: 800))
+                        window.center()
+                    }
                 }
                 #endif
                 if modelContainer == nil, loadError == nil {

@@ -23,6 +23,9 @@ enum DemoData {
     /// `-SchemaDemoToday` opens on the Today view.
     static let opensToday = CommandLine.arguments.contains("-SchemaDemoToday")
 
+    /// `-SchemaDemoPage` opens on the first page (Daily Todos).
+    static let opensFirstPage = CommandLine.arguments.contains("-SchemaDemoPage")
+
     /// Window width for screenshots: 1280 by default, `-SchemaDemoMedium` 1100,
     /// `-SchemaDemoNarrow` 880 (to show auto-collapse).
     static let windowWidth: CGFloat = {

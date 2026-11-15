@@ -46,15 +46,18 @@ struct ListPreferencesMenu: View {
                 }
             }
         } label: {
-            HStack(spacing: 5) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 11, weight: .medium))
-                Text("List Preferences")
-                    .font(.satoshi(13, weight: .medium))
-            }
-            .foregroundStyle(SchemaTheme.inkMuted)
+            Image(systemName: "ellipsis")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(SchemaTheme.ink)
+                .frame(width: 32, height: 32)
+                .background(Circle().fill(SchemaTheme.surface))
+                .overlay(Circle().strokeBorder(SchemaTheme.line, lineWidth: 1))
+                .contentShape(Circle())
         }
         .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
         .fixedSize()
+        .help("Page options")
+        .accessibilityLabel("Page options")
     }
 }
