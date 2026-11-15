@@ -22,6 +22,8 @@ All notable changes to Schema are documented in this file.
   - **Drag to reorder:** drags stay inside a section.
   - **Completed:** completed tasks sit in a quiet collapsed card at the end.
   - The All Lists link and the List Preferences menu are gone; Filter now lives in page options.
+- Selection toolbar (#14): selecting tasks shows a floating pill with the count, Reschedule (Today, Tomorrow, Next week, No date; keeps the time of day), Move to page, Delete, Complete (⇧↩) and Clear (Esc).
+- Deleting tasks with the toolbar or ⌫ now asks once in a small dialog; Esc or a click outside cancels.
 
 ## [0.3.0] — 2026-11-12
 

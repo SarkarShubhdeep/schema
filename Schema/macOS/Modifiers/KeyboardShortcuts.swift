@@ -6,6 +6,7 @@
 import SwiftUI
 
 struct WorkspaceKeyboardShortcuts: ViewModifier {
+    @Environment(WorkspaceState.self) private var workspace
     @Binding var isAddTaskExpanded: Bool
     @FocusState.Binding var isAddTaskFocused: Bool
 
@@ -79,6 +80,8 @@ struct WorkspaceKeyboardShortcuts: ViewModifier {
         }
         .frame(width: 0, height: 0)
         .accessibilityHidden(true)
+        // The delete dialog owns the keyboard while it is open (Esc cancels it).
+        .disabled(workspace.isConfirmingDelete)
     }
 }
 

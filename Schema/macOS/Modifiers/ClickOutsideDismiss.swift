@@ -117,6 +117,18 @@ private struct ClickOutsideMonitorRepresentable: NSViewRepresentable {
             return nil
         }
 
+        /// Clicks inside views marked with `.keepsSelectionOnClick()` don't dismiss.
+        private func isInsideExemptArea(point pointInWindow: NSPoint, root: NSView) -> Bool {
+            var stack: [NSView] = [root]
+            while let view = stack.popLast() {
+                if view is ClickOutsideExemptView, !view.isHidden {
+                    if view.convert(view.bounds, to: nil).contains(pointInWindow) { return true }
+                }
+                stack.append(contentsOf: view.subviews)
+            }
+            return false
+        }
+
         private func shouldDismiss(for event: NSEvent) -> Bool {
             guard let window = event.window,
                   let contentView = window.contentView else {
@@ -130,6 +142,9 @@ private struct ClickOutsideMonitorRepresentable: NSViewRepresentable {
 
             // Any click within the detail panel's frame keeps it open.
             if isInsideDetailPanel(point: event.locationInWindow, root: contentView) {
+                return false
+            }
+            if isInsideExemptArea(point: event.locationInWindow, root: contentView) {
                 return false
             }
 
@@ -164,5 +179,22 @@ private struct ClickOutsideMonitorRepresentable: NSViewRepresentable {
 extension View {
     func clickOutsideDismiss(isActive: Bool, onDismiss: @escaping () -> Void) -> some View {
         modifier(ClickOutsideDismiss(isActive: isActive, onDismiss: onDismiss))
+    }
+}
+
+/// Marker view: clicks within its frame never trigger click-outside dismissal.
+final class ClickOutsideExemptView: NSView {
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+}
+
+private struct ClickOutsideExemptRepresentable: NSViewRepresentable {
+    func makeNSView(context: Context) -> ClickOutsideExemptView { ClickOutsideExemptView() }
+    func updateNSView(_ nsView: ClickOutsideExemptView, context: Context) {}
+}
+
+extension View {
+    /// Clicks on this view keep the current selection (e.g. the selection toolbar).
+    func keepsSelectionOnClick() -> some View {
+        background(ClickOutsideExemptRepresentable())
     }
 }

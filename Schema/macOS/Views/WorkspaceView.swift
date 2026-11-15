@@ -121,13 +121,17 @@ struct WorkspaceView: View {
                 isTaskListFocused: $isTaskListFocused,
                 actions: TaskListKeyboardActions(
                     onToggleSelected: toggleSelected,
-                    onDeleteSelected: deleteSelected,
+                    onDeleteSelected: { workspace.requestDelete($0) },
                     onDuplicateSelected: duplicateSelected,
                     onSelectAllPending: selectAllPending,
                     onOpenDetail: openTaskDetail
                 )
             )
         }
+        .overlay(alignment: .bottom) {
+            selectionToolbar
+        }
+        .animation(SchemaMotion.standard, value: workspace.selectedTaskIDs.isEmpty)
         .overlay(alignment: .topTrailing) {
             detailPanel
         }
@@ -135,6 +139,12 @@ struct WorkspaceView: View {
         .background(SchemaTheme.canvas)
         .clickOutsideDismiss(isActive: workspace.hasDismissibleState) {
             dismissActiveEditing()
+        }
+        .onChange(of: workspace.confirmedDelete) { _, request in
+            guard let request else { return }
+            withAnimation(SchemaMotion.smooth) {
+                deleteSelected(request.taskIDs)
+            }
         }
         .onChange(of: workspace.focusRequest) { _, request in
             guard let request else { return }
@@ -227,6 +237,30 @@ struct WorkspaceView: View {
                     listViewModel.showNewListSheet = false
                 }
             )
+        }
+    }
+
+    @ViewBuilder
+    private var selectionToolbar: some View {
+        let selected = (incompleteTasks + completedTasks).filter { workspace.isSelected($0.id) }
+        if !selected.isEmpty, !workspace.isDetailOpen {
+            SelectionToolbar(
+                count: selected.count,
+                isAllCompleted: selected.allSatisfy(\.isCompleted),
+                pages: listViewModel.pages(from: lists),
+                onReschedule: { rescheduleSelected(to: $0) },
+                onMove: { moveSelected(to: $0) },
+                onDelete: { workspace.requestDelete(workspace.selectedTaskIDs) },
+                onComplete: { toggleSelected(workspace.selectedTaskIDs) },
+                onClear: {
+                    workspace.clearSelection()
+                    workspace.requestFocus(.taskList)
+                }
+            )
+            .keepsSelectionOnClick()
+            .padding(.bottom, 24)
+            .padding(.horizontal, 16)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
 

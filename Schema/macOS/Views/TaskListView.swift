@@ -338,7 +338,8 @@ private enum TaskListMetrics {
     static let rowSpacing: CGFloat = 2
     static let sectionSpacing: CGFloat = 22
     static let topInset: CGFloat = 20
-    static let bottomInset: CGFloat = 48
+    /// Leaves room for the floating selection toolbar over the last task.
+    static let bottomInset: CGFloat = 104
     static let cardPadding: CGFloat = 4
     static let cardRadius: CGFloat = 16
 }

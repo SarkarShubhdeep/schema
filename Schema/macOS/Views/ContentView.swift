@@ -87,6 +87,16 @@ struct ContentView: View {
         }
         .background(SchemaTheme.canvas.ignoresSafeArea())
         .frame(minWidth: ShellMetrics.minimumWindowWidth, minHeight: 520)
+        .overlay {
+            if let ids = workspace.pendingDeleteIDs {
+                DeleteConfirmationDialog(
+                    count: ids.count,
+                    onCancel: workspace.cancelPendingDelete,
+                    onConfirm: workspace.confirmPendingDelete
+                )
+            }
+        }
+        .animation(SchemaMotion.fast, value: workspace.isConfirmingDelete)
         .focusedSceneValue(\.workspaceState, workspace)
         .onGeometryChange(for: CGFloat.self) { proxy in
             proxy.size.width
@@ -127,6 +137,16 @@ struct ContentView: View {
         }
         if DemoData.isEnabled, DemoData.opensFirstPage {
             listVM.selectList(listVM.pages(from: lists).first)
+        }
+        if DemoData.isEnabled, DemoData.selectsTasks || DemoData.opensDeleteDialog {
+            let ids = allTasks
+                .filter { !$0.isCompleted && $0.list?.id == listVM.selectedListID }
+                .prefix(2)
+                .map(\.id)
+            workspace.select(Array(ids))
+            if DemoData.opensDeleteDialog {
+                workspace.requestDelete(Set(ids))
+            }
         }
         #endif
 

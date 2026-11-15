@@ -110,6 +110,32 @@ extension WorkspaceView {
         workspace.requestFocus(.taskList)
     }
 
+    /// Gives every selected task a new due date, keeping its time of day.
+    func rescheduleSelected(to option: RescheduleOption) {
+        let selected = (incompleteTasks + completedTasks).filter { workspace.isSelected($0.id) }
+        guard !selected.isEmpty else { return }
+        let now = Date.now
+        Task {
+            for task in selected {
+                await taskViewModel.setReminder(task, at: option.date(keepingTimeOf: task.reminderTime, now: now))
+            }
+            await refreshNotifications()
+        }
+        workspace.requestFocus(.taskList)
+    }
+
+    /// Moves every selected task to `page`.
+    func moveSelected(to page: SchemaList) {
+        let selected = (incompleteTasks + completedTasks).filter { workspace.isSelected($0.id) }
+        guard !selected.isEmpty else { return }
+        withAnimation(SchemaMotion.smooth) {
+            for task in selected {
+                taskViewModel.moveTask(task, to: page, allTasks: allTasks)
+            }
+        }
+        workspace.requestFocus(.taskList)
+    }
+
     func duplicateSelected(_ taskIDs: Set<UUID>) {
         let ordered = (incompleteTasks + completedTasks).filter { taskIDs.contains($0.id) }
         guard !ordered.isEmpty else { return }

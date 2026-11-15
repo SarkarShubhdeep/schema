@@ -23,7 +23,7 @@ struct TaskListKeyboardNavigation: ViewModifier {
     let actions: TaskListKeyboardActions
 
     private var canNavigate: Bool {
-        !workspace.isEditingListName
+        !workspace.isEditingListName && !workspace.isConfirmingDelete
     }
 
     private var canPerformActions: Bool {
