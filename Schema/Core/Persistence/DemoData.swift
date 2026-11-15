@@ -20,6 +20,9 @@ enum DemoData {
     /// `-SchemaDemoDark` forces dark mode for screenshots.
     static let forcesDarkAppearance = CommandLine.arguments.contains("-SchemaDemoDark")
 
+    /// `-SchemaDemoToday` opens on the Today view.
+    static let opensToday = CommandLine.arguments.contains("-SchemaDemoToday")
+
     /// Window width for screenshots: 1280 by default, `-SchemaDemoMedium` 1100,
     /// `-SchemaDemoNarrow` 880 (to show auto-collapse).
     static let windowWidth: CGFloat = {

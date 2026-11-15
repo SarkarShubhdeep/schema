@@ -50,7 +50,7 @@ struct ContentView: View {
         @Bindable var workspace = workspace
 
         return HStack(spacing: 0) {
-            SidebarView(onNotificationSelect: { item in
+            SidebarView(lists: lists, allTasks: allTasks, listViewModel: listViewModel, onNotificationSelect: { item in
                 if let listID = item.listID {
                     listViewModel.selectedListID = listID
                 }
@@ -121,6 +121,11 @@ struct ContentView: View {
         listVM.ensureDefaultListsIfNeeded(from: lists)
         listViewModel = listVM
         ensureListSelection()
+        #if DEBUG
+        if DemoData.isEnabled, DemoData.opensToday {
+            listVM.selectSmartView(.today, from: lists)
+        }
+        #endif
 
         taskViewModel = TaskViewModel(
             modelContext: modelContext,

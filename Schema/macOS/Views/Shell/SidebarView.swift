@@ -4,7 +4,7 @@
 //
 //  Left column of the window. The window controls sit at its top (the title
 //  bar is hidden). Expanded it is 240pt with the wordmark; collapsed it is a
-//  72pt rail of icons. ⌘⌥← toggles it. Navigation arrives with #12.
+//  72pt rail of icons. ⌘⌥← toggles it.
 //
 
 import SwiftUI
@@ -12,6 +12,9 @@ import SwiftUI
 struct SidebarView: View {
     @Environment(WorkspaceState.self) private var workspace
 
+    let lists: [SchemaList]
+    let allTasks: [SchemaTask]
+    let listViewModel: ListViewModel
     let onNotificationSelect: (SchemaNotificationItem) -> Void
 
     var body: some View {
@@ -65,6 +68,8 @@ struct SidebarView: View {
             }
             .padding(.leading, 12)
             .padding(.bottom, 10)
+
+            SidebarNavigation(lists: lists, allTasks: allTasks, listViewModel: listViewModel, isRail: false)
         }
         .padding(.horizontal, 12)
         .transition(.opacity)
@@ -75,6 +80,8 @@ struct SidebarView: View {
             SchemaIconButton(systemImage: "sidebar.left", label: "Expand sidebar", shortcut: "⌘⌥←", size: 40) {
                 workspace.toggleSidebar()
             }
+            railDivider
+            SidebarNavigation(lists: lists, allTasks: allTasks, listViewModel: listViewModel, isRail: true)
             railDivider
             notificationsButton
             settingsButton

@@ -9,7 +9,8 @@ struct WorkspaceKeyboardShortcuts: ViewModifier {
     @Binding var isAddTaskExpanded: Bool
     @FocusState.Binding var isAddTaskFocused: Bool
 
-    let lists: [SchemaList]
+    /// Number of pages; ⌘1–⌘9 select the first nine.
+    let pageCount: Int
     let canUndo: Bool
     let onSelectListAtIndex: (Int) -> Void
     let onSelectNextList: () -> Void
@@ -64,8 +65,8 @@ struct WorkspaceKeyboardShortcuts: ViewModifier {
                 .hidden()
 
             ForEach(0..<9, id: \.self) { index in
-                if lists.indices.contains(index) {
-                    Button("Select List \(index + 1)") {
+                if index < pageCount {
+                    Button("Select Page \(index + 1)") {
                         onSelectListAtIndex(index)
                     }
                     .keyboardShortcut(
@@ -85,7 +86,7 @@ extension View {
     func workspaceKeyboardShortcuts(
         isAddTaskExpanded: Binding<Bool>,
         isAddTaskFocused: FocusState<Bool>.Binding,
-        lists: [SchemaList],
+        pageCount: Int,
         canUndo: Bool,
         onSelectListAtIndex: @escaping (Int) -> Void,
         onSelectNextList: @escaping () -> Void,
@@ -99,7 +100,7 @@ extension View {
             WorkspaceKeyboardShortcuts(
                 isAddTaskExpanded: isAddTaskExpanded,
                 isAddTaskFocused: isAddTaskFocused,
-                lists: lists,
+                pageCount: pageCount,
                 canUndo: canUndo,
                 onSelectListAtIndex: onSelectListAtIndex,
                 onSelectNextList: onSelectNextList,

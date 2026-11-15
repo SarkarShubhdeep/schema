@@ -14,6 +14,8 @@ All notable changes to Schema are documented in this file.
 - Three-column window (#9): the title bar is hidden and the window controls sit at the top of a 240pt sidebar; the main column and a 300pt details panel each scroll on their own. Notifications and Settings (⌘,) moved from the toolbar into the sidebar header. Until panels can collapse, the window is at least 960pt wide.
 - Side panels collapse to slim icon rails instead of hiding (#10): the sidebar to 72pt with ⌘⌥←, the details panel to 52pt with ⌘⌥→. Both are in the View menu, and Schema remembers each panel's state. The window can now narrow to 544pt.
 - Side panels follow the window width (#11): 1200pt and wider shows both, 960–1199pt collapses the details panel, under 960pt collapses both. A panel you open or close by hand stays that way until the window crosses a breakpoint; opening one where both won't fit collapses the other.
+- Sidebar navigation (#12): Views (Today, Upcoming, Everything) and Pages, with the active item as a dark pill and letter icons on the collapsed rail. Today lists tasks due today or overdue; Upcoming lists tasks due later (the dashboard versions come in #17). ⌘1–⌘9 now open pages, / opens Everything, and New page (⌘N) creates a to-do list.
+- The horizontal list tabs are replaced by a single page title; double-click a page title to rename it.
 
 ## [0.3.0] — 2026-11-12
 

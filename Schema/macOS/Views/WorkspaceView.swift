@@ -25,21 +25,27 @@ struct WorkspaceView: View {
     }
 
     var incompleteTasks: [SchemaTask] {
-        taskViewModel.incompleteTasks(
+        inSmartView(taskViewModel.incompleteTasks(
             for: selectedList,
             from: allTasks,
             sortOption: listViewModel.sortOption,
             filterOption: listViewModel.filterOption
-        )
+        ))
     }
 
     var completedTasks: [SchemaTask] {
-        taskViewModel.completedTasks(
+        inSmartView(taskViewModel.completedTasks(
             for: selectedList,
             from: allTasks,
             sortOption: listViewModel.sortOption,
             filterOption: listViewModel.filterOption
-        )
+        ))
+    }
+
+    private func inSmartView(_ tasks: [SchemaTask]) -> [SchemaTask] {
+        guard let smartView = listViewModel.smartView else { return tasks }
+        let now = Date.now
+        return tasks.filter { smartView.includes($0, now: now) }
     }
 
     var body: some View {
@@ -59,14 +65,10 @@ struct WorkspaceView: View {
                 requiresManualSort: requiresManualSort
             )
 
-            ListNavigationBar(
-                lists: lists,
-                selectedListID: listViewModel.selectedListID,
-                taskCount: taskCount,
-                onSelect: { list in
-                    workspace.clearSelection()
-                    listViewModel.selectList(list)
-                },
+            PageTitleBar(
+                title: listViewModel.smartView?.title ?? selectedList?.title ?? "",
+                count: incomplete.count,
+                renamableList: listViewModel.smartView == nil && selectedList?.isEverythingList == false ? selectedList : nil,
                 onRename: { list, title in
                     listViewModel.updateListTitle(list, title: title)
                 },
@@ -177,12 +179,10 @@ struct WorkspaceView: View {
         .workspaceKeyboardShortcuts(
             isAddTaskExpanded: $workspace.isAddTaskExpanded,
             isAddTaskFocused: $isAddTaskFocused,
-            lists: lists,
+            pageCount: listViewModel.pages(from: lists).count,
             canUndo: taskViewModel.canUndo,
             onSelectListAtIndex: { index in
-                withAnimation(SchemaMotion.smooth) {
-                    listViewModel.selectList(at: index, from: lists)
-                }
+                listViewModel.selectList(at: index, from: listViewModel.pages(from: lists))
             },
             onSelectNextList: {
                 withAnimation(SchemaMotion.smooth) {
@@ -256,13 +256,6 @@ struct WorkspaceView: View {
             .padding(.top, 12)
             .padding(.trailing, 16)
         }
-    }
-
-    private func taskCount(for list: SchemaList) -> Int {
-        if list.isEverythingList {
-            return allTasks.filter { !$0.isCompleted }.count
-        }
-        return list.incompleteTaskCount
     }
 
     private var quickEntryPlaceholder: String {
