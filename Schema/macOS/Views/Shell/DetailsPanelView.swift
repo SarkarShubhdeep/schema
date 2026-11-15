@@ -10,12 +10,14 @@
 
 import SwiftUI
 
-struct DetailsPanelView<Detail: View>: View {
+struct DetailsPanelView<Detail: View, Overview: View>: View {
     @Environment(WorkspaceState.self) private var workspace
 
     /// The open task's editor, if any.
     let detail: Detail?
     let onCloseDetail: () -> Void
+    /// Shown when no task is open: reminders, the week, routines.
+    let overview: Overview
 
     var body: some View {
         let showsDetail = detail != nil
@@ -52,20 +54,17 @@ struct DetailsPanelView<Detail: View>: View {
                 .padding(.top, 16)
                 .transition(.opacity)
             } else {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 14) {
                     HStack {
-                        SchemaSectionLabel("Details")
+                        SchemaSectionLabel("Overview")
                         Spacer(minLength: 8)
                         SchemaIconButton(systemImage: "sidebar.right", label: "Collapse panel", shortcut: "⌘⌥→", size: 28) {
                             workspace.toggleDetailsPanel()
                         }
                     }
-                    Text("Double-click a task to see its details here.")
-                        .font(.schemaCaption)
-                        .foregroundStyle(SchemaTheme.inkFaint)
-                        .fixedSize(horizontal: false, vertical: true)
+                    overview
                 }
-                .padding(.leading, 20)
+                .padding(.leading, 16)
                 .padding(.trailing, 14)
                 .padding(.top, 14)
                 .padding(.bottom, 24)

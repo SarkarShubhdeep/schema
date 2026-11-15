@@ -19,6 +19,8 @@ struct PageHeaderModel {
     let doneCount: Int
     /// The page to rename on double-click; `nil` for Everything and smart views.
     let renamableList: SchemaList?
+    /// Today shows progress in its tiles instead.
+    var showsProgress = true
 }
 
 struct PageHeader: View {
@@ -138,7 +140,7 @@ struct PageHeader: View {
     @ViewBuilder
     private var progress: some View {
         let total = model.openCount + model.doneCount
-        if total > 0 {
+        if total > 0, model.showsProgress {
             VStack(alignment: .trailing, spacing: 6) {
                 HStack(alignment: .firstTextBaseline, spacing: 0) {
                     Text("\(model.doneCount)")

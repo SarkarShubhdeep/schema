@@ -24,6 +24,8 @@ enum DemoData {
 
     /// `-SchemaDemoToday` opens on the Today view.
     static let opensToday = CommandLine.arguments.contains("-SchemaDemoToday")
+    /// `-SchemaDemoUpcoming` opens on the Upcoming view.
+    static let opensUpcoming = CommandLine.arguments.contains("-SchemaDemoUpcoming")
 
     /// `-SchemaDemoPage` opens on the first page (Daily Todos).
     static let opensFirstPage = CommandLine.arguments.contains("-SchemaDemoPage")
@@ -107,6 +109,15 @@ enum DemoData {
 
         add("Finish chapter 4 of The Design of Everyday Things", to: reading)
         add("Read the SwiftData migration guide", to: reading, done: true)
+
+        // Daily routines: one done today, one still open this evening.
+        let stretch = SchemaTask(title: "Morning stretch", list: daily, reminderTime: at(0, 7, 30), isRoutine: true)
+        stretch.manualSortIndex = index + 1
+        stretch.setCompleted(true)
+        context.insert(stretch)
+        let plan = SchemaTask(title: "Plan tomorrow’s top three", list: daily, reminderTime: at(0, 21, 30), isRoutine: true)
+        plan.manualSortIndex = index + 2
+        context.insert(plan)
 
         try? context.save()
         defaults.set(daily.id.uuidString, forKey: "schema.preferences.defaultWritableListID")
