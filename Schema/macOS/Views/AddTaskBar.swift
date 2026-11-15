@@ -41,7 +41,7 @@ struct AddTaskBar: View {
         }
         .padding(.horizontal, 28)
         .padding(.vertical, 12)
-        .background(SchemaTheme.background)
+        .background(SchemaTheme.canvas)
         .animation(SchemaMotion.fast, value: isExpanded)
         .onChange(of: isExpanded) { _, expanded in
             if expanded {
@@ -57,11 +57,11 @@ struct AddTaskBar: View {
             addTaskContainer(showFocusBorder: false) {
                 Image(systemName: "plus")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(SchemaTheme.mutedText)
+                    .foregroundStyle(SchemaTheme.inkMuted)
 
                 Text("Add task")
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(SchemaTheme.mutedText)
+                    .foregroundStyle(SchemaTheme.inkMuted)
 
                 shortcutBadge
             }
@@ -74,7 +74,7 @@ struct AddTaskBar: View {
             addTaskContainer(showFocusBorder: true) {
                 Image(systemName: "plus")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(SchemaTheme.mutedText)
+                    .foregroundStyle(SchemaTheme.inkMuted)
 
                 TextField(placeholder, text: $text)
                     .textFieldStyle(.plain)
@@ -171,7 +171,7 @@ struct AddTaskBar: View {
                 mentionChip(
                     icon: "clock",
                     label: time.formatted(date: .omitted, time: .shortened),
-                    accentColor: SchemaTheme.accent
+                    accentColor: SchemaTheme.inkMuted
                 )
             }
 
@@ -179,7 +179,7 @@ struct AddTaskBar: View {
                 mentionChip(
                     icon: "calendar",
                     label: dateLabel(for: date),
-                    accentColor: SchemaTheme.accent
+                    accentColor: SchemaTheme.inkMuted
                 )
             }
 
@@ -187,14 +187,14 @@ struct AddTaskBar: View {
                 mentionChip(
                     icon: nil,
                     label: list.displayTagLabel,
-                    accentColor: SchemaTheme.listAccent(for: list),
+                    accentColor: SchemaTheme.inkMuted,
                     showsListDot: true
                 )
             } else if mentions.listCandidates.count > 1, let selected = selectedListCandidate {
                 mentionChip(
                     icon: nil,
                     label: "\(selected.displayTagLabel) (selected)",
-                    accentColor: SchemaTheme.listAccent(for: selected),
+                    accentColor: SchemaTheme.inkMuted,
                     showsListDot: true
                 )
             }
@@ -210,7 +210,7 @@ struct AddTaskBar: View {
             if let activePrefix {
                 Text("Lists matching \"\(activePrefix)\" — ↑↓ to select")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(SchemaTheme.mutedText)
+                    .foregroundStyle(SchemaTheme.inkMuted)
             }
 
             ForEach(Array(candidates.enumerated()), id: \.element.id) { index, list in
@@ -221,7 +221,7 @@ struct AddTaskBar: View {
                 } label: {
                     HStack(spacing: 6) {
                         Circle()
-                            .fill(SchemaTheme.listAccent(for: list))
+                            .fill(SchemaTheme.inkMuted)
                             .frame(width: 6, height: 6)
 
                         Text(list.displayTagLabel)
@@ -230,16 +230,16 @@ struct AddTaskBar: View {
                         if index == selectedIndex, candidates.count > 1 {
                             Text("selected")
                                 .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(SchemaTheme.mutedText)
+                                .foregroundStyle(SchemaTheme.inkMuted)
                         }
                     }
-                    .foregroundStyle(index == selectedIndex ? SchemaTheme.accent : SchemaTheme.mutedText)
+                    .foregroundStyle(index == selectedIndex ? SchemaTheme.ink : SchemaTheme.inkMuted)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 4)
                     .background(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(index == selectedIndex ? SchemaTheme.accent.opacity(0.12) : .clear)
+                            .fill(index == selectedIndex ? SchemaTheme.surfaceHover : .clear)
                     )
                 }
                 .buttonStyle(.plain)
@@ -252,7 +252,7 @@ struct AddTaskBar: View {
                 .fill(SchemaTheme.surface)
                 .overlay(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .strokeBorder(SchemaTheme.divider, lineWidth: 1)
+                        .strokeBorder(SchemaTheme.line, lineWidth: 1)
                 )
         )
     }
@@ -311,12 +311,12 @@ struct AddTaskBar: View {
         .padding(.horizontal, Metrics.horizontalPadding)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(SchemaTheme.controlFill)
+                .fill(SchemaTheme.surfaceSunken)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(
-                    showFocusBorder ? SchemaTheme.accent.opacity(0.45) : .clear,
+                    showFocusBorder ? SchemaTheme.ink : .clear,
                     lineWidth: 1.5
                 )
         )
@@ -325,7 +325,7 @@ struct AddTaskBar: View {
     private var shortcutBadge: some View {
         Text("n")
             .font(.system(size: 11, weight: .medium, design: .rounded))
-            .foregroundStyle(SchemaTheme.mutedText)
+            .foregroundStyle(SchemaTheme.inkMuted)
             .padding(.horizontal, 7)
             .padding(.vertical, 5)
             .background(
@@ -333,7 +333,7 @@ struct AddTaskBar: View {
                     .fill(SchemaTheme.surface)
                     .overlay(
                         RoundedRectangle(cornerRadius: 5, style: .continuous)
-                            .stroke(SchemaTheme.divider, lineWidth: 1)
+                            .stroke(SchemaTheme.line, lineWidth: 1)
                     )
             )
     }

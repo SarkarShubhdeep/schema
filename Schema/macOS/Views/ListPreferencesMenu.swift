@@ -52,7 +52,7 @@ struct ListPreferencesMenu: View {
                 Text("List Preferences")
                     .font(.system(size: 13, weight: .medium))
             }
-            .foregroundStyle(SchemaTheme.mutedText)
+            .foregroundStyle(SchemaTheme.inkMuted)
         }
         .menuStyle(.borderlessButton)
         .fixedSize()

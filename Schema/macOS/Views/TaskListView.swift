@@ -86,7 +86,7 @@ struct TaskListView: View {
                 .focused(isTaskListFocused)
                 .focusEffectDisabled()
         }
-        .background(SchemaTheme.background)
+        .background(SchemaTheme.canvas)
     }
 
     // MARK: Content
@@ -157,12 +157,12 @@ struct TaskListView: View {
             HStack {
                 Text("Completed (\(completedTasks.count))")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(SchemaTheme.mutedText)
+                    .foregroundStyle(SchemaTheme.inkMuted)
                     .textCase(.uppercase)
 
                 Image(systemName: showCompleted ? "chevron.down" : "chevron.right")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(SchemaTheme.mutedText)
+                    .foregroundStyle(SchemaTheme.inkMuted)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
@@ -239,7 +239,7 @@ struct TaskListView: View {
     private var insertionIndicator: some View {
         if let session = drag, abs(session.translation) > 4, let y = indicatorY(for: session) {
             Capsule()
-                .fill(SchemaTheme.accent)
+                .fill(SchemaTheme.ink)
                 .frame(height: 2)
                 .frame(maxWidth: .infinity)
                 .offset(y: y - 1)

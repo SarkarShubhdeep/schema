@@ -15,7 +15,7 @@ struct QuickEntryField: View {
         HStack(spacing: 12) {
             Image(systemName: "plus")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(SchemaTheme.accent)
+                .foregroundStyle(SchemaTheme.inkMuted)
 
             TextField(placeholder, text: $text)
                 .textFieldStyle(.plain)
@@ -32,10 +32,10 @@ struct QuickEntryField: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(SchemaTheme.divider, lineWidth: 1)
+                .stroke(SchemaTheme.line, lineWidth: 1)
         )
         .padding(.horizontal, 24)
         .padding(.vertical, 16)
-        .background(SchemaTheme.background)
+        .background(SchemaTheme.canvas)
     }
 }

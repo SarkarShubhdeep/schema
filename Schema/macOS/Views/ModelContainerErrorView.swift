@@ -14,20 +14,20 @@ struct ModelContainerErrorView: View {
         VStack(spacing: 20) {
             Image(systemName: "externaldrive.badge.exclamationmark")
                 .font(.system(size: 40))
-                .foregroundStyle(SchemaTheme.mutedText)
+                .foregroundStyle(SchemaTheme.inkMuted)
 
             Text("Schema couldn't open your data")
                 .font(.title2.weight(.semibold))
 
             Text(error.message)
                 .font(.system(size: 13))
-                .foregroundStyle(SchemaTheme.mutedText)
+                .foregroundStyle(SchemaTheme.inkMuted)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 360)
 
             Text("Your tasks are stored locally. You can retry opening the store or reset it and start fresh.")
                 .font(.system(size: 12))
-                .foregroundStyle(SchemaTheme.mutedText)
+                .foregroundStyle(SchemaTheme.inkMuted)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 360)
 
@@ -44,6 +44,6 @@ struct ModelContainerErrorView: View {
         }
         .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(SchemaTheme.background)
+        .background(SchemaTheme.canvas)
     }
 }

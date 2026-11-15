@@ -171,12 +171,6 @@ final class ListViewModel {
         save()
     }
 
-    func updateListAccentColor(_ list: SchemaList, colorName: SchemaListColorName) {
-        guard !list.isEverythingList else { return }
-        list.accentColorName = colorName.rawValue
-        save()
-    }
-
     func deleteList(_ list: SchemaList, from lists: [SchemaList]) {
         guard !list.isEverythingList else { return }
 

@@ -33,7 +33,7 @@ struct SchemaApp: App {
                 } else {
                     ProgressView("Loading Schema…")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(SchemaTheme.background)
+                        .background(SchemaTheme.canvas)
                 }
             }
             .onAppear {

@@ -40,7 +40,7 @@ struct AllListsView: View {
             .padding(.vertical, 24)
         }
         .frame(minWidth: 720, minHeight: 520)
-        .background(SchemaTheme.background)
+        .background(SchemaTheme.canvas)
         .navigationBarBackButtonHidden(true)
         .sheet(isPresented: $listViewModel.showNewListSheet) {
             NewListSheet(
@@ -90,7 +90,7 @@ struct AllListsView: View {
 
                 Text("+ New list")
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(SchemaTheme.mutedText)
+                    .foregroundStyle(SchemaTheme.inkMuted)
                     .frame(maxWidth: .infinity)
 
                 Spacer(minLength: 0)
@@ -99,12 +99,12 @@ struct AllListsView: View {
             .padding(CardMetrics.padding)
             .background(
                 RoundedRectangle(cornerRadius: CardMetrics.cornerRadius, style: .continuous)
-                    .fill(SchemaTheme.newListCardFill)
+                    .fill(SchemaTheme.surfaceSunken)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CardMetrics.cornerRadius, style: .continuous)
                     .strokeBorder(
-                        SchemaTheme.mutedText.opacity(0.35),
+                        SchemaTheme.inkMuted.opacity(0.35),
                         style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])
                     )
             )
@@ -120,7 +120,7 @@ struct AllListsView: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text(list.title)
                     .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(SchemaTheme.listCardForeground(for: list))
+                    .foregroundStyle(SchemaTheme.ink)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
 
@@ -128,17 +128,17 @@ struct AllListsView: View {
 
                 Text(taskCountLabel(for: list))
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(SchemaTheme.listCardForeground(for: list).opacity(0.75))
+                    .foregroundStyle(SchemaTheme.inkMuted)
             }
             .frame(maxWidth: .infinity, minHeight: CardMetrics.minHeight, alignment: .leading)
             .padding(CardMetrics.padding)
             .background(
                 RoundedRectangle(cornerRadius: CardMetrics.cornerRadius, style: .continuous)
-                    .fill(SchemaTheme.listCardBackground(for: list))
+                    .fill(SchemaTheme.surface)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CardMetrics.cornerRadius, style: .continuous)
-                    .stroke(SchemaTheme.divider.opacity(0.6), lineWidth: listColorName(for: list) == .grey ? 1 : 0)
+                    .stroke(SchemaTheme.line, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -148,38 +148,12 @@ struct AllListsView: View {
                 renameTitle = list.title
             }
 
-            Menu("Change Color") {
-                ForEach(SchemaListColorName.selectable) { color in
-                    Button {
-                        listViewModel.updateListAccentColor(list, colorName: color)
-                    } label: {
-                        listColorMenuLabel(color: color, isSelected: listColorName(for: list) == color)
-                    }
-                }
-            }
-
             Divider()
 
             Button("Delete List", role: .destructive) {
                 listViewModel.deleteList(list, from: lists)
             }
         }
-    }
-
-    private func listColorMenuLabel(color: SchemaListColorName, isSelected: Bool) -> some View {
-        HStack {
-            if isSelected {
-                Image(systemName: "checkmark")
-            }
-            Circle()
-                .fill(color.accentColor)
-                .frame(width: 8, height: 8)
-            Text(color.displayName)
-        }
-    }
-
-    private func listColorName(for list: SchemaList) -> SchemaListColorName {
-        SchemaTheme.listColorName(for: list)
     }
 
     private func taskCountLabel(for list: SchemaList) -> String {

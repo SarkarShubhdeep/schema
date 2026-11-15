@@ -4,6 +4,11 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- New color tokens from the Schema design system: neutral greys with a single yellow accent, in light and dark (#6).
+- Lists no longer have their own colors; tabs, tags and list cards are neutral. The Change Color menu is gone.
+
 ## [0.3.0] — 2026-11-12
 
 ### Fixed
