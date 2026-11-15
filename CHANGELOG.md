@@ -11,6 +11,7 @@ All notable changes to Schema are documented in this file.
 - Bundled Space Grotesk (titles, numbers, times, counts, badges) and Satoshi (task titles, body text, buttons), with the design system's type styles (#7).
 - Shared components in `Core/Design/Components`: pill buttons (primary, secondary, ghost, danger, ink), round icon buttons with tooltips, a quiet task checkbox, chips, count badges, key hints, section labels, cards and a flat progress bar (#8).
 - Task rows, list tabs, the Add task bar, the Completed header and the New list and Rename dialogs now use these components. Press animations respect Reduce Motion (#4).
+- Three-column window (#9): the title bar is hidden and the window controls sit at the top of a 240pt sidebar; the main column and a 300pt details panel each scroll on their own. Notifications and Settings (⌘,) moved from the toolbar into the sidebar header. Until panels can collapse, the window is at least 960pt wide.
 
 ## [0.3.0] — 2026-11-12
 

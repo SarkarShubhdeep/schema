@@ -37,6 +37,11 @@ struct SchemaApp: App {
                 if DemoData.forcesDarkAppearance {
                     NSApplication.shared.appearance = NSAppearance(named: .darkAqua)
                 }
+                if DemoData.isEnabled, let window = NSApplication.shared.windows.first {
+                    // Screenshots always use the design's window size, not the last saved frame.
+                    window.setContentSize(NSSize(width: 1280, height: 800))
+                    window.center()
+                }
                 #endif
                 if modelContainer == nil, loadError == nil {
                     loadModelContainer(resetStore: false)
@@ -55,7 +60,8 @@ struct SchemaApp: App {
                 Text("This deletes all lists and tasks stored on this Mac and cannot be undone.")
             }
         }
-        .defaultSize(width: 900, height: 640)
+        .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 1280, height: 800)
     }
 
     @ViewBuilder

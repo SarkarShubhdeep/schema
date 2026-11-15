@@ -128,7 +128,7 @@ struct WorkspaceView: View {
         .overlay(alignment: .topTrailing) {
             detailPanel
         }
-        .frame(minWidth: 720, minHeight: 520)
+        .frame(minWidth: ShellMetrics.mainMinWidth, minHeight: 520)
         .background(SchemaTheme.canvas)
         .clickOutsideDismiss(isActive: workspace.hasDismissibleState) {
             dismissActiveEditing()

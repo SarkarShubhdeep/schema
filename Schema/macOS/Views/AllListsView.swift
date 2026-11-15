@@ -39,7 +39,7 @@ struct AllListsView: View {
             .padding(.horizontal, 28)
             .padding(.vertical, 24)
         }
-        .frame(minWidth: 720, minHeight: 520)
+        .frame(minWidth: ShellMetrics.mainMinWidth, minHeight: 520)
         .background(SchemaTheme.canvas)
         .navigationBarBackButtonHidden(true)
         .sheet(isPresented: $listViewModel.showNewListSheet) {

@@ -49,44 +49,44 @@ struct ContentView: View {
     private func workspaceStack(listViewModel: ListViewModel, taskViewModel: TaskViewModel) -> some View {
         @Bindable var workspace = workspace
 
-        return NavigationStack(path: $workspace.navigationPath) {
-            WorkspaceView(
-                lists: lists,
-                allTasks: allTasks,
-                listViewModel: listViewModel,
-                taskViewModel: taskViewModel,
-                notificationService: notificationService
-            )
-            .navigationDestination(for: WorkspaceRoute.self) { route in
-                switch route {
-                case .allLists:
-                    AllListsView(
-                        lists: lists,
-                        listViewModel: listViewModel,
-                        onSelectList: { list in
-                            listViewModel.selectList(list)
-                            workspace.navigationPath = NavigationPath()
-                        }
-                    )
+        return HStack(spacing: 0) {
+            SidebarView(onNotificationSelect: { item in
+                if let listID = item.listID {
+                    listViewModel.selectedListID = listID
+                }
+                workspace.highlightedTaskID = item.taskID
+                workspace.showNotifications = false
+            })
+
+            NavigationStack(path: $workspace.navigationPath) {
+                WorkspaceView(
+                    lists: lists,
+                    allTasks: allTasks,
+                    listViewModel: listViewModel,
+                    taskViewModel: taskViewModel,
+                    notificationService: notificationService
+                )
+                .navigationDestination(for: WorkspaceRoute.self) { route in
+                    switch route {
+                    case .allLists:
+                        AllListsView(
+                            lists: lists,
+                            listViewModel: listViewModel,
+                            onSelectList: { list in
+                                listViewModel.selectList(list)
+                                workspace.navigationPath = NavigationPath()
+                            }
+                        )
+                    }
                 }
             }
+            .frame(minWidth: ShellMetrics.mainMinWidth, maxWidth: .infinity)
+            .clipped()
+
+            DetailsPanelView()
         }
-        .schemaWindowToolbar()
-        .toolbar {
-            AppHeaderToolbar(
-                showNotifications: $workspace.showNotifications,
-                showSettings: $workspace.showSettings,
-                pendingNotificationCount: workspace.notificationItems.count,
-                notificationItems: workspace.notificationItems,
-                onNotificationSelect: { item in
-                    if let listID = item.listID {
-                        listViewModel.selectedListID = listID
-                    }
-                    workspace.highlightedTaskID = item.taskID
-                    workspace.showNotifications = false
-                }
-            )
-        }
+        .background(SchemaTheme.canvas.ignoresSafeArea())
+        .frame(minWidth: ShellMetrics.minimumWindowWidth, minHeight: 520)
         .sheet(isPresented: $workspace.showSettings) {
             SettingsView(
                 listViewModel: listViewModel,
