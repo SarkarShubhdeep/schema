@@ -18,7 +18,7 @@ Schema is a keyboard-first task and notes app: to-do list pages, scratchpad page
 2. **One issue, one branch, one PR.** Branch off `main` as `feature/<n>-<slug>` or `fix/<n>-<slug>`. The PR closes the issue and says what changed and what to check.
 3. **Build clean.** Zero warnings, then launch the app so the change can be seen. Never claim something works without running it.
 4. **Screenshots for visual changes.** Launch the Debug build with `-SchemaDemoData` (sample data in memory, never the user's real tasks; add `-SchemaDemoDark` for dark mode, since `-AppleInterfaceStyle` stops the window from opening) and capture only the Schema window with `screencapture -l <window id>`, never the whole screen. Save them as `docs/screenshots/<issue>/<name>.png` in the PR branch and embed them in the PR body via a commit-SHA raw URL.
-5. **Stop after each PR.** Tell the user the PR is ready and wait. The user merges manually; start the next issue only after that, from an updated `main`.
+5. **Stop after each PR.** Tell the user the PR is ready and wait. The user merges manually; start the next issue only after that, from an updated `main`. Once a merge is confirmed, tick that issue in the checklist of the milestone doc ("Schema: Milestone 1", https://claude.ai/artifact/FuHW2CZqRkjpViAy8qmK1g) so progress stays visible there.
 6. **Stay in scope.** Unrelated improvements go into a new issue, not the current PR.
 
 ## Design rules (from the user's feedback)

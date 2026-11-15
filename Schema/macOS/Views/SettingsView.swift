@@ -23,7 +23,7 @@ struct SettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Settings")
-                .font(.title2.weight(.semibold))
+                .font(.spaceGrotesk(20, weight: .semibold))
                 .padding(.bottom, 20)
 
             settingsSection(title: "Notifications") {
@@ -42,7 +42,7 @@ struct SettingsView: View {
 
             settingsSection(title: "Default List") {
                 Text("Tasks added from Everything go to:")
-                    .font(.system(size: 13))
+                    .font(.satoshi(13))
                     .foregroundStyle(SchemaTheme.inkMuted)
 
                 Picker("Default List", selection: defaultListBinding) {
@@ -60,7 +60,7 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Complete follower routines independently")
                         Text("Allow routine tasks later in a sequence to be checked off before earlier tasks.")
-                            .font(.system(size: 12))
+                            .font(.satoshi(12))
                             .foregroundStyle(SchemaTheme.inkMuted)
                     }
                 }
@@ -101,7 +101,7 @@ struct SettingsView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.spaceGrotesk(13, weight: .semibold))
                 .foregroundStyle(SchemaTheme.inkMuted)
 
             content()

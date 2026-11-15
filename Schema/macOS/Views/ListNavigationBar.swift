@@ -65,7 +65,7 @@ struct ListNavigationBar: View {
 
     private func titleLabel(for list: SchemaList) -> some View {
         Text(list.title)
-            .font(.system(size: 28, weight: .bold))
+            .font(.spaceGrotesk(28, weight: .semibold))
             .foregroundStyle(selectedListID == list.id ? SchemaTheme.ink : SchemaTheme.inkFaint)
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
@@ -74,7 +74,7 @@ struct ListNavigationBar: View {
     private func titleField(for list: SchemaList) -> some View {
         TextField("List name", text: $editedTitle)
             .textFieldStyle(.plain)
-            .font(.system(size: 28, weight: .bold))
+            .font(.spaceGrotesk(28, weight: .semibold))
             .foregroundStyle(selectedListID == list.id ? SchemaTheme.ink : SchemaTheme.inkFaint)
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
@@ -93,7 +93,7 @@ struct ListNavigationBar: View {
         let count = taskCount(list)
         if count > 0 {
             Text("\(count)")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.spaceGrotesk(11, weight: .semibold).monospacedDigit())
                 .foregroundStyle(SchemaTheme.inkMuted)
                 .fixedSize()
                 .padding(.horizontal, 8)

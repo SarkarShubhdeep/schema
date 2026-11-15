@@ -17,7 +17,7 @@ struct ListContextBar: View {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 11, weight: .semibold))
                     Text("All Lists")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.satoshi(13, weight: .medium))
                 }
                 .foregroundStyle(SchemaTheme.inkMuted)
             }

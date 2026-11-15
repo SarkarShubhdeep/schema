@@ -50,7 +50,7 @@ struct ListPreferencesMenu: View {
                 Image(systemName: "slider.horizontal.3")
                     .font(.system(size: 11, weight: .medium))
                 Text("List Preferences")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.satoshi(13, weight: .medium))
             }
             .foregroundStyle(SchemaTheme.inkMuted)
         }

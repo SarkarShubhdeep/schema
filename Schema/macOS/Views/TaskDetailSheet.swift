@@ -319,7 +319,7 @@ struct TaskDetailSheet: View {
     private var titleField: some View {
         VStack(alignment: .leading, spacing: 8) {
             TextField("Task title", text: $editor.draft.title, axis: .vertical)
-                .font(.system(size: 24, weight: .bold))
+                .font(.spaceGrotesk(24, weight: .semibold))
                 .textFieldStyle(.plain)
                 .lineLimit(3)
                 .focused($focusedField, equals: .title)
@@ -417,7 +417,7 @@ struct TaskDetailSheet: View {
             Image(systemName: icon)
                 .font(.system(size: 10, weight: .semibold))
             Text(label)
-                .font(.system(size: 11, weight: .medium))
+                .font(.satoshi(11, weight: .medium))
         }
         .foregroundStyle(SchemaTheme.ink)
         .padding(.horizontal, 10)
@@ -434,7 +434,7 @@ struct TaskDetailSheet: View {
                 .fill(SchemaTheme.inkMuted)
                 .frame(width: 6, height: 6)
             Text("\(list.displayTagLabel)\(suffix)")
-                .font(.system(size: 11, weight: .medium))
+                .font(.satoshi(11, weight: .medium))
         }
         .foregroundStyle(SchemaTheme.inkMuted)
         .padding(.horizontal, 10)
@@ -453,7 +453,7 @@ struct TaskDetailSheet: View {
         VStack(alignment: .leading, spacing: 4) {
             if let activePrefix {
                 Text("Lists matching \"\(activePrefix)\" — ↑↓ to select, applied on save")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.satoshi(10, weight: .medium))
                     .foregroundStyle(SchemaTheme.inkMuted)
             }
 
@@ -469,11 +469,11 @@ struct TaskDetailSheet: View {
                             .frame(width: 6, height: 6)
 
                         Text(list.displayTagLabel)
-                            .font(.system(size: 11, weight: index == selectedIndex ? .semibold : .medium))
+                            .font(.satoshi(11, weight: index == selectedIndex ? .semibold : .medium))
 
                         if index == selectedIndex, candidates.count > 1 {
                             Text("selected")
-                                .font(.system(size: 10, weight: .medium))
+                                .font(.satoshi(10, weight: .medium))
                                 .foregroundStyle(SchemaTheme.inkMuted)
                         }
                     }
@@ -529,7 +529,7 @@ struct TaskDetailSheet: View {
                     .font(.system(size: 12, weight: .medium))
 
                 Text(timeLabel)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.spaceGrotesk(12, weight: .medium).monospacedDigit())
             }
             .foregroundStyle(editor.draft.selectedTime != nil ? SchemaTheme.ink : SchemaTheme.inkMuted)
         }
@@ -556,7 +556,7 @@ struct TaskDetailSheet: View {
                     .font(.system(size: 12, weight: .medium))
 
                 Text(dateLabel)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.spaceGrotesk(12, weight: .medium).monospacedDigit())
             }
             .foregroundStyle(
                 editor.draft.isRoutine
@@ -602,7 +602,7 @@ struct TaskDetailSheet: View {
                     Image(systemName: "repeat")
                         .font(.system(size: 11, weight: .semibold))
                     Text("Routine")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.satoshi(12, weight: .medium))
                 }
             }
             .toggleStyle(.switch)
@@ -632,7 +632,7 @@ struct TaskDetailSheet: View {
     private var afterRow: some View {
         HStack(spacing: 10) {
             Text("After")
-                .font(.system(size: 12, weight: .medium))
+                .font(.satoshi(12, weight: .medium))
                 .foregroundStyle(SchemaTheme.inkMuted)
 
             Picker("After", selection: $editor.draft.afterTaskID) {
@@ -671,11 +671,11 @@ struct TaskDetailSheet: View {
     private func sequenceValidationBanner(_ validation: RoutineSequenceValidationResult) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Label(validation.message, systemImage: "exclamationmark.triangle.fill")
-                .font(.system(size: 12, weight: .medium))
+                .font(.satoshi(12, weight: .medium))
                 .foregroundStyle(.orange)
 
             Text(validation.suggestion)
-                .font(.system(size: 11))
+                .font(.satoshi(11))
                 .foregroundStyle(SchemaTheme.inkMuted)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -683,7 +683,7 @@ struct TaskDetailSheet: View {
                 removeFollowerTimes()
             }
             .buttonStyle(.plain)
-            .font(.system(size: 12, weight: .semibold))
+            .font(.satoshi(12, weight: .semibold))
             .foregroundStyle(SchemaTheme.ink)
         }
         .padding(12)
@@ -734,7 +734,7 @@ struct TaskDetailSheet: View {
             editor.draft.toggleDay(info.weekday)
         } label: {
             Text(info.shortLabel)
-                .font(.system(size: 10, weight: .semibold))
+                .font(.spaceGrotesk(10, weight: .semibold))
                 .frame(width: 24, height: 24)
                 .foregroundStyle(isSelected ? SchemaTheme.canvas : SchemaTheme.inkMuted)
                 .background(
@@ -755,7 +755,7 @@ struct TaskDetailSheet: View {
 
     private func listTag(label: String) -> some View {
         Text(label)
-            .font(.system(size: 12, weight: .medium))
+            .font(.satoshi(12, weight: .medium))
             .foregroundStyle(SchemaTheme.inkMuted.opacity(0.9))
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
@@ -768,11 +768,11 @@ struct TaskDetailSheet: View {
     private var descriptionSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Description")
-                .font(.subheadline)
+                .font(.satoshi(13, weight: .medium))
                 .foregroundStyle(SchemaTheme.inkMuted)
 
             TextEditor(text: $editor.draft.description)
-                .font(.body)
+                .font(.satoshi(14))
                 .scrollContentBackground(.hidden)
                 .frame(minHeight: Metrics.descriptionMinHeight)
                 .padding(12)
@@ -796,7 +796,7 @@ struct TaskDetailSheet: View {
                         .font(.system(size: 16))
 
                     Text(isCompleted ? "Mark as incomplete" : "Mark as completed")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.satoshi(13, weight: .medium))
                 }
                 .foregroundStyle(isCompleted ? SchemaTheme.ink : SchemaTheme.inkMuted)
             }
@@ -827,7 +827,7 @@ struct TaskDetailSheet: View {
     private var timePickerContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Select Time")
-                .font(.headline)
+                .font(.spaceGrotesk(15, weight: .semibold))
 
             DatePicker(
                 "Time",
@@ -846,7 +846,7 @@ struct TaskDetailSheet: View {
                 )
                 let dayText = calendar.isDateInToday(nextDate) ? "today" : "tomorrow"
                 Text("Reminder will be set for \(dayText) at \(pickerTime.formatted(date: .omitted, time: .shortened))")
-                    .font(.caption)
+                    .font(.satoshi(12))
                     .foregroundStyle(SchemaTheme.inkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -880,7 +880,7 @@ struct TaskDetailSheet: View {
     private var datePickerContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Select Date")
-                .font(.headline)
+                .font(.spaceGrotesk(15, weight: .semibold))
 
             DatePicker(
                 "Date",

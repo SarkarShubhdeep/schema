@@ -13,7 +13,7 @@ struct RenameListSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Rename List")
-                .font(.title2.weight(.semibold))
+                .font(.spaceGrotesk(20, weight: .semibold))
 
             TextField("List name", text: $title)
                 .textFieldStyle(.roundedBorder)
