@@ -130,15 +130,10 @@ struct ContentView: View {
                 workspace.requestDelete(Set(ids))
             }
         }
-        if DemoData.isEnabled,
-           DemoData.opensTaskDetail || DemoData.previewsTask || DemoData.showsRoutineEditor,
+        if DemoData.isEnabled, DemoData.opensTaskDetail,
            let task = allTasks.first(where: { !$0.isCompleted && $0.displayDescription != nil && $0.reminderTime != nil }) {
             workspace.selectSingle(task.id)
-            if !DemoData.previewsTask {
-                let editor = TaskDetailEditor(task: task)
-                if DemoData.showsRoutineEditor { editor.draft.enableRoutine() }
-                workspace.taskDetailEditor = editor
-            }
+            workspace.taskDetailEditor = TaskDetailEditor(task: task)
         }
         #endif
 

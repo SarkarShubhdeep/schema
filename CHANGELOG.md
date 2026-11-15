@@ -29,7 +29,6 @@ All notable changes to Schema are documented in this file.
 - Selection toolbar (#14): selecting tasks shows a floating pill with the count, Reschedule (Today, Tomorrow, Next week, No date; keeps the time of day), Move to page, Delete, Complete (⇧↩) and Clear (Esc).
 - Deleting tasks with the toolbar or ⌫ now asks once in a small dialog; Esc or a click outside cancels.
 - Task details open in the right panel instead of a floating card (#15). The list stays visible beside them; the panel widens to 360pt while a task is open, even if it was collapsed, and returns to its saved state when closed. Delete in details now asks first, like the toolbar.
-- The details panel follows the selection while it is open: a click shows the task right away; arrow keys wait until you rest on a task (about a second), so moving quickly loads only where you stop. Previews keep keyboard focus on the list; clicking into a field or double-clicking edits.
 - The Routine switch no longer wraps letter by letter in the details panel; the weekdays sit on their own row.
 - Removed the unused All Lists screen and the navigation container around the workspace.
 

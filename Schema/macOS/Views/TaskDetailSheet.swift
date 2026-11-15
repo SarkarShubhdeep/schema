@@ -143,10 +143,6 @@ final class TaskDetailEditor {
     let taskID: UUID
     var draft: TaskDetailDraft
     var selectedListCandidateIndex = 0
-    /// Shown because the task is selected, not opened: the list keeps
-    /// keyboard focus and Esc/⌘↩ go to the list. Focusing a field, or
-    /// opening the task, turns the preview into an edit.
-    var isPreview = false
 
     init(task: SchemaTask) {
         taskID = task.id
@@ -158,8 +154,6 @@ final class TaskDetailPanelHostView: NSView {}
 
 private struct TaskDetailPanelHostRepresentable: NSViewRepresentable {
     let onCloseRequest: () -> Void
-    /// Esc / ⌘↩ handling; off while previewing so those keys reach the list.
-    var handlesKeys = true
 
     func makeCoordinator() -> Coordinator {
         Coordinator(onCloseRequest: onCloseRequest)
@@ -167,17 +161,12 @@ private struct TaskDetailPanelHostRepresentable: NSViewRepresentable {
 
     func makeNSView(context: Context) -> TaskDetailPanelHostView {
         let view = TaskDetailPanelHostView()
-        if handlesKeys { context.coordinator.installMonitor() }
+        context.coordinator.installMonitor()
         return view
     }
 
     func updateNSView(_ nsView: TaskDetailPanelHostView, context: Context) {
         context.coordinator.onCloseRequest = onCloseRequest
-        if handlesKeys {
-            context.coordinator.installMonitorIfNeeded()
-        } else {
-            context.coordinator.removeMonitor()
-        }
     }
 
     static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
@@ -215,10 +204,6 @@ private struct TaskDetailPanelHostRepresentable: NSViewRepresentable {
 
                 return event
             }
-        }
-
-        func installMonitorIfNeeded() {
-            if monitor == nil { installMonitor() }
         }
 
         func removeMonitor() {
@@ -298,22 +283,11 @@ struct TaskDetailSheet: View {
         .padding(.bottom, 24)
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(TaskDetailPanelHostRepresentable(onCloseRequest: onCloseRequest, handlesKeys: !editor.isPreview))
+        .background(TaskDetailPanelHostRepresentable(onCloseRequest: onCloseRequest))
+        .defaultFocus($focusedField, .title)
         .onAppear {
-            guard !editor.isPreview else { return }
             DispatchQueue.main.async {
                 focusedField = .title
-            }
-        }
-        .onChange(of: editor.isPreview) { _, isPreview in
-            if !isPreview, focusedField == nil {
-                focusedField = .title
-            }
-        }
-        .onChange(of: focusedField) { _, field in
-            // Typing into a previewed task turns it into an edit.
-            if field != nil, editor.isPreview {
-                editor.isPreview = false
             }
         }
         .onChange(of: afterPickerInvalidationKey) { _, _ in

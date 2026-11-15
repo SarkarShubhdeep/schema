@@ -137,29 +137,12 @@ struct WorkspaceView: View {
         .frame(minWidth: ShellMetrics.mainMinWidth, maxWidth: .infinity, minHeight: 520)
         .clipped()
 
-            DetailsPanelView(
-                detail: taskDetail,
-                detailID: workspace.taskDetailEditor?.taskID,
-                onCloseDetail: {
-                    if workspace.isEditingDetail {
-                        saveAndCloseTaskDetail()
-                    } else {
-                        closeTaskPreview()
-                        workspace.clearSelection()
-                    }
-                }
-            )
+            DetailsPanelView(detail: taskDetail, onCloseDetail: saveAndCloseTaskDetail)
         }
         .animation(SchemaMotion.animation(SchemaMotion.standard, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion), value: workspace.isDetailOpen)
         .background(SchemaTheme.canvas)
         .clickOutsideDismiss(isActive: workspace.hasDismissibleState) {
             dismissActiveEditing()
-        }
-        // The details panel follows the selection like turning pages: a click
-        // shows the task at once; arrow keys wait until you stop on a task,
-        // so quickly moving from 1 to 4 loads only 4.
-        .task(id: detailPreviewKey) {
-            await followSelectionInDetailsPanel()
         }
         .onChange(of: workspace.confirmedDelete) { _, request in
             guard let request else { return }
@@ -267,7 +250,7 @@ struct WorkspaceView: View {
     @ViewBuilder
     private var selectionToolbar: some View {
         let selected = (incompleteTasks + completedTasks).filter { workspace.isSelected($0.id) }
-        if !selected.isEmpty, !workspace.isEditingDetail {
+        if !selected.isEmpty, !workspace.isDetailOpen {
             SelectionToolbar(
                 count: selected.count,
                 isAllCompleted: selected.allSatisfy(\.isCompleted),
@@ -286,28 +269,6 @@ struct WorkspaceView: View {
             .padding(.horizontal, 16)
             .transition(.move(edge: .bottom).combined(with: .opacity))
         }
-    }
-
-    /// Changes whenever the details panel should reconsider what it shows.
-    private var detailPreviewKey: String {
-        let canPreview = !workspace.isDetailsPanelCollapsed
-        return "\(canPreview)-\(workspace.singleSelectedTaskID?.uuidString ?? "none")"
-    }
-
-    private func followSelectionInDetailsPanel() async {
-        guard !workspace.isDetailsPanelCollapsed, let taskID = workspace.singleSelectedTaskID else {
-            // Brief grace so a click that clears and re-selects doesn't flash
-            // the panel closed and open again.
-            try? await Task.sleep(for: .milliseconds(200))
-            guard !Task.isCancelled else { return }
-            closeTaskPreview()
-            return
-        }
-        if workspace.selectionSource == .keyboard {
-            try? await Task.sleep(for: DetailPreviewTiming.keyboardSettle)
-            guard !Task.isCancelled else { return }
-        }
-        previewTaskDetail(taskID)
     }
 
     /// The open task's editor, shown in the details panel.

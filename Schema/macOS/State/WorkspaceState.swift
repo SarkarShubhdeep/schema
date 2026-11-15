@@ -15,13 +15,6 @@ enum WorkspaceFocus: Equatable {
     case none
 }
 
-/// How the current selection was made. Keyboard moves wait before the
-/// details panel follows them, so arrowing past tasks doesn't load each one.
-enum SelectionSource {
-    case pointer
-    case keyboard
-}
-
 struct DeleteRequest: Equatable {
     let taskIDs: Set<UUID>
     let token = UUID()
@@ -43,7 +36,6 @@ final class WorkspaceState {
     private(set) var selectedTaskIDs: Set<UUID> = []
     private(set) var primarySelectedTaskID: UUID?
     private var selectionAnchorID: UUID?
-    private(set) var selectionSource: SelectionSource = .pointer
 
     // MARK: Presentation
 
@@ -113,12 +105,6 @@ final class WorkspaceState {
     }
 
     var isDetailOpen: Bool { taskDetailEditor != nil }
-    /// A task is open for editing (not just previewed from the selection).
-    var isEditingDetail: Bool { taskDetailEditor.map { !$0.isPreview } ?? false }
-    /// The one selected task, if exactly one is selected.
-    var singleSelectedTaskID: UUID? {
-        selectedTaskIDs.count == 1 ? selectedTaskIDs.first : nil
-    }
 
     var hasDismissibleState: Bool {
         isAddTaskExpanded || isDetailOpen || !selectedTaskIDs.isEmpty
@@ -136,8 +122,7 @@ final class WorkspaceState {
         selectionAnchorID = nil
     }
 
-    func selectSingle(_ taskID: UUID, source: SelectionSource = .pointer) {
-        selectionSource = source
+    func selectSingle(_ taskID: UUID) {
         selectedTaskIDs = [taskID]
         primarySelectedTaskID = taskID
         selectionAnchorID = taskID
@@ -162,12 +147,12 @@ final class WorkspaceState {
 
         guard let currentID = primarySelectedTaskID ?? selectedTaskIDs.first,
               let currentIndex = orderedIDs.firstIndex(of: currentID) else {
-            selectSingle(orderedIDs[0], source: .keyboard)
+            selectSingle(orderedIDs[0])
             return
         }
 
         let nextIndex = max(0, min(orderedIDs.count - 1, currentIndex + offset))
-        selectSingle(orderedIDs[nextIndex], source: .keyboard)
+        selectSingle(orderedIDs[nextIndex])
     }
 
     /// Shift+arrow range selection anchored at the first selected item.
@@ -186,7 +171,6 @@ final class WorkspaceState {
         let anchorIndex = selectionAnchorID.flatMap { orderedIDs.firstIndex(of: $0) } ?? primaryIndex
         let nextPrimaryIndex = max(0, min(orderedIDs.count - 1, primaryIndex + offset))
 
-        selectionSource = .keyboard
         selectionAnchorID = orderedIDs[anchorIndex]
         primarySelectedTaskID = orderedIDs[nextPrimaryIndex]
         let lower = min(anchorIndex, nextPrimaryIndex)
