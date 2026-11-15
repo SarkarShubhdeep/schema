@@ -4,6 +4,21 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-11-12
+
+### Fixed
+
+- Task rows no longer squish or scroll out of view when switching list tabs (#1). The task list now uses a plain `ScrollView` instead of `List`, and each list opens scrolled to the top.
+- Drag-to-reorder works while Schema is the active window (#3). Rows are dragged with a SwiftUI gesture, and an accent line shows where the task will land.
+- Reordering in the Everything view or with a filter active drops tasks where you release them instead of jumping inside their own list (#3).
+- Dragging while a non-Manual sort is active keeps the on-screen order when the list switches to Manual.
+
+### Changed
+
+- Dragging the first task of a routine chain moves the whole chain; drops never split a chain.
+- Arrow-key selection scrolls only as far as needed instead of re-centering on every press.
+- Internal: `ContentView` split into `ContentView` (window root), `WorkspaceView` (layout), and `WorkspaceView+Actions`; selection, focus, and panel state moved into `WorkspaceState`. The AppKit mouse shim `ListRowMouseHandler` was removed.
+
 ## [0.2.0] — 2026-06-21
 
 ### Added

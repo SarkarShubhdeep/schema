@@ -13,7 +13,11 @@ enum SchemaPreferences {
         static let allowIndependentFollowerRoutineCompletion = "schema.preferences.allowIndependentFollowerRoutineCompletion"
     }
 
+    #if DEBUG
+    private static let defaults: UserDefaults = DemoData.isEnabled ? DemoData.defaults : .standard
+    #else
     private static let defaults = UserDefaults.standard
+    #endif
 
     static var sortOption: TaskSortOption {
         get {

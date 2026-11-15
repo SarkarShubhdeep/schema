@@ -47,6 +47,9 @@ final class NotificationService: NotificationServiceProtocol {
     }
 
     func scheduleReminder(for task: SchemaTask) async throws {
+        #if DEBUG
+        if DemoData.isEnabled { return }
+        #endif
         guard let reminderTime = task.reminderTime else { return }
 
         cancelReminder(for: task)
@@ -119,6 +122,9 @@ final class NotificationService: NotificationServiceProtocol {
     }
 
     func rescheduleAllReminders(for tasks: [SchemaTask]) async {
+        #if DEBUG
+        if DemoData.isEnabled { return }
+        #endif
         let pendingTasks = tasks.filter { task in
             guard task.reminderTime != nil else { return false }
             if task.isRoutine {
@@ -142,6 +148,9 @@ final class NotificationService: NotificationServiceProtocol {
     }
 
     func fetchPendingReminders() async -> [SchemaNotificationItem] {
+        #if DEBUG
+        if DemoData.isEnabled { return [] }
+        #endif
         let requests = await center.pendingNotificationRequests()
         return requests
             .compactMap { request -> SchemaNotificationItem? in
