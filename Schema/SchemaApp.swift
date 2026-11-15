@@ -37,6 +37,11 @@ struct SchemaApp: App {
                 }
             }
             .onAppear {
+                #if DEBUG && os(macOS)
+                if DemoData.forcesDarkAppearance {
+                    NSApplication.shared.appearance = NSAppearance(named: .darkAqua)
+                }
+                #endif
                 if modelContainer == nil, loadError == nil {
                     loadModelContainer(resetStore: false)
                 }

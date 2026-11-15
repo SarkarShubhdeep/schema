@@ -33,6 +33,16 @@ enum ModelContainerFactory {
     }
 
     static func makeContainer(resetStore: Bool = false) -> Result<ModelContainer, ModelContainerError> {
+        #if DEBUG
+        if DemoData.isEnabled {
+            do {
+                return .success(try DemoData.makeContainer())
+            } catch {
+                return .failure(ModelContainerError(message: error.localizedDescription))
+            }
+        }
+        #endif
+
         if resetStore {
             deleteStore(at: storeURL())
         }
