@@ -15,7 +15,13 @@ All notable changes to Schema are documented in this file.
 - Side panels collapse to slim icon rails instead of hiding (#10): the sidebar to 72pt with ⌘⌥←, the details panel to 52pt with ⌘⌥→. Both are in the View menu, and Schema remembers each panel's state. The window can now narrow to 544pt.
 - Side panels follow the window width (#11): 1200pt and wider shows both, 960–1199pt collapses the details panel, under 960pt collapses both. A panel you open or close by hand stays that way until the window crosses a breakpoint; opening one where both won't fit collapses the other.
 - Sidebar navigation (#12): Views (Today, Upcoming, Everything) and Pages, with the active item as a dark pill and letter icons on the collapsed rail. Today lists tasks due today or overdue; Upcoming lists tasks due later (the dashboard versions come in #17). ⌘1–⌘9 now open pages, / opens Everything, and New page (⌘N) creates a to-do list. Collapsing the sidebar only changes its width: icons stay in place while labels clip and fade, section labels fade into dividers, and Notifications and Settings sit at the bottom in both states.
-- The horizontal list tabs are replaced by a single page title; double-click a page title to rename it.
+- The to-do page is redesigned (#13):
+  - **Header:** a breadcrumb, sort pills (Manual, Due, A–Z) and a page-options menu, then a large title with the page type, its open count, and done-of-total with a progress bar.
+  - **Quick add:** a full-width pill with a send button.
+  - **Grouping:** open tasks are grouped into Today, Later this week, Later and Someday cards. Routine chains stay together.
+  - **Drag to reorder:** drags stay inside a section.
+  - **Completed:** completed tasks sit in a quiet collapsed card at the end.
+  - The All Lists link and the List Preferences menu are gone; Filter now lives in page options.
 
 ## [0.3.0] — 2026-11-12
 

@@ -49,11 +49,11 @@ struct TaskRowView: View {
 
             trailingMetadata
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
         .background {
             // Clicks on padding/gaps land here; controls in front keep their own clicks.
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(rowBackground)
                 .shadow(color: .black.opacity(isLifted ? 0.12 : 0), radius: 8, y: 2)
                 .contentShape(Rectangle())

@@ -18,30 +18,17 @@ struct AddTaskBar: View {
     var onNavigateDown: (() -> Void)?
     var focusBinding: FocusState<Bool>.Binding
 
-    private enum Metrics {
-        static let horizontalPadding: CGFloat = 14
-        static let verticalPadding: CGFloat = 10
-        static let contentHeight: CGFloat = 22
-        static var controlHeight: CGFloat {
-            contentHeight + (verticalPadding * 2)
-        }
-    }
-
     var body: some View {
-        HStack(spacing: 10) {
-            if isExpanded {
-                expandedField
-                    .transition(.opacity)
-            } else {
-                addTaskButton
-                    .transition(.opacity)
-            }
+        VStack(alignment: .leading, spacing: 8) {
+            pill
 
-            Spacer(minLength: 0)
+            if let parsedMentions, parsedMentions.hasPreviewContent {
+                mentionPreview(parsedMentions)
+                    .padding(.leading, 20)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
-        .padding(.horizontal, 28)
-        .padding(.vertical, 12)
-        .background(SchemaTheme.canvas)
+        .animation(SchemaMotion.fast, value: parsedMentions?.hasPreviewContent ?? false)
         .animation(SchemaMotion.fast, value: isExpanded)
         .onChange(of: isExpanded) { _, expanded in
             if expanded {
@@ -50,68 +37,80 @@ struct AddTaskBar: View {
                 }
             }
         }
-    }
-
-    private var addTaskButton: some View {
-        Button(action: openAddTask) {
-            addTaskContainer(showFocusBorder: false) {
-                Image(systemName: "plus")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(SchemaTheme.inkMuted)
-
-                Text("Add task")
-                    .font(.satoshi(15, weight: .medium))
-                    .foregroundStyle(SchemaTheme.inkMuted)
-
-                shortcutBadge
+        .onChange(of: focusBinding.wrappedValue) { _, focused in
+            if focused, !isExpanded {
+                onOpen?()
+                isExpanded = true
             }
         }
-        .buttonStyle(.plain)
     }
 
-    private var expandedField: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            addTaskContainer(showFocusBorder: true) {
-                Image(systemName: "plus")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(SchemaTheme.inkMuted)
+    /// Full-width pill: plus, the field, the N hint at rest, and a send button.
+    private var pill: some View {
+        let canSubmit = !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
-                TextField(placeholder, text: $text)
-                    .textFieldStyle(.plain)
-                    .font(.satoshi(15))
-                    .frame(height: Metrics.contentHeight)
-                    .focused(focusBinding)
-                    .onSubmit(onSubmit)
-                    .onKeyPress(.escape) {
-                        onCancel()
-                        return .handled
+        return HStack(spacing: 12) {
+            Image(systemName: "plus")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(SchemaTheme.inkMuted)
+
+            TextField(placeholder, text: $text)
+                .textFieldStyle(.plain)
+                .font(.satoshi(16, relativeTo: .body))
+                .foregroundStyle(SchemaTheme.ink)
+                .focused(focusBinding)
+                .onSubmit(onSubmit)
+                .onKeyPress(.escape) {
+                    onCancel()
+                    return .handled
+                }
+                .onKeyPress(keys: [.upArrow], phases: [.down, .repeat]) { _ in
+                    if shouldPrioritizeListSelection {
+                        return moveListCandidateSelection(by: -1)
                     }
-                    .onKeyPress(keys: [.upArrow], phases: [.down, .repeat]) { _ in
-                        if shouldPrioritizeListSelection {
-                            return moveListCandidateSelection(by: -1)
-                        }
-                        onNavigateUp?()
-                        return .handled
+                    onNavigateUp?()
+                    return .handled
+                }
+                .onKeyPress(keys: [.downArrow], phases: [.down, .repeat]) { _ in
+                    if shouldPrioritizeListSelection {
+                        return moveListCandidateSelection(by: 1)
                     }
-                    .onKeyPress(keys: [.downArrow], phases: [.down, .repeat]) { _ in
-                        if shouldPrioritizeListSelection {
-                            return moveListCandidateSelection(by: 1)
-                        }
-                        onNavigateDown?()
-                        return .handled
-                    }
-                    .onChange(of: parsedMentions?.listCandidates.map(\.id) ?? []) { _, newIDs in
-                        clampListCandidateSelection(candidateCount: newIDs.count)
-                    }
+                    onNavigateDown?()
+                    return .handled
+                }
+                .onChange(of: parsedMentions?.listCandidates.map(\.id) ?? []) { _, newIDs in
+                    clampListCandidateSelection(candidateCount: newIDs.count)
+                }
+
+            if !isExpanded, text.isEmpty {
+                SchemaKeyHint("N")
+                    .transition(.opacity)
             }
 
-            if let parsedMentions, parsedMentions.hasPreviewContent {
-                mentionPreview(parsedMentions)
-                    .padding(.leading, Metrics.horizontalPadding)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+            Button(action: onSubmit) {
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(SchemaTheme.canvas)
+                    .frame(width: 40, height: 40)
+                    .background(Circle().fill(SchemaTheme.ink))
+                    .contentShape(Circle())
             }
+            .buttonStyle(.plain)
+            .opacity(canSubmit ? 1 : 0.35)
+            .disabled(!canSubmit)
+            .help("Add task  Return")
+            .accessibilityLabel("Add task")
         }
-        .animation(SchemaMotion.fast, value: parsedMentions?.hasPreviewContent ?? false)
+        .padding(.leading, 20)
+        .padding(.trailing, 8)
+        .frame(height: 56)
+        .background(Capsule(style: .continuous).fill(SchemaTheme.surface))
+        .overlay(
+            Capsule(style: .continuous)
+                .strokeBorder(isExpanded ? SchemaTheme.ink : SchemaTheme.line, lineWidth: isExpanded ? 1.5 : 1)
+        )
+        .contentShape(Capsule(style: .continuous))
+        .onTapGesture { openAddTask() }
     }
 
     private var shouldPrioritizeListSelection: Bool {
@@ -298,32 +297,6 @@ struct AddTaskBar: View {
             Capsule(style: .continuous)
                 .strokeBorder(accentColor.opacity(0.25), lineWidth: 1)
         )
-    }
-
-    private func addTaskContainer<Content: View>(
-        showFocusBorder: Bool,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        HStack(spacing: 8) {
-            content()
-        }
-        .frame(height: Metrics.controlHeight, alignment: .leading)
-        .padding(.horizontal, Metrics.horizontalPadding)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(SchemaTheme.surfaceSunken)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(
-                    showFocusBorder ? SchemaTheme.ink : .clear,
-                    lineWidth: 1.5
-                )
-        )
-    }
-
-    private var shortcutBadge: some View {
-        SchemaKeyHint("N")
     }
 
     private func openAddTask() {

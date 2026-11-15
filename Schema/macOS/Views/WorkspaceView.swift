@@ -24,13 +24,20 @@ struct WorkspaceView: View {
         listViewModel.selectedList(from: lists)
     }
 
-    var incompleteTasks: [SchemaTask] {
-        inSmartView(taskViewModel.incompleteTasks(
+    /// Open tasks grouped into Today, Later this week, Later and Someday.
+    var incompleteSections: [TaskSectionGroup] {
+        TaskSection.group(inSmartView(taskViewModel.incompleteTasks(
             for: selectedList,
             from: allTasks,
             sortOption: listViewModel.sortOption,
             filterOption: listViewModel.filterOption
-        ))
+        )))
+    }
+
+    /// Open tasks in display order (section by section). Keyboard navigation
+    /// and drag-to-reorder use this order.
+    var incompleteTasks: [SchemaTask] {
+        incompleteSections.flatMap(\.tasks)
     }
 
     var completedTasks: [SchemaTask] {
@@ -50,51 +57,45 @@ struct WorkspaceView: View {
 
     var body: some View {
         @Bindable var workspace = workspace
-        let incomplete = incompleteTasks
+        let sections = incompleteSections
+        let incomplete = sections.flatMap(\.tasks)
         let completed = completedTasks
         let navigableTaskIDs = (incomplete + completed).map(\.id)
         let requiresManualSort = RoutineSequenceOrdering.requiresManualSort(for: selectedList, in: allTasks)
 
         VStack(spacing: 0) {
-            ListContextBar(
-                onAllLists: {
-                    workspace.clearSelection()
-                    workspace.navigationPath.append(WorkspaceRoute.allLists)
-                },
-                listViewModel: listViewModel,
-                requiresManualSort: requiresManualSort
-            )
-
-            PageTitleBar(
-                title: listViewModel.smartView?.title ?? selectedList?.title ?? "",
-                count: incomplete.count,
-                renamableList: listViewModel.smartView == nil && selectedList?.isEverythingList == false ? selectedList : nil,
-                onRename: { list, title in
-                    listViewModel.updateListTitle(list, title: title)
-                },
-                isEditingListName: $workspace.isEditingListName
-            )
-
-            AddTaskBar(
-                text: Binding(
-                    get: { taskViewModel.quickEntryText },
-                    set: { taskViewModel.quickEntryText = $0 }
-                ),
-                isExpanded: $workspace.isAddTaskExpanded,
-                placeholder: quickEntryPlaceholder,
-                parsedMentions: quickEntryParsedMentions,
-                selectedListCandidateIndex: $workspace.quickEntryListCandidateIndex,
-                onSubmit: submitQuickEntry,
-                onCancel: closeAddTask,
-                onOpen: workspace.clearSelection,
-                onNavigateUp: { moveSelectionFromAddTask(by: -1, in: navigableTaskIDs) },
-                onNavigateDown: { moveSelectionFromAddTask(by: 1, in: navigableTaskIDs) },
-                focusBinding: $isAddTaskFocused
-            )
-
             TaskListView(
-                listID: listViewModel.selectedListID,
+                pageKey: listViewModel.smartView?.rawValue ?? listViewModel.selectedListID?.uuidString ?? "",
+                header: VStack(alignment: .leading, spacing: 22) {
+                    PageHeader(
+                        model: headerModel(openCount: incomplete.count, doneCount: completed.count),
+                        listViewModel: listViewModel,
+                        requiresManualSort: requiresManualSort,
+                        onRename: { list, title in
+                            listViewModel.updateListTitle(list, title: title)
+                        },
+                        isEditingListName: $workspace.isEditingListName
+                    )
+
+                    AddTaskBar(
+                        text: Binding(
+                            get: { taskViewModel.quickEntryText },
+                            set: { taskViewModel.quickEntryText = $0 }
+                        ),
+                        isExpanded: $workspace.isAddTaskExpanded,
+                        placeholder: quickEntryPlaceholder,
+                        parsedMentions: quickEntryParsedMentions,
+                        selectedListCandidateIndex: $workspace.quickEntryListCandidateIndex,
+                        onSubmit: submitQuickEntry,
+                        onCancel: closeAddTask,
+                        onOpen: workspace.clearSelection,
+                        onNavigateUp: { moveSelectionFromAddTask(by: -1, in: navigableTaskIDs) },
+                        onNavigateDown: { moveSelectionFromAddTask(by: 1, in: navigableTaskIDs) },
+                        focusBinding: $isAddTaskFocused
+                    )
+                },
                 incompleteTasks: incomplete,
+                sections: sections,
                 completedTasks: completed,
                 showListTags: selectedList?.isEverythingList == true,
                 taskViewModel: taskViewModel,
@@ -259,10 +260,32 @@ struct WorkspaceView: View {
     }
 
     private var quickEntryPlaceholder: String {
-        guard let selectedList, !selectedList.isEverythingList else {
-            return "Add a task..."
+        guard listViewModel.smartView == nil, let selectedList, !selectedList.isEverythingList else {
+            return "Add a task… type @ for a page, date or time"
         }
-        return "Add a task to \(selectedList.title)..."
+        return "Add to \(selectedList.title)… type @ for a date or time"
+    }
+
+    private func headerModel(openCount: Int, doneCount: Int) -> PageHeaderModel {
+        if let smartView = listViewModel.smartView {
+            return PageHeaderModel(
+                crumb: "Views", title: smartView.title,
+                kindLabel: "View", kindSystemImage: smartView.systemImage,
+                openCount: openCount, doneCount: doneCount, renamableList: nil
+            )
+        }
+        if let selectedList, !selectedList.isEverythingList {
+            return PageHeaderModel(
+                crumb: "Pages", title: selectedList.title,
+                kindLabel: "To-do list", kindSystemImage: "checklist",
+                openCount: openCount, doneCount: doneCount, renamableList: selectedList
+            )
+        }
+        return PageHeaderModel(
+            crumb: "Views", title: SchemaList.everythingTitle,
+            kindLabel: "View", kindSystemImage: "tray.full",
+            openCount: openCount, doneCount: doneCount, renamableList: nil
+        )
     }
 
     private var quickEntryParsedMentions: ParsedAtMentions? {
