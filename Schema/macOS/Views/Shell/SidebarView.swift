@@ -3,8 +3,8 @@
 //  Schema
 //
 //  Left column of the window. The window controls sit at its top (the title
-//  bar is hidden). Expanded it is 240pt with the wordmark; collapsed it is a
-//  72pt rail of icons. ⌘⌥← toggles it.
+//  bar is hidden). Open it is 240pt; collapsed it is a 72pt rail of icons.
+//  ⌘⌥← toggles it. Only the width animates (see SidebarRow).
 //
 
 import SwiftUI
@@ -17,8 +17,6 @@ struct SidebarView: View {
     let listViewModel: ListViewModel
     let onNotificationSelect: (SchemaNotificationItem) -> Void
 
-    @Namespace private var namespace
-
     var body: some View {
         let isCollapsed = workspace.isSidebarCollapsed
 
@@ -28,20 +26,12 @@ struct SidebarView: View {
 
                 SidebarNavigation(lists: lists, allTasks: allTasks, listViewModel: listViewModel, isCollapsed: isCollapsed)
 
-                if isCollapsed {
-                    Rectangle()
-                        .fill(SchemaTheme.line)
-                        .frame(width: 28, height: 1)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
-                        .transition(.opacity)
-                    notificationsButton
-                        .matchedGeometryEffect(id: "notifications", in: namespace)
-                    settingsButton
-                        .matchedGeometryEffect(id: "settings", in: namespace)
-                }
+                SidebarSectionHeader(title: "", isCollapsed: true)
+                    .opacity(isCollapsed ? 1 : 0)
+                notificationsRow(isCollapsed: isCollapsed)
+                settingsRow(isCollapsed: isCollapsed)
             }
-            .padding(.horizontal, isCollapsed ? 16 : 12)
+            .padding(.horizontal, SidebarMetrics.rowInset(collapsed: isCollapsed))
             .padding(.top, 6)
             .padding(.bottom, 16)
         }
@@ -51,15 +41,14 @@ struct SidebarView: View {
         .clipped()
         .background(SchemaTheme.surfaceSunken.ignoresSafeArea())
         .overlay(alignment: .topTrailing) {
-            if !isCollapsed {
-                SchemaIconButton(systemImage: "sidebar.left", label: "Collapse sidebar", shortcut: "⌘⌥←", size: 28) {
-                    workspace.toggleSidebar()
-                }
-                .padding(.trailing, 12)
-                .offset(y: ShellMetrics.windowControlsCenterY - 14)
-                .ignoresSafeArea()
-                .transition(.opacity)
+            SchemaIconButton(systemImage: "sidebar.left", label: "Collapse sidebar", shortcut: "⌘⌥←", size: 28) {
+                workspace.toggleSidebar()
             }
+            .padding(.trailing, 12)
+            .offset(y: ShellMetrics.windowControlsCenterY - 14)
+            .ignoresSafeArea()
+            .opacity(isCollapsed ? 0 : 1)
+            .allowsHitTesting(!isCollapsed)
         }
         .overlay(alignment: .trailing) {
             Rectangle()
@@ -69,69 +58,71 @@ struct SidebarView: View {
         }
     }
 
-    /// Open: wordmark, notifications and settings. Collapsed: the expand
-    /// button; notifications and settings move to the bottom of the rail.
-    @ViewBuilder
+    /// Open: the wordmark. Collapsed: the expand button, in the same slot.
     private func header(isCollapsed: Bool) -> some View {
-        if isCollapsed {
-            VStack(alignment: .leading, spacing: 4) {
-                SchemaIconButton(systemImage: "sidebar.left", label: "Expand sidebar", shortcut: "⌘⌥←", size: 40) {
-                    workspace.toggleSidebar()
-                }
-                Rectangle()
-                    .fill(SchemaTheme.line)
-                    .frame(width: 28, height: 1)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
+        ZStack(alignment: .leading) {
+            Text("Schema")
+                .font(.spaceGrotesk(19, weight: .bold, relativeTo: .title3))
+                .tracking(-0.4)
+                .foregroundStyle(SchemaTheme.ink)
+                .lineLimit(1)
+                .fixedSize()
+                .padding(.leading, 12)
+                .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                .clipped()
+                .opacity(isCollapsed ? 0 : 1)
+
+            SchemaIconButton(systemImage: "sidebar.left", label: "Expand sidebar", shortcut: "⌘⌥←", size: SidebarMetrics.rowHeight) {
+                workspace.toggleSidebar()
             }
-            .transition(.opacity)
-        } else {
-            HStack(spacing: 2) {
-                Text("Schema")
-                    .font(.spaceGrotesk(19, weight: .bold, relativeTo: .title3))
-                    .tracking(-0.4)
-                    .foregroundStyle(SchemaTheme.ink)
-                    .lineLimit(1)
-                    .fixedSize()
-                    .transition(.opacity)
-                Spacer(minLength: 8)
-                notificationsButton
-                    .matchedGeometryEffect(id: "notifications", in: namespace)
-                settingsButton
-                    .matchedGeometryEffect(id: "settings", in: namespace)
-            }
-            .padding(.leading, 12)
-            .padding(.bottom, 10)
+            .opacity(isCollapsed ? 1 : 0)
+            .allowsHitTesting(isCollapsed)
         }
+        .frame(height: SidebarMetrics.rowHeight)
+        .padding(.bottom, 2)
     }
 
-    private var buttonSize: CGFloat { workspace.isSidebarCollapsed ? 40 : 32 }
-
-    private var settingsButton: some View {
-        SchemaIconButton(systemImage: "gearshape", label: "Settings", shortcut: "⌘,", size: buttonSize) {
+    private func settingsRow(isCollapsed: Bool) -> some View {
+        SidebarRow(
+            title: "Settings",
+            isActive: false,
+            isCollapsed: isCollapsed,
+            trailing: .keys("⌘,"),
+            tooltip: "Settings  ⌘,"
+        ) {
+            Image(systemName: "gearshape")
+        } action: {
             workspace.showSettings = true
         }
         .keyboardShortcut(",", modifiers: .command)
     }
 
-    private var notificationsButton: some View {
+    private func notificationsRow(isCollapsed: Bool) -> some View {
         @Bindable var workspace = workspace
+        let pending = workspace.notificationItems.count
 
-        return SchemaIconButton(systemImage: "bell", label: "Notifications", size: buttonSize) {
+        return SidebarRow(
+            title: "Notifications",
+            isActive: false,
+            isCollapsed: isCollapsed,
+            trailing: .count(pending),
+            tooltip: "Notifications"
+        ) {
+            Image(systemName: "bell")
+                .overlay(alignment: .topTrailing) {
+                    if pending > 0 {
+                        Circle()
+                            .fill(SchemaTheme.ink)
+                            .frame(width: 5, height: 5)
+                            .offset(x: 2, y: -1)
+                    }
+                }
+        } action: {
             workspace.showNotifications.toggle()
         }
-        .overlay(alignment: .topTrailing) {
-            if !workspace.notificationItems.isEmpty {
-                Circle()
-                    .fill(SchemaTheme.ink)
-                    .frame(width: 6, height: 6)
-                    .offset(x: -buttonSize / 4, y: buttonSize / 4)
-                    .allowsHitTesting(false)
-            }
-        }
-        .popover(isPresented: $workspace.showNotifications, arrowEdge: .bottom) {
+        .popover(isPresented: $workspace.showNotifications, arrowEdge: .trailing) {
             NotificationsPopover(items: workspace.notificationItems, onSelect: onNotificationSelect)
         }
-        .accessibilityValue(workspace.notificationItems.isEmpty ? "" : "\(workspace.notificationItems.count) pending")
+        .accessibilityValue(pending == 0 ? "" : "\(pending) pending")
     }
 }
