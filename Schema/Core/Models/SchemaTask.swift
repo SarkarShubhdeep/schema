@@ -20,6 +20,9 @@ final class SchemaTask {
     var lastRoutineReset: Date?
     var afterTaskID: UUID?
     var manualSortIndex: Double = 0
+    /// When the task was last completed (schema V5). Kept when a routine
+    /// resets for a new day, so the week chart still counts that day.
+    var completedAt: Date?
 
     var list: SchemaList?
 
@@ -49,6 +52,18 @@ final class SchemaTask {
 }
 
 extension SchemaTask {
+    /// Marks the task done or open, keeping `completedAt` in step.
+    func setCompleted(_ completed: Bool, at date: Date = .now) {
+        isCompleted = completed
+        completedAt = completed ? date : nil
+    }
+
+    /// Done on the same calendar day as `date`.
+    func wasCompleted(onSameDayAs date: Date, calendar: Calendar = .current) -> Bool {
+        guard let completedAt else { return false }
+        return calendar.isDate(completedAt, inSameDayAs: date)
+    }
+
     static let allRoutineWeekdays: [Int] = [2, 3, 4, 5, 6, 7, 1]
 
     var displayDescription: String? {

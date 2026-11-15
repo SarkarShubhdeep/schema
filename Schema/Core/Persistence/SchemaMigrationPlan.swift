@@ -220,9 +220,69 @@ enum SchemaMigrationV3: VersionedSchema {
     }
 }
 
+/// V4 frozen as it shipped (v0.3): the live models before `completedAt`.
+/// Class names match the live ones so the stored entity names stay the same.
 enum SchemaMigrationV4: VersionedSchema {
     static var versionIdentifier: Schema.Version {
         Schema.Version(4, 0, 0)
+    }
+
+    static var models: [any PersistentModel.Type] {
+        [SchemaList.self, SchemaTask.self]
+    }
+
+    @Model
+    final class SchemaList {
+        var id: UUID
+        var title: String
+        var createdAt: Date
+        var order: Int
+        var accentColorName: String?
+        var tagLabel: String?
+
+        @Relationship(deleteRule: .cascade, inverse: \SchemaTask.list)
+        var tasks: [SchemaTask]
+
+        init(id: UUID = UUID(), title: String, createdAt: Date = .now, order: Int = 0) {
+            self.id = id
+            self.title = title
+            self.createdAt = createdAt
+            self.order = order
+            self.tasks = []
+        }
+    }
+
+    @Model
+    final class SchemaTask {
+        var id: UUID
+        var title: String
+        var taskDescription: String?
+        var isCompleted: Bool
+        var createdAt: Date
+        var reminderTime: Date?
+        var tags: [String]
+        var isRoutine: Bool = false
+        var routineDays: [Int] = []
+        var lastRoutineReset: Date?
+        var afterTaskID: UUID?
+        var manualSortIndex: Double = 0
+
+        var list: SchemaList?
+
+        init(id: UUID = UUID(), title: String, createdAt: Date = .now) {
+            self.id = id
+            self.title = title
+            self.isCompleted = false
+            self.createdAt = createdAt
+            self.tags = []
+        }
+    }
+}
+
+/// V5 adds `SchemaTask.completedAt` (#16). Uses the live models.
+enum SchemaMigrationV5: VersionedSchema {
+    static var versionIdentifier: Schema.Version {
+        Schema.Version(5, 0, 0)
     }
 
     static var models: [any PersistentModel.Type] {
@@ -237,12 +297,21 @@ enum SchemaAppMigrationPlan: SchemaMigrationPlan {
             SchemaMigrationV2.self,
             SchemaMigrationV3.self,
             SchemaMigrationV4.self,
+            SchemaMigrationV5.self,
         ]
     }
 
     static var stages: [MigrationStage] {
-        [migrateV1toV2, migrateV2toV3, migrateV3toV4]
+        [migrateV1toV2, migrateV2toV3, migrateV3toV4, migrateV4toV5]
     }
+
+    /// Adds the optional `completedAt`. Tasks already done keep it empty:
+    /// their real completion time was never recorded, and guessing would
+    /// put them on the wrong day in "Done today" and the week chart.
+    static let migrateV4toV5 = MigrationStage.lightweight(
+        fromVersion: SchemaMigrationV4.self,
+        toVersion: SchemaMigrationV5.self
+    )
 
     static let migrateV1toV2 = MigrationStage.lightweight(
         fromVersion: SchemaMigrationV1.self,
@@ -259,7 +328,7 @@ enum SchemaAppMigrationPlan: SchemaMigrationPlan {
         toVersion: SchemaMigrationV4.self,
         willMigrate: nil,
         didMigrate: { context in
-            let tasks = try context.fetch(FetchDescriptor<SchemaTask>())
+            let tasks = try context.fetch(FetchDescriptor<SchemaMigrationV4.SchemaTask>())
             let grouped = Dictionary(grouping: tasks) { $0.list?.id }
 
             for (_, listTasks) in grouped {

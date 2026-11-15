@@ -41,6 +41,7 @@ final class RoutineResetService {
             }
 
             if wasCompletedBeforeToday {
+                // Open again for today; completedAt keeps the day it was done.
                 task.isCompleted = false
                 task.lastRoutineReset = Date()
             }
