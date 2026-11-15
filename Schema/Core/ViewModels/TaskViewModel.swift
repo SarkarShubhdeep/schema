@@ -6,6 +6,7 @@
 import Foundation
 import SwiftData
 import Observation
+import OSLog
 
 @Observable
 @MainActor
@@ -370,7 +371,8 @@ final class TaskViewModel {
                 guard authorized else { return }
                 try await notificationService.scheduleReminder(for: task)
             } catch {
-                assertionFailure("Failed to schedule reminder: \(error)")
+                // The due date is saved either way; only the alert is missing.
+                notificationLog.error("Failed to schedule a reminder: \(error.localizedDescription, privacy: .public)")
             }
         } else {
             notificationService.cancelReminder(for: task)
@@ -436,7 +438,7 @@ final class TaskViewModel {
             guard authorized else { return }
             try await notificationService.scheduleReminder(for: task)
         } catch {
-            assertionFailure("Failed to reschedule reminder: \(error)")
+            notificationLog.error("Failed to reschedule a reminder: \(error.localizedDescription, privacy: .public)")
         }
     }
 
