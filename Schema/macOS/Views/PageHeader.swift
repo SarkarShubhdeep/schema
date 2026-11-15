@@ -127,6 +127,7 @@ struct PageHeader: View {
                 .tracking(-1.2)
                 .foregroundStyle(SchemaTheme.ink)
                 .lineLimit(1)
+                .minimumScaleFactor(0.6)
                 .truncationMode(.tail)
                 .onTapGesture(count: 2) { beginEditing() }
                 .help(model.renamableList == nil ? "" : "Double-click to rename")

@@ -32,6 +32,8 @@ enum DemoData {
     /// also opens the delete dialog for them.
     static let selectsTasks = CommandLine.arguments.contains("-SchemaDemoSelect")
     static let opensDeleteDialog = CommandLine.arguments.contains("-SchemaDemoDelete")
+    /// `-SchemaDemoDetail` opens the first task with notes in the details panel.
+    static let opensTaskDetail = CommandLine.arguments.contains("-SchemaDemoDetail")
 
     /// Window width for screenshots: 1280 by default, `-SchemaDemoMedium` 1100,
     /// `-SchemaDemoNarrow` 880 (to show auto-collapse).

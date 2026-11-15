@@ -6,10 +6,6 @@
 import SwiftUI
 import SwiftData
 
-enum WorkspaceRoute: Hashable {
-    case allLists
-}
-
 /// Window root: creates the view models and workspace state, then hosts the
 /// workspace with its toolbar, settings sheet, and navigation.
 struct ContentView: View {
@@ -58,34 +54,20 @@ struct ContentView: View {
                 workspace.showNotifications = false
             })
 
-            NavigationStack(path: $workspace.navigationPath) {
-                WorkspaceView(
-                    lists: lists,
-                    allTasks: allTasks,
-                    listViewModel: listViewModel,
-                    taskViewModel: taskViewModel,
-                    notificationService: notificationService
-                )
-                .navigationDestination(for: WorkspaceRoute.self) { route in
-                    switch route {
-                    case .allLists:
-                        AllListsView(
-                            lists: lists,
-                            listViewModel: listViewModel,
-                            onSelectList: { list in
-                                listViewModel.selectList(list)
-                                workspace.navigationPath = NavigationPath()
-                            }
-                        )
-                    }
-                }
-            }
-            .frame(minWidth: ShellMetrics.mainMinWidth, maxWidth: .infinity)
+            WorkspaceView(
+                lists: lists,
+                allTasks: allTasks,
+                listViewModel: listViewModel,
+                taskViewModel: taskViewModel,
+                notificationService: notificationService
+            )
+            .frame(minWidth: ShellMetrics.mainMinWidth + ShellMetrics.detailsRailWidth, maxWidth: .infinity)
             .clipped()
-
-            DetailsPanelView()
         }
         .background(SchemaTheme.canvas.ignoresSafeArea())
+        .overlay(alignment: .topTrailing) {
+            DetailsPanelTitleBarStrip()
+        }
         .frame(minWidth: ShellMetrics.minimumWindowWidth, minHeight: 520)
         .overlay {
             if let ids = workspace.pendingDeleteIDs {
@@ -147,6 +129,11 @@ struct ContentView: View {
             if DemoData.opensDeleteDialog {
                 workspace.requestDelete(Set(ids))
             }
+        }
+        if DemoData.isEnabled, DemoData.opensTaskDetail,
+           let task = allTasks.first(where: { !$0.isCompleted && $0.displayDescription != nil && $0.reminderTime != nil }) {
+            workspace.selectSingle(task.id)
+            workspace.taskDetailEditor = TaskDetailEditor(task: task)
         }
         #endif
 

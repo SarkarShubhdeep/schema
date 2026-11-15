@@ -40,7 +40,6 @@ final class WorkspaceState {
     // MARK: Presentation
 
     var highlightedTaskID: UUID?
-    var navigationPath = NavigationPath()
     var showNotifications = false
     var showSettings = false
     var notificationItems: [SchemaNotificationItem] = []
