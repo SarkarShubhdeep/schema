@@ -323,19 +323,7 @@ struct AddTaskBar: View {
     }
 
     private var shortcutBadge: some View {
-        Text("n")
-            .font(.spaceGrotesk(11, weight: .medium))
-            .foregroundStyle(SchemaTheme.inkMuted)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 5)
-            .background(
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .fill(SchemaTheme.surface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 5, style: .continuous)
-                            .stroke(SchemaTheme.line, lineWidth: 1)
-                    )
-            )
+        SchemaKeyHint("N")
     }
 
     private func openAddTask() {

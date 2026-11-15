@@ -21,11 +21,13 @@ struct NewListSheet: View {
 
             HStack {
                 Button("Cancel", action: onCancel)
+                    .buttonStyle(.schema(.ghost))
                     .keyboardShortcut(.cancelAction)
 
                 Spacer()
 
                 Button("Create", action: onCreate)
+                    .buttonStyle(.schema(.primary))
                     .keyboardShortcut(.defaultAction)
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }

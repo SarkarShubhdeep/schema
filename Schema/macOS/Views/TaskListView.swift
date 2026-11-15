@@ -155,10 +155,7 @@ struct TaskListView: View {
             }
         } label: {
             HStack {
-                Text("Completed (\(completedTasks.count))")
-                    .font(.spaceGrotesk(12, weight: .semibold))
-                    .foregroundStyle(SchemaTheme.inkMuted)
-                    .textCase(.uppercase)
+                SchemaSectionLabel("Completed (\(completedTasks.count))")
 
                 Image(systemName: showCompleted ? "chevron.down" : "chevron.right")
                     .font(.system(size: 10, weight: .semibold))

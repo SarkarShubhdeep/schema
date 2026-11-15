@@ -21,11 +21,13 @@ struct RenameListSheet: View {
 
             HStack {
                 Button("Cancel", action: onCancel)
+                    .buttonStyle(.schema(.ghost))
                     .keyboardShortcut(.cancelAction)
 
                 Spacer()
 
                 Button("Save", action: saveIfValid)
+                    .buttonStyle(.schema(.primary))
                     .keyboardShortcut(.defaultAction)
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
