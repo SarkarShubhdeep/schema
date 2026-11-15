@@ -20,6 +20,14 @@ enum DemoData {
     /// `-SchemaDemoDark` forces dark mode for screenshots.
     static let forcesDarkAppearance = CommandLine.arguments.contains("-SchemaDemoDark")
 
+    /// Window width for screenshots: 1280 by default, `-SchemaDemoMedium` 1100,
+    /// `-SchemaDemoNarrow` 880 (to show auto-collapse).
+    static let windowWidth: CGFloat = {
+        if CommandLine.arguments.contains("-SchemaDemoNarrow") { return 880 }
+        if CommandLine.arguments.contains("-SchemaDemoMedium") { return 1100 }
+        return 1280
+    }()
+
     /// Separate preferences so demo runs never change the real ones.
     static let defaults: UserDefaults = {
         let suite = "com.sarkarshubhdeep.schema.demo"

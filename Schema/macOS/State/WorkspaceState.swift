@@ -58,6 +58,9 @@ final class WorkspaceState {
     var isDetailsPanelCollapsed = SchemaPreferences.isDetailsPanelCollapsed {
         didSet { SchemaPreferences.isDetailsPanelCollapsed = isDetailsPanelCollapsed }
     }
+    /// Last measured window width and its breakpoint; set by `windowWidthChanged(to:)`.
+    @ObservationIgnored var windowWidth: CGFloat?
+    @ObservationIgnored var windowWidthTier: WindowWidthTier?
 
     // MARK: Focus
 

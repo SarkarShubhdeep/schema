@@ -39,7 +39,7 @@ struct SchemaApp: App {
                 }
                 if DemoData.isEnabled, let window = NSApplication.shared.windows.first {
                     // Screenshots always use the design's window size, not the last saved frame.
-                    window.setContentSize(NSSize(width: 1280, height: 800))
+                    window.setContentSize(NSSize(width: DemoData.windowWidth, height: 800))
                     window.center()
                 }
                 #endif
