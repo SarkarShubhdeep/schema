@@ -28,6 +28,8 @@ All notable changes to Schema are documented in this file.
   - The All Lists link and the List Preferences menu are gone; Filter now lives in page options.
 - Selection toolbar (#14): selecting tasks shows a floating pill with the count, Reschedule (Today, Tomorrow, Next week, No date; keeps the time of day), Move to page, Delete, Complete (⇧↩) and Clear (Esc).
 - Deleting tasks with the toolbar or ⌫ now asks once in a small dialog; Esc or a click outside cancels.
+- Task details open in the right panel instead of a floating card (#15). The list stays visible beside them; the panel widens to 360pt while a task is open, even if it was collapsed, and returns to its saved state when closed. Delete in details now asks first, like the toolbar.
+- Removed the unused All Lists screen and the navigation container around the workspace.
 
 ## [0.3.0] — 2026-11-12
 

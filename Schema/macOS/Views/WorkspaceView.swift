@@ -3,6 +3,7 @@
 //  Schema
 //
 
+import AppKit
 import SwiftUI
 
 /// The main window content: context bar, list tabs, quick entry, task list,
@@ -63,6 +64,7 @@ struct WorkspaceView: View {
         let navigableTaskIDs = (incomplete + completed).map(\.id)
         let requiresManualSort = RoutineSequenceOrdering.requiresManualSort(for: selectedList, in: allTasks)
 
+        HStack(spacing: 0) {
         VStack(spacing: 0) {
             TaskListView(
                 pageKey: listViewModel.smartView?.rawValue ?? listViewModel.selectedListID?.uuidString ?? "",
@@ -132,16 +134,21 @@ struct WorkspaceView: View {
             selectionToolbar
         }
         .animation(SchemaMotion.standard, value: workspace.selectedTaskIDs.isEmpty)
-        .overlay(alignment: .topTrailing) {
-            detailPanel
+        .frame(minWidth: ShellMetrics.mainMinWidth, maxWidth: .infinity, minHeight: 520)
+        .clipped()
+
+            DetailsPanelView(detail: taskDetail, onCloseDetail: saveAndCloseTaskDetail)
         }
-        .frame(minWidth: ShellMetrics.mainMinWidth, minHeight: 520)
+        .animation(SchemaMotion.animation(SchemaMotion.standard, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion), value: workspace.isDetailOpen)
         .background(SchemaTheme.canvas)
         .clickOutsideDismiss(isActive: workspace.hasDismissibleState) {
             dismissActiveEditing()
         }
         .onChange(of: workspace.confirmedDelete) { _, request in
             guard let request else { return }
+            if let editor = workspace.taskDetailEditor, request.taskIDs.contains(editor.taskID) {
+                closeTaskDetail()
+            }
             withAnimation(SchemaMotion.smooth) {
                 deleteSelected(request.taskIDs)
             }
@@ -264,11 +271,11 @@ struct WorkspaceView: View {
         }
     }
 
-    @ViewBuilder
-    private var detailPanel: some View {
-        if let editor = workspace.taskDetailEditor,
-           let task = allTasks.first(where: { $0.id == editor.taskID }) {
-            TaskDetailSheet(
+    /// The open task's editor, shown in the details panel.
+    private var taskDetail: TaskDetailSheet? {
+        guard let editor = workspace.taskDetailEditor,
+              let task = allTasks.first(where: { $0.id == editor.taskID }) else { return nil }
+        return TaskDetailSheet(
                 editor: editor,
                 listTagLabel: task.list?.displayTagLabel,
                 availableLists: lists,
@@ -277,10 +284,7 @@ struct WorkspaceView: View {
                 isCompleted: task.isCompleted,
                 onCloseRequest: saveAndCloseTaskDetail,
                 onToggleCompletion: { toggleCompletion(task) },
-                onDelete: {
-                    taskViewModel.deleteTask(task)
-                    closeTaskDetail()
-                },
+                onDelete: { workspace.requestDelete([task.id]) },
                 onClearFollowerTimes: { taskIDs in
                     Task {
                         await taskViewModel.clearReminderTimes(for: taskIDs, in: allTasks)
@@ -288,9 +292,6 @@ struct WorkspaceView: View {
                     }
                 }
             )
-            .padding(.top, 12)
-            .padding(.trailing, 16)
-        }
     }
 
     private var quickEntryPlaceholder: String {

@@ -243,8 +243,6 @@ struct TaskDetailSheet: View {
     }
 
     private enum Metrics {
-        static let width: CGFloat = 460
-        static let cornerRadius: CGFloat = 20
         static let descriptionMinHeight: CGFloat = 120
         static let metadataSectionSpacing: CGFloat = 18
     }
@@ -280,18 +278,11 @@ struct TaskDetailSheet: View {
             footerActions
                 .padding(.top, 28)
         }
-        .padding(24)
+        .padding(.horizontal, 20)
+        .padding(.top, 4)
+        .padding(.bottom, 24)
         .fixedSize(horizontal: false, vertical: true)
-        .frame(width: Metrics.width)
-        .background(
-            RoundedRectangle(cornerRadius: Metrics.cornerRadius, style: .continuous)
-                .fill(SchemaTheme.surfaceSunken)
-                .overlay(
-                    RoundedRectangle(cornerRadius: Metrics.cornerRadius, style: .continuous)
-                        .strokeBorder(SchemaTheme.line, lineWidth: 1)
-                )
-                .shadow(color: .black.opacity(0.08), radius: 14, y: 6)
-        )
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(TaskDetailPanelHostRepresentable(onCloseRequest: onCloseRequest))
         .defaultFocus($focusedField, .title)
         .onAppear {
@@ -789,38 +780,15 @@ struct TaskDetailSheet: View {
     }
 
     private var footerActions: some View {
-        HStack(spacing: 16) {
-            Button(action: onToggleCompletion) {
-                HStack(spacing: 6) {
-                    Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 16))
+        HStack(spacing: 8) {
+            Button(isCompleted ? "Mark as open" : "Complete", action: onToggleCompletion)
+                .buttonStyle(.schema(isCompleted ? .secondary : .primary))
 
-                    Text(isCompleted ? "Mark as incomplete" : "Mark as completed")
-                        .font(.satoshi(13, weight: .medium))
-                }
-                .foregroundStyle(isCompleted ? SchemaTheme.ink : SchemaTheme.inkMuted)
-            }
-            .buttonStyle(.plain)
-            .help(isCompleted ? "Mark as incomplete" : "Mark as completed")
+            Spacer(minLength: 8)
 
-            Spacer()
-
-            Button {} label: {
-                Image(systemName: "archivebox")
-                    .font(.system(size: 16, weight: .regular))
-                    .foregroundStyle(SchemaTheme.inkMuted.opacity(0.45))
-            }
-            .buttonStyle(.plain)
-            .disabled(true)
-            .help("Archive (coming soon)")
-
-            Button(action: onDelete) {
-                Image(systemName: "trash")
-                    .font(.system(size: 16, weight: .regular))
-                    .foregroundStyle(SchemaTheme.inkMuted)
-            }
-            .buttonStyle(.plain)
-            .help("Delete task")
+            Button("Delete", action: onDelete)
+                .buttonStyle(.schema(.danger))
+                .help("Delete task")
         }
     }
 
