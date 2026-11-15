@@ -48,7 +48,7 @@ enum ModelContainerFactory {
         }
 
         do {
-            let schema = Schema(versionedSchema: SchemaMigrationV4.self)
+            let schema = Schema(versionedSchema: SchemaMigrationV5.self)
             let configuration = ModelConfiguration(schema: schema, url: storeURL())
             let container = try ModelContainer(
                 for: schema,

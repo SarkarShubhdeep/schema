@@ -13,6 +13,11 @@ struct SchemaApp: App {
     @State private var showResetConfirmation = false
 
     init() {
+        #if DEBUG
+        if MigrationSelfTest.isRequested {
+            MigrationSelfTest.runAndExit()
+        }
+        #endif
         SchemaFont.registerBundledFonts()
 #if os(macOS)
         NotificationHandler.shared.configure()

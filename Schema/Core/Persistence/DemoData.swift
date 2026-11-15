@@ -58,7 +58,7 @@ enum DemoData {
 
     @MainActor
     static func makeContainer() throws -> ModelContainer {
-        let schema = Schema(versionedSchema: SchemaMigrationV4.self)
+        let schema = Schema(versionedSchema: SchemaMigrationV5.self)
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [configuration])
         seed(container.mainContext)
@@ -86,7 +86,7 @@ enum DemoData {
             index += 1
             let task = SchemaTask(title: title, description: note, list: list, reminderTime: reminder)
             task.manualSortIndex = index
-            task.isCompleted = done
+            if done { task.setCompleted(true) }
             context.insert(task)
         }
 

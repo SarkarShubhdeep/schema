@@ -31,6 +31,7 @@ All notable changes to Schema are documented in this file.
 - Task details open in the right panel instead of a floating card (#15). The list stays visible beside them; the panel widens to 360pt while a task is open, even if it was collapsed, and returns to its saved state when closed. Delete in details now asks first, like the toolbar.
 - The Routine switch no longer wraps letter by letter in the details panel; the weekdays sit on their own row.
 - Removed the unused All Lists screen and the navigation container around the workspace.
+- Tasks now record when they were completed (#16). The data migrates to schema V5 automatically; tasks completed before the update keep an empty completion date. This feeds Done today and the week chart (#17).
 
 ## [0.3.0] — 2026-11-12
 

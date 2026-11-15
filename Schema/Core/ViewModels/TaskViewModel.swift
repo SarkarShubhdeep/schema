@@ -220,10 +220,10 @@ final class TaskViewModel {
         }
 
         if recordUndo {
-            pushUndo(.toggledCompletion(taskID: task.id, wasCompleted: task.isCompleted))
+            pushUndo(.toggledCompletion(taskID: task.id, wasCompleted: task.isCompleted, previousCompletedAt: task.completedAt))
         }
 
-        task.isCompleted.toggle()
+        task.setCompleted(!task.isCompleted)
         save()
 
         if task.isCompleted {
@@ -251,6 +251,7 @@ final class TaskViewModel {
                 afterTaskID: nil
             )
             copy.isCompleted = task.isCompleted
+            copy.completedAt = task.completedAt
             copy.createdAt = task.createdAt.addingTimeInterval(Double(index + 1) * 0.001)
             copy.manualSortIndex = task.manualSortIndex + 0.001 * Double(index + 1)
             modelContext.insert(copy)
@@ -389,9 +390,10 @@ final class TaskViewModel {
             }
         case .deletedTask(let snapshot):
             restoreTask(snapshot)
-        case .toggledCompletion(let taskID, let wasCompleted):
+        case .toggledCompletion(let taskID, let wasCompleted, let previousCompletedAt):
             if let task = fetchTask(id: taskID) {
                 task.isCompleted = wasCompleted
+                task.completedAt = previousCompletedAt
                 save()
                 if wasCompleted {
                     Task { await rescheduleReminderIfNeeded(for: task) }
@@ -420,6 +422,7 @@ final class TaskViewModel {
         )
         task.id = snapshot.id
         task.isCompleted = snapshot.isCompleted
+        task.completedAt = snapshot.completedAt
         task.createdAt = snapshot.createdAt
         task.manualSortIndex = snapshot.manualSortIndex
         modelContext.insert(task)

@@ -10,6 +10,7 @@ struct TaskSnapshot {
     let title: String
     let taskDescription: String?
     let isCompleted: Bool
+    let completedAt: Date?
     let createdAt: Date
     let reminderTime: Date?
     let listID: UUID?
@@ -23,6 +24,7 @@ struct TaskSnapshot {
         title = task.title
         taskDescription = task.taskDescription
         isCompleted = task.isCompleted
+        completedAt = task.completedAt
         createdAt = task.createdAt
         reminderTime = task.reminderTime
         listID = task.list?.id
@@ -36,6 +38,6 @@ struct TaskSnapshot {
 enum TaskUndoAction {
     case addedTask(UUID)
     case deletedTask(TaskSnapshot)
-    case toggledCompletion(taskID: UUID, wasCompleted: Bool)
+    case toggledCompletion(taskID: UUID, wasCompleted: Bool, previousCompletedAt: Date?)
     case updatedTitle(taskID: UUID, previousTitle: String)
 }
