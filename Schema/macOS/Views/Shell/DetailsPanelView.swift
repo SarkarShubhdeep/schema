@@ -15,6 +15,8 @@ struct DetailsPanelView<Detail: View>: View {
 
     /// The open task's editor, if any.
     let detail: Detail?
+    /// Identity of the open task; a new task gets a fresh editor.
+    var detailID: UUID?
     let onCloseDetail: () -> Void
 
     var body: some View {
@@ -35,6 +37,7 @@ struct DetailsPanelView<Detail: View>: View {
                     .padding(.bottom, 10)
 
                     detail
+                        .id(detailID)
                 }
                 .frame(width: ShellMetrics.detailsTaskWidth, alignment: .leading)
                 .transition(.opacity)
@@ -115,4 +118,9 @@ struct DetailsPanelTitleBarStrip: View {
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
+}
+
+/// How long a keyboard selection must rest before the details panel loads it.
+enum DetailPreviewTiming {
+    static let keyboardSettle: Duration = .milliseconds(900)
 }

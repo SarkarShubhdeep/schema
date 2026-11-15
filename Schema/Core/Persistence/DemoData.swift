@@ -34,6 +34,10 @@ enum DemoData {
     static let opensDeleteDialog = CommandLine.arguments.contains("-SchemaDemoDelete")
     /// `-SchemaDemoDetail` opens the first task with notes in the details panel.
     static let opensTaskDetail = CommandLine.arguments.contains("-SchemaDemoDetail")
+    /// `-SchemaDemoPreview` selects that task (one click) so the panel previews it.
+    static let previewsTask = CommandLine.arguments.contains("-SchemaDemoPreview")
+    /// `-SchemaDemoRoutine` opens it with Routine switched on in the editor (not saved).
+    static let showsRoutineEditor = CommandLine.arguments.contains("-SchemaDemoRoutine")
 
     /// Window width for screenshots: 1280 by default, `-SchemaDemoMedium` 1100,
     /// `-SchemaDemoNarrow` 880 (to show auto-collapse).

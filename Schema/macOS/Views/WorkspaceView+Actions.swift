@@ -156,11 +156,38 @@ extension WorkspaceView {
 
     // MARK: Detail panel
 
+    /// Opens a task for editing (double-click, ⌘↩). A preview of the same
+    /// task becomes an edit in place.
     func openTaskDetail(_ taskID: UUID) {
+        if let editor = workspace.taskDetailEditor, editor.taskID == taskID {
+            editor.isPreview = false
+            workspace.requestFocus(.none)
+            return
+        }
         guard let task = allTasks.first(where: { $0.id == taskID }) else { return }
         workspace.taskDetailEditor = TaskDetailEditor(task: task)
-        workspace.selectSingle(taskID)
+        if workspace.primarySelectedTaskID != taskID {
+            workspace.selectSingle(taskID)
+        }
         workspace.requestFocus(.none)
+    }
+
+    /// Shows the selected task in the details panel without taking focus.
+    /// Only replaces another preview; an edit in progress is left alone.
+    func previewTaskDetail(_ taskID: UUID) {
+        if let editor = workspace.taskDetailEditor {
+            guard editor.isPreview, editor.taskID != taskID else { return }
+        }
+        guard let task = allTasks.first(where: { $0.id == taskID }) else { return }
+        let editor = TaskDetailEditor(task: task)
+        editor.isPreview = true
+        workspace.taskDetailEditor = editor
+    }
+
+    /// Closes a preview (no changes to save). Edits are closed elsewhere.
+    func closeTaskPreview() {
+        guard workspace.taskDetailEditor?.isPreview == true else { return }
+        workspace.taskDetailEditor = nil
     }
 
     func closeTaskDetail() {
@@ -212,7 +239,10 @@ extension WorkspaceView {
                 return
             }
             await refreshNotifications()
-            closeTaskDetail()
+            // A preview of another task may have opened while this saved.
+            if workspace.taskDetailEditor?.taskID == editor.taskID {
+                closeTaskDetail()
+            }
         }
     }
 
@@ -257,7 +287,7 @@ extension WorkspaceView {
         if workspace.isAddTaskExpanded {
             closeAddTask()
         }
-        if workspace.isDetailOpen {
+        if workspace.isEditingDetail {
             saveAndCloseTaskDetail()
             return
         }
