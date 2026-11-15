@@ -22,21 +22,15 @@ struct SchemaApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if let modelContainer {
-                    ContentView()
-                        .font(.schemaBody)
-                        .modelContainer(modelContainer)
-                } else if let loadError {
-                    ModelContainerErrorView(
-                        error: loadError,
-                        onRetry: { loadModelContainer(resetStore: false) },
-                        onResetStore: { showResetConfirmation = true }
-                    )
+                #if DEBUG
+                if ComponentGallery.isEnabled {
+                    ComponentGalleryView()
                 } else {
-                    ProgressView("Loading Schema…")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(SchemaTheme.canvas)
+                    appContent
                 }
+                #else
+                appContent
+                #endif
             }
             .onAppear {
                 #if DEBUG && os(macOS)
@@ -62,6 +56,25 @@ struct SchemaApp: App {
             }
         }
         .defaultSize(width: 900, height: 640)
+    }
+
+    @ViewBuilder
+    private var appContent: some View {
+        if let modelContainer {
+            ContentView()
+                .font(.schemaBody)
+                .modelContainer(modelContainer)
+        } else if let loadError {
+            ModelContainerErrorView(
+                error: loadError,
+                onRetry: { loadModelContainer(resetStore: false) },
+                onResetStore: { showResetConfirmation = true }
+            )
+        } else {
+            ProgressView("Loading Schema…")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(SchemaTheme.canvas)
+        }
     }
 
     private func loadModelContainer(resetStore: Bool) {

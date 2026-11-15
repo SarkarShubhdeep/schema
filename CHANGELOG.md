@@ -9,6 +9,8 @@ All notable changes to Schema are documented in this file.
 - New color tokens from the Schema design system: neutral greys with a single yellow accent, in light and dark (#6).
 - Lists no longer have their own colors; tabs, tags and list cards are neutral. The Change Color menu is gone.
 - Bundled Space Grotesk (titles, numbers, times, counts, badges) and Satoshi (task titles, body text, buttons), with the design system's type styles (#7).
+- Shared components in `Core/Design/Components`: pill buttons (primary, secondary, ghost, danger, ink), round icon buttons with tooltips, a quiet task checkbox, chips, count badges, key hints, section labels, cards and a flat progress bar (#8).
+- Task rows, list tabs, the Add task bar, the Completed header and the New list and Rename dialogs now use these components. Press animations respect Reduce Motion (#4).
 
 ## [0.3.0] — 2026-11-12
 

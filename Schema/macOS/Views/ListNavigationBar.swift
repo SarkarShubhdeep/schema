@@ -92,16 +92,7 @@ struct ListNavigationBar: View {
     private func taskCountBadge(for list: SchemaList) -> some View {
         let count = taskCount(list)
         if count > 0 {
-            Text("\(count)")
-                .font(.spaceGrotesk(11, weight: .semibold).monospacedDigit())
-                .foregroundStyle(SchemaTheme.inkMuted)
-                .fixedSize()
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(
-                    Capsule(style: .continuous)
-                        .fill(SchemaTheme.surfaceHover)
-                )
+            SchemaBadge(count: count)
         }
     }
 
