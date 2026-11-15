@@ -46,7 +46,13 @@ enum TaskFilterOption: String, CaseIterable, Identifiable {
 final class ListViewModel {
     private let modelContext: ModelContext
 
-    var selectedListID: UUID?
+    /// The selected page, or the Everything list while a smart view is shown.
+    /// Choosing a page clears `smartView`.
+    var selectedListID: UUID? {
+        didSet { smartView = nil }
+    }
+    /// Today or Upcoming, shown over the Everything list. `nil` shows the selected page.
+    var smartView: SmartView?
     var showNewListSheet = false
     var newListTitle = ""
     var sortOption: TaskSortOption = SchemaPreferences.sortOption {
@@ -133,6 +139,16 @@ final class ListViewModel {
 
         let previousIndex = currentIndex == 0 ? lists.count - 1 : currentIndex - 1
         selectedListID = lists[previousIndex].id
+    }
+
+    func selectSmartView(_ view: SmartView, from lists: [SchemaList]) {
+        selectEverythingList(from: lists)
+        smartView = view
+    }
+
+    /// Pages in sidebar order: every list except Everything.
+    func pages(from lists: [SchemaList]) -> [SchemaList] {
+        lists.filter { !$0.isEverythingList }
     }
 
     func selectEverythingList(from lists: [SchemaList]) {
