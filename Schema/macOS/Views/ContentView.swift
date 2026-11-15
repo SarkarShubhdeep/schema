@@ -88,6 +88,11 @@ struct ContentView: View {
         .background(SchemaTheme.canvas.ignoresSafeArea())
         .frame(minWidth: ShellMetrics.minimumWindowWidth, minHeight: 520)
         .focusedSceneValue(\.workspaceState, workspace)
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.size.width
+        } action: { width in
+            workspace.windowWidthChanged(to: width)
+        }
         .sheet(isPresented: $workspace.showSettings) {
             SettingsView(
                 listViewModel: listViewModel,

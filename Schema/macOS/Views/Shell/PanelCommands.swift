@@ -34,17 +34,3 @@ struct PanelCommands: Commands {
         }
     }
 }
-
-extension WorkspaceState {
-    func toggleSidebar() {
-        withAnimation(SchemaMotion.animation(SchemaMotion.standard, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)) {
-            isSidebarCollapsed.toggle()
-        }
-    }
-
-    func toggleDetailsPanel() {
-        withAnimation(SchemaMotion.animation(SchemaMotion.standard, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)) {
-            isDetailsPanelCollapsed.toggle()
-        }
-    }
-}
