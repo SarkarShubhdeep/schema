@@ -4,8 +4,13 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-11-15
+
+The Mac redesign: a three-column window, the Schema design system (neutral greys, one yellow accent, Space Grotesk and Satoshi), sidebar navigation, redesigned to-do pages, a Today dashboard and an overview panel.
+
 ### Fixed
 
+- Completed task titles and the sidebar's New page row now meet 4.5:1 text contrast in light and dark mode (#18).
 - Setting a reminder could crash Schema, and then crash it again at every launch, when macOS refused to schedule the notification. Notification errors are now logged and the reminder time is still saved.
 
 ### Changed

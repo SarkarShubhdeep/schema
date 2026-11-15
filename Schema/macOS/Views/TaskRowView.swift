@@ -93,9 +93,10 @@ struct TaskRowView: View {
             HStack(alignment: .firstTextBaseline, spacing: 5) {
                 Text(task.title)
                     .font(.schemaTask)
-                    .foregroundStyle(task.isCompleted ? SchemaTheme.inkFaint : .primary)
-                    .strikethrough(task.isCompleted, color: SchemaTheme.inkFaint)
-                    .opacity(task.isCompleted ? 0.75 : 1)
+                    // Done titles stay readable (inkMuted passes 4.5:1); the
+                    // strikethrough carries the "done" meaning.
+                    .foregroundStyle(task.isCompleted ? SchemaTheme.inkMuted : .primary)
+                    .strikethrough(task.isCompleted, color: SchemaTheme.inkMuted)
                     .lineLimit(2)
                     .truncationMode(.tail)
 
@@ -103,9 +104,7 @@ struct TaskRowView: View {
                     Image(systemName: "repeat")
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(
-                            task.isCompleted
-                                ? SchemaTheme.inkFaint.opacity(0.75)
-                                : SchemaTheme.inkMuted
+                            SchemaTheme.inkMuted
                         )
                         .help("Routine task")
                 }
