@@ -38,6 +38,8 @@ struct BlockTextView: NSViewRepresentable {
     var onMenuChoose: () -> Void = {}
     var onMenuDismiss: () -> Void = {}
     var onTurnInto: () -> Void = {}
+    /// Esc with no menu open; nil leaves Esc to the text view.
+    var onEscape: (() -> Void)?
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -177,6 +179,11 @@ struct BlockTextView: NSViewRepresentable {
                 default:
                     break
                 }
+            }
+            if selector == #selector(NSResponder.cancelOperation(_:)) || selector == #selector(NSTextView.complete(_:)),
+               let onEscape = parent.onEscape {
+                onEscape()
+                return true
             }
             switch selector {
             case #selector(NSResponder.insertNewline(_:)):

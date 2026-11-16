@@ -40,6 +40,9 @@ enum DemoData {
     /// `-SchemaDemoMakeTask` puts the caret on an open to-do in Ideas, showing "Make task in …".
     static let focusesOpenToDo = CommandLine.arguments.contains("-SchemaDemoMakeTask")
 
+    /// `-SchemaDemoRoutine` opens an open routine task as a page.
+    static let opensRoutineTask = CommandLine.arguments.contains("-SchemaDemoRoutine")
+
     /// `-SchemaDemoPage` opens on the first page (Daily Todos).
     static let opensFirstPage = CommandLine.arguments.contains("-SchemaDemoPage")
 
@@ -159,6 +162,26 @@ enum DemoData {
                 context.insert(task)
                 block.linkedTaskID = task.id
             }
+        }
+
+        // A task page body, as on the canvas (#31).
+        if let landlord = try? context.fetch(FetchDescriptor<SchemaTask>()).first(where: { $0.title.hasPrefix("Call the landlord") }) {
+            let body: [(BlockKind, String, Bool)] = [
+                (.text, "Radiator in the bedroom makes noise after 10 PM.", false),
+                (.heading, "Before calling", false),
+                (.todo, "Find the lease renewal date", true),
+                (.todo, "Record the noise around 10 PM", false),
+                (.todo, "Photos of the radiator valve", false),
+                (.heading, "Ask about", false),
+                (.bullet, "A replacement valve or bleeding the radiator", false),
+                (.bullet, "Whether someone can come this week", false),
+            ]
+            for (offset, item) in body.enumerated() {
+                let block = SchemaBlock(kind: item.0, text: item.1, sortIndex: Double(offset + 1), task: landlord)
+                block.isChecked = item.2
+                context.insert(block)
+            }
+            landlord.taskDescription = nil
         }
 
         try? context.save()

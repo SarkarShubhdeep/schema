@@ -174,6 +174,12 @@ struct ContentView: View {
             workspace.selectSingle(task.id)
             workspace.taskDetailEditor = TaskDetailEditor(task: task)
         }
+        if DemoData.isEnabled, DemoData.opensRoutineTask,
+           let task = allTasks.first(where: { $0.isRoutine && !$0.isCompleted }) {
+            task.routineDays = [2, 3, 5, 6, 7, 1]
+            workspace.selectSingle(task.id)
+            workspace.taskDetailEditor = TaskDetailEditor(task: task)
+        }
         #endif
 
         taskViewModel = TaskViewModel(

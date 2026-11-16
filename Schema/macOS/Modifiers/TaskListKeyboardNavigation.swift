@@ -55,7 +55,7 @@ struct TaskListKeyboardNavigation: ViewModifier {
                 return .handled
             }
             .onKeyPress(.escape) {
-                guard !workspace.isDetailOpen, !isAddTaskFocused, canNavigate else {
+                guard !workspace.isTaskPageOpen, !isAddTaskFocused, canNavigate else {
                     return .ignored
                 }
                 workspace.clearSelection()
@@ -70,7 +70,7 @@ struct TaskListKeyboardNavigation: ViewModifier {
                 }
 
                 if press.modifiers.contains(.command) {
-                    guard !workspace.isDetailOpen,
+                    guard !workspace.isTaskPageOpen,
                           selection.count == 1,
                           let taskID = workspace.primarySelectedTaskID ?? selection.first else {
                         return .ignored

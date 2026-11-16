@@ -99,24 +99,6 @@ private struct ClickOutsideMonitorRepresentable: NSViewRepresentable {
             return false
         }
 
-        private func isInsideDetailPanel(point pointInWindow: NSPoint, root: NSView) -> Bool {
-            guard let panel = firstDetailPanelHost(in: root) else { return false }
-            let frameInWindow = panel.convert(panel.bounds, to: nil)
-            return frameInWindow.contains(pointInWindow)
-        }
-
-        private func firstDetailPanelHost(in view: NSView) -> NSView? {
-            if view is TaskDetailPanelHostView {
-                return view
-            }
-            for subview in view.subviews {
-                if let match = firstDetailPanelHost(in: subview) {
-                    return match
-                }
-            }
-            return nil
-        }
-
         /// Clicks inside views marked with `.keepsSelectionOnClick()` don't dismiss.
         private func isInsideExemptArea(point pointInWindow: NSPoint, root: NSView) -> Bool {
             var stack: [NSView] = [root]
@@ -140,10 +122,6 @@ private struct ClickOutsideMonitorRepresentable: NSViewRepresentable {
                 return false
             }
 
-            // Any click within the detail panel's frame keeps it open.
-            if isInsideDetailPanel(point: event.locationInWindow, root: contentView) {
-                return false
-            }
             if isInsideExemptArea(point: event.locationInWindow, root: contentView) {
                 return false
             }

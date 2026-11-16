@@ -1,0 +1,216 @@
+//
+//  TaskPageView.swift
+//  Schema
+//
+//  A task opened as its own page (#31): breadcrumb back to its list,
+//  previous and next, a large checkbox and title, then a block body like a
+//  scratchpad. To-do lines here are steps of the task, not new tasks. The
+//  task's properties live in the right panel (TaskPagePanel).
+//
+
+import SwiftData
+import SwiftUI
+
+struct TaskPageActions {
+    var onBack: () -> Void
+    var onPrevious: (() -> Void)?
+    var onNext: (() -> Void)?
+    var onToggle: () -> Void
+    var onRename: (String) -> Void
+    var onDuplicate: () -> Void
+    var onDelete: () -> Void
+    var movePages: [SchemaList]
+    var onMove: (SchemaList) -> Void
+}
+
+struct TaskPageView: View {
+    let task: SchemaTask
+    /// The page or view the task was opened from, for the breadcrumb.
+    let originTitle: String
+    let isBlocked: Bool
+    let actions: TaskPageActions
+
+    @Environment(\.modelContext) private var modelContext
+    @State private var editor: BlockEditor?
+    @State private var title = ""
+    @FocusState private var isTitleFocused: Bool
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                topBar
+                header
+                Rectangle()
+                    .fill(SchemaTheme.line)
+                    .frame(height: 1)
+                    .padding(.leading, BlockListView.gutterWidth)
+                if let editor {
+                    BlockListView(
+                        editor: editor,
+                        emptyPrompt: "Add notes, steps or links. Type / for blocks"
+                    )
+                }
+            }
+            .frame(maxWidth: 720, alignment: .leading)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 32)
+            .padding(.top, 28)
+        }
+        .scrollContentBackground(.hidden)
+        .background(hiddenShortcuts)
+        .onAppear(perform: load)
+        .onChange(of: task.id) { _, _ in load() }
+        .onChange(of: task.title) { _, newTitle in
+            if !isTitleFocused { title = newTitle }
+        }
+        .onDisappear(perform: commitTitle)
+    }
+
+    // MARK: Top bar
+
+    private var topBar: some View {
+        HStack(spacing: 6) {
+            Button(action: back) {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 11, weight: .semibold))
+                    Text(originTitle)
+                        .lineLimit(1)
+                }
+                .padding(.leading, 6)
+                .padding(.trailing, 10)
+                .frame(height: 28)
+                .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .help("Back to \(originTitle)  Esc")
+            .padding(.leading, -6)
+
+            Text("/").foregroundStyle(SchemaTheme.inkFaint)
+            Text(task.title)
+                .foregroundStyle(SchemaTheme.ink)
+                .lineLimit(1)
+                .truncationMode(.tail)
+
+            Spacer(minLength: 12)
+
+            SchemaIconButton(systemImage: "chevron.up", label: "Previous task", shortcut: "⌘[", size: 32) {
+                actions.onPrevious?()
+            }
+            .disabled(actions.onPrevious == nil)
+            SchemaIconButton(systemImage: "chevron.down", label: "Next task", shortcut: "⌘]", size: 32) {
+                actions.onNext?()
+            }
+            .disabled(actions.onNext == nil)
+            optionsMenu
+        }
+        .font(.satoshi(13, weight: .medium, relativeTo: .callout))
+        .foregroundStyle(SchemaTheme.inkMuted)
+        .padding(.leading, BlockListView.gutterWidth)
+    }
+
+    private var optionsMenu: some View {
+        Menu {
+            Menu("Move to") {
+                ForEach(actions.movePages) { page in
+                    Button(page.title) { actions.onMove(page) }
+                        .disabled(page.id == task.list?.id)
+                }
+            }
+            Button("Duplicate", action: actions.onDuplicate)
+            Divider()
+            Button("Delete task…", role: .destructive, action: actions.onDelete)
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(SchemaTheme.ink)
+                .frame(width: 32, height: 32)
+                .contentShape(Circle())
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help("Task options")
+        .accessibilityLabel("Task options")
+    }
+
+    // MARK: Header
+
+    private var header: some View {
+        HStack(alignment: .top, spacing: 14) {
+            SchemaCheckbox(
+                isChecked: task.isCompleted,
+                isBlocked: isBlocked,
+                size: 24,
+                label: task.title,
+                hitPadding: 4,
+                action: actions.onToggle
+            )
+            .padding(.top, 7)
+
+            TextField("Task title", text: $title, axis: .vertical)
+                .textFieldStyle(.plain)
+                .font(.spaceGrotesk(32, weight: .semibold, relativeTo: .largeTitle))
+                .foregroundStyle(task.isCompleted ? SchemaTheme.inkMuted : SchemaTheme.ink)
+                .strikethrough(task.isCompleted, color: SchemaTheme.inkMuted)
+                .lineLimit(1...4)
+                .focused($isTitleFocused)
+                .onSubmit {
+                    commitTitle()
+                    editor?.focusFirstLine()
+                }
+                .onChange(of: isTitleFocused) { _, focused in
+                    if !focused { commitTitle() }
+                }
+                .accessibilityLabel("Task title")
+        }
+        .padding(.leading, BlockListView.gutterWidth)
+        .padding(.top, 12)
+    }
+
+    /// Esc goes back; ⌘[ and ⌘] step through the list.
+    private var hiddenShortcuts: some View {
+        Group {
+            Button("Back", action: back)
+                .keyboardShortcut(.cancelAction)
+            Button("Previous task") { actions.onPrevious?() }
+                .keyboardShortcut("[", modifiers: .command)
+                .disabled(actions.onPrevious == nil)
+            Button("Next task") { actions.onNext?() }
+                .keyboardShortcut("]", modifiers: .command)
+                .disabled(actions.onNext == nil)
+        }
+        .hidden()
+        .frame(width: 0, height: 0)
+        .accessibilityHidden(true)
+    }
+
+    // MARK: Actions
+
+    private func back() {
+        commitTitle()
+        actions.onBack()
+    }
+
+    private func commitTitle() {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != task.title else {
+            if trimmed.isEmpty { title = task.title }
+            return
+        }
+        actions.onRename(trimmed)
+    }
+
+    private func load() {
+        title = task.title
+        // Notes written before tasks had pages become the first line of the body.
+        if task.blocks.isEmpty, let notes = task.displayDescription {
+            modelContext.insert(SchemaBlock(kind: .text, text: notes, sortIndex: BlockOrdering.step, task: task))
+            task.taskDescription = nil
+            try? modelContext.save()
+        }
+        let editor = BlockEditor(owner: .task(task), context: modelContext)
+        editor.onEscape = back
+        self.editor = editor
+    }
+}

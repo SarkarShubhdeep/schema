@@ -154,8 +154,9 @@ extension WorkspaceView {
         workspace.requestFocus(.taskList)
     }
 
-    // MARK: Detail panel
+    // MARK: Task page (#31)
 
+    /// Opens the task as a page in the main column.
     func openTaskDetail(_ taskID: UUID) {
         guard let task = allTasks.first(where: { $0.id == taskID }) else { return }
         workspace.taskDetailEditor = TaskDetailEditor(task: task)
@@ -163,45 +164,22 @@ extension WorkspaceView {
         workspace.requestFocus(.none)
     }
 
+    /// Back to the list, with the task still selected.
     func closeTaskDetail() {
         workspace.taskDetailEditor = nil
         workspace.requestFocus(.taskList)
     }
 
-    func saveAndCloseTaskDetail() {
+    /// Saves the Properties card's schedule (due, routine, after) to the task.
+    func saveTaskSchedule() {
         guard let editor = workspace.taskDetailEditor,
-              let task = allTasks.first(where: { $0.id == editor.taskID }) else {
-            closeTaskDetail()
-            return
-        }
-
-        let parsed = AtMentionParser.commit(editor.draft.title, lists: lists)
-        editor.draft.title = parsed.cleanTitle
-
-        if let time = parsed.detectedTime {
-            editor.draft.selectedTime = time
-        }
-        if let date = parsed.detectedDate, !editor.draft.isRoutine {
-            editor.draft.selectedDate = date
-        }
-        if let list = parsed.resolvedList(at: editor.selectedListCandidateIndex) {
-            taskViewModel.moveTask(task, to: list, allTasks: allTasks)
-        }
-
+              let task = allTasks.first(where: { $0.id == editor.taskID }) else { return }
         let draft = editor.draft
-        let title = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !title.isEmpty else {
-            closeTaskDetail()
-            return
-        }
-
-        let description = draft.description.trimmingCharacters(in: .whitespacesAndNewlines)
-
         Task {
             if let failure = await taskViewModel.applyDetailChanges(
                 task,
-                title: title,
-                description: description.isEmpty ? nil : description,
+                title: task.title,
+                description: task.taskDescription,
                 reminder: draft.computedReminderDate,
                 isRoutine: draft.isRoutine,
                 routineDays: draft.normalizedRoutineDays,
@@ -212,7 +190,6 @@ extension WorkspaceView {
                 return
             }
             await refreshNotifications()
-            closeTaskDetail()
         }
     }
 
@@ -236,9 +213,11 @@ extension WorkspaceView {
         let otherFollowerIDs = followerIDs.filter { $0 != editor.taskID }
         workspace.sequenceValidationAlert = nil
 
-        guard !otherFollowerIDs.isEmpty else { return }
         Task {
-            await taskViewModel.clearReminderTimes(for: otherFollowerIDs, in: allTasks)
+            if !otherFollowerIDs.isEmpty {
+                await taskViewModel.clearReminderTimes(for: otherFollowerIDs, in: allTasks)
+            }
+            saveTaskSchedule()
             await refreshNotifications()
         }
     }
@@ -256,10 +235,6 @@ extension WorkspaceView {
     func dismissActiveEditing() {
         if workspace.isAddTaskExpanded {
             closeAddTask()
-        }
-        if workspace.isDetailOpen {
-            saveAndCloseTaskDetail()
-            return
         }
         workspace.clearSelection()
     }

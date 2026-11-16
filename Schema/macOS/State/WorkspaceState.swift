@@ -107,10 +107,11 @@ final class WorkspaceState {
         notificationItems = await service.fetchPendingReminders()
     }
 
-    var isDetailOpen: Bool { taskDetailEditor != nil }
+    /// A task is open as a page in the main column (#31).
+    var isTaskPageOpen: Bool { taskDetailEditor != nil }
 
     var hasDismissibleState: Bool {
-        isAddTaskExpanded || isDetailOpen || !selectedTaskIDs.isEmpty
+        isAddTaskExpanded || !selectedTaskIDs.isEmpty
     }
 
     // MARK: Selection API
