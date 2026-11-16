@@ -2,45 +2,33 @@
 //  DetailsPanelView.swift
 //  Schema
 //
-//  Right column of the window. With a task open it shows that task's
-//  editor (360pt, on the surface colour), opening even if the panel was
-//  collapsed; closing the task returns the panel to its saved state.
-//  Otherwise it is an empty state, or a 52pt rail when collapsed (⌘⌥→).
+//  Right column of the window. It shows the overview (reminders, the week,
+//  routines), or a task's cards while a task page is open (#31). Collapsed
+//  (⌘⌥→) it is a 52pt strip of icons that open it again.
 //
 
 import SwiftUI
 
-struct DetailsPanelView<Detail: View, Overview: View>: View {
+struct PanelRailItem: Identifiable {
+    let systemImage: String
+    let label: String
+    var id: String { label }
+}
+
+struct DetailsPanelView<Content: View>: View {
     @Environment(WorkspaceState.self) private var workspace
 
-    /// The open task's editor, if any.
-    let detail: Detail?
-    let onCloseDetail: () -> Void
-    /// Shown when no task is open: reminders, the week, routines.
-    let overview: Overview
+    /// "Overview" or "Task".
+    let title: String
+    /// Icons on the collapsed strip; each opens the panel.
+    let railItems: [PanelRailItem]
+    @ViewBuilder let content: () -> Content
 
     var body: some View {
-        let showsDetail = detail != nil
-        let isCollapsed = workspace.isDetailsPanelCollapsed && !showsDetail
+        let isCollapsed = workspace.isDetailsPanelCollapsed
 
         ScrollView {
-            if let detail {
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack {
-                        SchemaSectionLabel("Task")
-                        Spacer(minLength: 8)
-                        SchemaIconButton(systemImage: "xmark", label: "Close", shortcut: "Esc", size: 28, action: onCloseDetail)
-                    }
-                    .padding(.leading, 20)
-                    .padding(.trailing, 14)
-                    .padding(.top, 14)
-                    .padding(.bottom, 10)
-
-                    detail
-                }
-                .frame(width: ShellMetrics.detailsTaskWidth, alignment: .leading)
-                .transition(.opacity)
-            } else if isCollapsed {
+            if isCollapsed {
                 VStack(spacing: 4) {
                     SchemaIconButton(systemImage: "sidebar.right", label: "Expand panel", shortcut: "⌘⌥→", size: 40) {
                         workspace.toggleDetailsPanel()
@@ -49,6 +37,11 @@ struct DetailsPanelView<Detail: View, Overview: View>: View {
                         .fill(SchemaTheme.line)
                         .frame(width: 24, height: 1)
                         .padding(.vertical, 6)
+                    ForEach(railItems) { item in
+                        SchemaIconButton(systemImage: item.systemImage, label: item.label, size: 40) {
+                            workspace.toggleDetailsPanel()
+                        }
+                    }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.top, 16)
@@ -56,13 +49,13 @@ struct DetailsPanelView<Detail: View, Overview: View>: View {
             } else {
                 VStack(alignment: .leading, spacing: 14) {
                     HStack {
-                        SchemaSectionLabel("Overview")
+                        SchemaSectionLabel(title)
                         Spacer(minLength: 8)
                         SchemaIconButton(systemImage: "sidebar.right", label: "Collapse panel", shortcut: "⌘⌥→", size: 28) {
                             workspace.toggleDetailsPanel()
                         }
                     }
-                    overview
+                    content()
                 }
                 .padding(.leading, 16)
                 .padding(.trailing, 14)
@@ -73,12 +66,10 @@ struct DetailsPanelView<Detail: View, Overview: View>: View {
             }
         }
         .scrollIndicators(.automatic)
-        .frame(width: showsDetail
-               ? ShellMetrics.detailsTaskWidth
-               : (isCollapsed ? ShellMetrics.detailsRailWidth : ShellMetrics.detailsWidth))
+        .frame(width: isCollapsed ? ShellMetrics.detailsRailWidth : ShellMetrics.detailsWidth)
         .frame(maxHeight: .infinity)
         .clipped()
-        .background((showsDetail ? SchemaTheme.surface : SchemaTheme.canvas).ignoresSafeArea())
+        .background(SchemaTheme.canvas.ignoresSafeArea())
         .overlay(alignment: .leading) {
             Rectangle()
                 .fill(SchemaTheme.line)
@@ -95,13 +86,10 @@ struct DetailsPanelTitleBarStrip: View {
     @Environment(WorkspaceState.self) private var workspace
 
     var body: some View {
-        let isOpen = workspace.isDetailOpen
-        let width = isOpen
-            ? ShellMetrics.detailsTaskWidth
-            : (workspace.isDetailsPanelCollapsed ? ShellMetrics.detailsRailWidth : ShellMetrics.detailsWidth)
+        let width = workspace.isDetailsPanelCollapsed ? ShellMetrics.detailsRailWidth : ShellMetrics.detailsWidth
 
         VStack(spacing: 0) {
-            (isOpen ? SchemaTheme.surface : SchemaTheme.canvas)
+            SchemaTheme.canvas
                 // Overlaps the panel by a few points so no seam shows; the
                 // panel's content starts lower than that.
                 .frame(width: width, height: ShellMetrics.titleBarHeight + 8)

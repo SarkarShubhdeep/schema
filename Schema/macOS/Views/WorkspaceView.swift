@@ -110,7 +110,19 @@ struct WorkspaceView: View {
 
         HStack(spacing: 0) {
         VStack(spacing: 0) {
-            if let scratchpad = scratchpadPage {
+            if let task = openTask {
+                TaskPageView(
+                    task: task,
+                    originTitle: originTitle,
+                    isBlocked: RoutineSequenceOrdering.isBlocked(
+                        task,
+                        in: allTasks,
+                        allowIndependentFollowerCompletion: workspace.allowIndependentFollowerRoutineCompletion
+                    ),
+                    actions: taskPageActions(for: task, in: navigableTaskIDs)
+                )
+                .id(task.id)
+            } else if let scratchpad = scratchpadPage {
                 ScratchpadPageView(page: scratchpad, taskActions: blockTaskActions)
             } else {
             TaskListView(
@@ -191,12 +203,26 @@ struct WorkspaceView: View {
         .clipped()
 
             DetailsPanelView(
-                detail: taskDetail,
-                onCloseDetail: saveAndCloseTaskDetail,
-                overview: OverviewPanel(stats: dayStats)
-            )
+                title: openTask == nil ? "Overview" : "Task",
+                railItems: openTask == nil ? Self.overviewRail : Self.taskRail
+            ) {
+                if let task = openTask, let editor = workspace.taskDetailEditor {
+                    TaskPagePanel(
+                        task: task,
+                        editor: editor,
+                        taskPages: listViewModel.taskPages(from: lists),
+                        sequenceCandidates: routineSequenceCandidates(for: task),
+                        allTasks: allTasks,
+                        calendar: calendar,
+                        onSaveSchedule: saveTaskSchedule,
+                        onMove: { page in taskViewModel.moveTask(task, to: page, allTasks: allTasks) }
+                    )
+                } else {
+                    OverviewPanel(stats: dayStats)
+                }
+            }
         }
-        .animation(SchemaMotion.animation(SchemaMotion.standard, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion), value: workspace.isDetailOpen)
+        .animation(SchemaMotion.animation(SchemaMotion.standard, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion), value: workspace.isTaskPageOpen)
         .background(SchemaTheme.canvas)
         .clickOutsideDismiss(isActive: workspace.hasDismissibleState) {
             dismissActiveEditing()
@@ -223,6 +249,8 @@ struct WorkspaceView: View {
             }
         }
         .onChange(of: listViewModel.selectedListID) { _, _ in
+            // Choosing another page in the sidebar leaves an open task page.
+            workspace.taskDetailEditor = nil
             workspace.clearSelection()
             enforceManualSortIfNeeded()
         }
@@ -230,6 +258,9 @@ struct WorkspaceView: View {
             if required {
                 enforceManualSortIfNeeded()
             }
+        }
+        .onChange(of: listViewModel.smartView) { _, _ in
+            workspace.taskDetailEditor = nil
         }
         .onChange(of: listViewModel.sortOption) { _, _ in
             workspace.clearSelection()
@@ -256,7 +287,7 @@ struct WorkspaceView: View {
             isAddTaskFocused: $isAddTaskFocused,
             pageCount: listViewModel.pages(from: lists).count,
             canUndo: taskViewModel.canUndo,
-            allowsSingleKeyShortcuts: scratchpadPage == nil,
+            allowsSingleKeyShortcuts: scratchpadPage == nil && !workspace.isTaskPageOpen,
             onSelectListAtIndex: { index in
                 listViewModel.selectList(at: index, from: listViewModel.pages(from: lists))
             },
@@ -288,7 +319,7 @@ struct WorkspaceView: View {
     @ViewBuilder
     private var selectionToolbar: some View {
         let selected = (incompleteTasks + completedTasks).filter { workspace.isSelected($0.id) }
-        if !selected.isEmpty, !workspace.isDetailOpen {
+        if !selected.isEmpty, !workspace.isTaskPageOpen {
             SelectionToolbar(
                 count: selected.count,
                 isAllCompleted: selected.allSatisfy(\.isCompleted),
@@ -309,27 +340,49 @@ struct WorkspaceView: View {
         }
     }
 
-    /// The open task's editor, shown in the details panel.
-    private var taskDetail: TaskDetailSheet? {
-        guard let editor = workspace.taskDetailEditor,
-              let task = allTasks.first(where: { $0.id == editor.taskID }) else { return nil }
-        return TaskDetailSheet(
-                editor: editor,
-                listTagLabel: task.list?.displayTagLabel,
-                availableLists: lists,
-                sequenceCandidates: routineSequenceCandidates(for: task),
-                allTasks: allTasks,
-                isCompleted: task.isCompleted,
-                onCloseRequest: saveAndCloseTaskDetail,
-                onToggleCompletion: { toggleCompletion(task) },
-                onDelete: { workspace.requestDelete([task.id]) },
-                onClearFollowerTimes: { taskIDs in
-                    Task {
-                        await taskViewModel.clearReminderTimes(for: taskIDs, in: allTasks)
-                        await refreshNotifications()
-                    }
+    static let overviewRail = [
+        PanelRailItem(systemImage: "bell", label: "Upcoming reminders"),
+        PanelRailItem(systemImage: "chart.bar", label: "This week"),
+        PanelRailItem(systemImage: "repeat", label: "Routines"),
+    ]
+
+    static let taskRail = [
+        PanelRailItem(systemImage: "slider.horizontal.3", label: "Properties"),
+        PanelRailItem(systemImage: "checklist", label: "Checklist"),
+        PanelRailItem(systemImage: "link", label: "Linked"),
+    ]
+
+    /// The task whose page is open (#31).
+    var openTask: SchemaTask? {
+        guard let editor = workspace.taskDetailEditor else { return nil }
+        return allTasks.first { $0.id == editor.taskID }
+    }
+
+    /// Where the open task page goes back to: the page or view under it.
+    private var originTitle: String {
+        if let smartView = listViewModel.smartView { return smartView.title }
+        return selectedList?.title ?? "Back"
+    }
+
+    private func taskPageActions(for task: SchemaTask, in ids: [UUID]) -> TaskPageActions {
+        let index = ids.firstIndex(of: task.id)
+        let previous = index.flatMap { $0 > 0 ? ids[$0 - 1] : nil }
+        let next = index.flatMap { $0 + 1 < ids.count ? ids[$0 + 1] : nil }
+        return TaskPageActions(
+            onBack: closeTaskDetail,
+            onPrevious: previous.map { id in { openTaskDetail(id) } },
+            onNext: next.map { id in { openTaskDetail(id) } },
+            onToggle: { toggleCompletion(task) },
+            onRename: { taskViewModel.updateTitle(task, title: $0) },
+            onDuplicate: {
+                if let copy = taskViewModel.duplicateTasks([task], allTasks: allTasks).first {
+                    openTaskDetail(copy.id)
                 }
-            )
+            },
+            onDelete: { workspace.requestDelete([task.id]) },
+            movePages: listViewModel.taskPages(from: lists),
+            onMove: { page in taskViewModel.moveTask(task, to: page, allTasks: allTasks) }
+        )
     }
 
     private var quickEntryPlaceholder: String {

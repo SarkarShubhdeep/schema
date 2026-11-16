@@ -138,7 +138,8 @@ struct BlockRowView: View {
             onMenuMove: { editor.moveMenuSelection(by: $0) },
             onMenuChoose: { editor.chooseMenuItem(in: block) },
             onMenuDismiss: { editor.dismissMenu() },
-            onTurnInto: { editor.openTurnInto(for: block) }
+            onTurnInto: { editor.openTurnInto(for: block) },
+            onEscape: editor.onEscape
         )
         .accessibilityLabel(accessibilityName)
     }

@@ -125,4 +125,17 @@ struct PageModelTests {
         #expect(try context.fetchCount(FetchDescriptor<SchemaBlock>()) == 0)
         #expect(try context.fetchCount(FetchDescriptor<SchemaList>()) == 1)
     }
+
+    @Test func listSubtitleComesFromTheTaskPageBody() throws {
+        let page = SchemaList(title: "Daily Todos")
+        let task = SchemaTask(title: "Call the landlord", description: "Old notes", list: page)
+        context.insert(page)
+        context.insert(task)
+        #expect(task.displayDescription == "Old notes")
+
+        context.insert(SchemaBlock(kind: .heading, text: "Before calling", sortIndex: 1, task: task))
+        context.insert(SchemaBlock(kind: .text, text: "Radiator is loud", sortIndex: 2, task: task))
+        try context.save()
+        #expect(task.displayDescription == "Radiator is loud")
+    }
 }

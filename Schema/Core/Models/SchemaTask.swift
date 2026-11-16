@@ -73,7 +73,12 @@ extension SchemaTask {
 
     static let allRoutineWeekdays: [Int] = [2, 3, 4, 5, 6, 7, 1]
 
+    /// The second line under a task's title in lists: the first text line
+    /// of its page body, or its older notes field.
     var displayDescription: String? {
+        if let line = orderedBlocks.first(where: { $0.kind == .text && !$0.text.isEmpty })?.text {
+            return line
+        }
         guard let taskDescription, !taskDescription.isEmpty else { return nil }
         return taskDescription
     }

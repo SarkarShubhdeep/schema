@@ -161,6 +161,26 @@ enum DemoData {
             }
         }
 
+        // A task page body, as on the canvas (#31).
+        if let landlord = try? context.fetch(FetchDescriptor<SchemaTask>()).first(where: { $0.title.hasPrefix("Call the landlord") }) {
+            let body: [(BlockKind, String, Bool)] = [
+                (.text, "Radiator in the bedroom makes noise after 10 PM.", false),
+                (.heading, "Before calling", false),
+                (.todo, "Find the lease renewal date", true),
+                (.todo, "Record the noise around 10 PM", false),
+                (.todo, "Photos of the radiator valve", false),
+                (.heading, "Ask about", false),
+                (.bullet, "A replacement valve or bleeding the radiator", false),
+                (.bullet, "Whether someone can come this week", false),
+            ]
+            for (offset, item) in body.enumerated() {
+                let block = SchemaBlock(kind: item.0, text: item.1, sortIndex: Double(offset + 1), task: landlord)
+                block.isChecked = item.2
+                context.insert(block)
+            }
+            landlord.taskDescription = nil
+        }
+
         try? context.save()
         defaults.set(daily.id.uuidString, forKey: "schema.preferences.defaultWritableListID")
     }

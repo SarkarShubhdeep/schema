@@ -43,6 +43,8 @@ final class BlockEditor {
     private(set) var focusRequest: BlockFocusRequest?
     /// The block whose text view has the keyboard, for the gutter highlight.
     var activeBlockID: UUID?
+    /// Esc in a line with no menu open (the task page uses it to go back).
+    @ObservationIgnored var onEscape: (() -> Void)?
 
     init(owner: Owner, context: ModelContext) {
         self.owner = owner
@@ -70,6 +72,15 @@ final class BlockEditor {
     func focusNext(of block: SchemaBlock) {
         guard let next = textBlock(after: block) else { return }
         focus(next, caret: .start)
+    }
+
+    /// Caret on the first line, adding one if the body is empty.
+    func focusFirstLine() {
+        if let first = blocks.first(where: { $0.kind.holdsText }) {
+            focus(first, caret: .end)
+        } else {
+            focusEnd()
+        }
     }
 
     /// Click in the empty space below the last block: focus the last block

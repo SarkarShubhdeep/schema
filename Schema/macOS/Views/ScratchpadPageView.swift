@@ -127,6 +127,8 @@ struct BlockListView: View {
 
     let editor: BlockEditor
     var taskActions: BlockTaskActions?
+    /// Shown in place of the lines while there are none.
+    var emptyPrompt: String?
 
     var body: some View {
         let blocks = editor.blocks
@@ -140,6 +142,16 @@ struct BlockListView: View {
                 )
                 // The / menu hangs over the lines below.
                 .zIndex(editor.slashMenu?.blockID == block.id ? 1 : 0)
+            }
+            if blocks.isEmpty, let emptyPrompt {
+                Text(emptyPrompt)
+                    .font(.satoshi(15, relativeTo: .body))
+                    .foregroundStyle(SchemaTheme.inkFaint)
+                    .padding(.leading, Self.gutterWidth)
+                    .padding(.vertical, 2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .onTapGesture { editor.focusEnd() }
             }
             Color.clear
                 .frame(maxWidth: .infinity, minHeight: 160)
