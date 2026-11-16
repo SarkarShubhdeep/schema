@@ -42,6 +42,16 @@ struct ScratchpadPageView: View {
                 Text("/").foregroundStyle(SchemaTheme.inkFaint)
                 Text(page.title).lineLimit(1)
                 Spacer(minLength: 12)
+                Button {
+                    QuickNoteController.shared.show()
+                } label: {
+                    HStack(spacing: 8) {
+                        Text("Quick note")
+                        SchemaKeyHint("⌃⌥N")
+                    }
+                }
+                .buttonStyle(.schema(.secondary))
+                .help("Write a note from any app  ⌃⌥N")
                 pageMenu
             }
             .font(.satoshi(13, weight: .medium, relativeTo: .callout))

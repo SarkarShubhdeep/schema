@@ -16,9 +16,24 @@ struct SettingsView: View {
 
     @State private var authorizationStatus: NotificationAuthorizationStatus = .notDetermined
     @State private var isRequestingAuthorization = false
+    @State private var quickNotePageID = SchemaPreferences.quickNotePageID
 
     private var writableLists: [SchemaList] {
         lists.filter(\.acceptsTasks)
+    }
+
+    private var scratchpads: [SchemaList] {
+        lists.filter(\.isScratchpad)
+    }
+
+    private var quickNotePageBinding: Binding<UUID?> {
+        Binding(
+            get: { QuickNoteStore.targetPage(in: lists, preferredID: quickNotePageID)?.id },
+            set: {
+                quickNotePageID = $0
+                SchemaPreferences.quickNotePageID = $0
+            }
+        )
     }
 
     var body: some View {
@@ -52,6 +67,27 @@ struct SettingsView: View {
                     }
                 }
                 .labelsHidden()
+            }
+
+            sectionDivider
+
+            settingsSection(title: "Quick note") {
+                settingsRow(title: "Saves to") {
+                    Picker("Saves to", selection: quickNotePageBinding) {
+                        if scratchpads.isEmpty {
+                            Text("Ideas (made on first note)").tag(UUID?.none)
+                        }
+                        ForEach(scratchpads) { page in
+                            Text(page.title).tag(Optional(page.id))
+                        }
+                    }
+                    .labelsHidden()
+                    .fixedSize()
+                }
+                Text("Press ⌃⌥N in any app to write a note. It goes to the top of this scratchpad under today's date.")
+                    .font(.satoshi(12))
+                    .foregroundStyle(SchemaTheme.inkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             sectionDivider

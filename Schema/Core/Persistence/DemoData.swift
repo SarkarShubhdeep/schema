@@ -43,6 +43,9 @@ enum DemoData {
     /// `-SchemaDemoRoutine` opens an open routine task as a page.
     static let opensRoutineTask = CommandLine.arguments.contains("-SchemaDemoRoutine")
 
+    /// `-SchemaDemoQuickNote` opens the Quick note panel with some text.
+    static let opensQuickNote = CommandLine.arguments.contains("-SchemaDemoQuickNote")
+
     /// `-SchemaDemoPage` opens on the first page (Daily Todos).
     static let opensFirstPage = CommandLine.arguments.contains("-SchemaDemoPage")
 

@@ -102,6 +102,11 @@ struct SchemaApp: App {
         case .success(let container):
             modelContainer = container
             loadError = nil
+            #if os(macOS)
+            if !ModelContainerFactory.isHostingTests {
+                QuickNoteController.shared.start(container: container)
+            }
+            #endif
         case .failure(let error):
             modelContainer = nil
             loadError = error
