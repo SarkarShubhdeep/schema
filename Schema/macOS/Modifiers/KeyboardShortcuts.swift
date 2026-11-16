@@ -13,6 +13,9 @@ struct WorkspaceKeyboardShortcuts: ViewModifier {
     /// Number of pages; ⌘1–⌘9 select the first nine.
     let pageCount: Int
     let canUndo: Bool
+    /// False while a page that is all text (a scratchpad) is shown: single
+    /// keys like N and / are typing there, and ⌘Z undoes typing.
+    var allowsSingleKeyShortcuts = true
     let onSelectListAtIndex: (Int) -> Void
     let onSelectNextList: () -> Void
     let onSelectPreviousList: () -> Void
@@ -36,18 +39,24 @@ struct WorkspaceKeyboardShortcuts: ViewModifier {
     @ViewBuilder
     private var hiddenShortcutButtons: some View {
         Group {
-            Button("Open Add Task", action: openAddTask)
-                .keyboardShortcut("n", modifiers: [])
-                .hidden()
+            if allowsSingleKeyShortcuts {
+                Button("Open Add Task", action: openAddTask)
+                    .keyboardShortcut("n", modifiers: [])
+                    .hidden()
 
-            Button("Close Add Task", action: onCloseAddTask)
-                .keyboardShortcut(.cancelAction)
-                .hidden()
+                Button("Close Add Task", action: onCloseAddTask)
+                    .keyboardShortcut(.cancelAction)
+                    .hidden()
 
-            Button("Undo", action: onUndo)
-                .keyboardShortcut("z", modifiers: .command)
-                .disabled(!canUndo)
-                .hidden()
+                Button("Undo", action: onUndo)
+                    .keyboardShortcut("z", modifiers: .command)
+                    .disabled(!canUndo)
+                    .hidden()
+
+                Button("Select Everything List", action: onSelectEverythingList)
+                    .keyboardShortcut("/", modifiers: [])
+                    .hidden()
+            }
 
             Button("Select Next List", action: onSelectNextList)
                 .keyboardShortcut(.tab, modifiers: .control)
@@ -55,10 +64,6 @@ struct WorkspaceKeyboardShortcuts: ViewModifier {
 
             Button("Select Previous List", action: onSelectPreviousList)
                 .keyboardShortcut(.tab, modifiers: [.control, .shift])
-                .hidden()
-
-            Button("Select Everything List", action: onSelectEverythingList)
-                .keyboardShortcut("/", modifiers: [])
                 .hidden()
 
             Button("New List", action: onCreateList)
@@ -91,6 +96,7 @@ extension View {
         isAddTaskFocused: FocusState<Bool>.Binding,
         pageCount: Int,
         canUndo: Bool,
+        allowsSingleKeyShortcuts: Bool = true,
         onSelectListAtIndex: @escaping (Int) -> Void,
         onSelectNextList: @escaping () -> Void,
         onSelectPreviousList: @escaping () -> Void,
@@ -105,6 +111,7 @@ extension View {
                 isAddTaskFocused: isAddTaskFocused,
                 pageCount: pageCount,
                 canUndo: canUndo,
+                allowsSingleKeyShortcuts: allowsSingleKeyShortcuts,
                 onSelectListAtIndex: onSelectListAtIndex,
                 onSelectNextList: onSelectNextList,
                 onSelectPreviousList: onSelectPreviousList,
