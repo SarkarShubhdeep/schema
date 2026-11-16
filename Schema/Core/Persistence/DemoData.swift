@@ -37,6 +37,9 @@ enum DemoData {
     /// `-SchemaDemoSlash` also opens the / menu on a new line in Ideas.
     static let opensSlashMenu = CommandLine.arguments.contains("-SchemaDemoSlash")
 
+    /// `-SchemaDemoMakeTask` puts the caret on an open to-do in Ideas, showing "Make task in …".
+    static let focusesOpenToDo = CommandLine.arguments.contains("-SchemaDemoMakeTask")
+
     /// `-SchemaDemoPage` opens on the first page (Daily Todos).
     static let opensFirstPage = CommandLine.arguments.contains("-SchemaDemoPage")
 
@@ -137,7 +140,7 @@ enum DemoData {
             (.bullet, "To-do list: what we have today", false),
             (.bullet, "Scratchpad: this page, free-form", false),
             (.bullet, "Later: table, board, calendar", false),
-            (.todo, "Sketch the quick note panel", true),
+            (.todo, "Sketch the quick note panel", false),
             (.todo, "Decide whether page type can change after creation", false),
             (.heading, "Questions", false),
             (.quote, "Should quick notes land at the top of Ideas, or in a daily note?", false),
@@ -148,6 +151,14 @@ enum DemoData {
             let block = SchemaBlock(kind: item.0, text: item.1, sortIndex: Double(offset + 1), page: ideas)
             block.isChecked = item.2
             context.insert(block)
+            // As on the canvas, this line was already made into a task in Work.
+            if item.1 == "Sketch the quick note panel" {
+                let task = SchemaTask(title: item.1, list: work)
+                index += 1
+                task.manualSortIndex = index
+                context.insert(task)
+                block.linkedTaskID = task.id
+            }
         }
 
         try? context.save()
