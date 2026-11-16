@@ -26,12 +26,18 @@ struct BlockTextView: NSViewRepresentable {
     /// Applied once per token: put the caret in this view.
     let focusRequest: BlockFocusRequest?
     let blockID: UUID
+    /// While the / menu is open on this line, ↑ ↓ Return and Esc drive it.
+    var isMenuOpen = false
 
     var onTextChange: (String) -> Void
     var onReturn: (Int) -> Void
     var onBackspaceAtStart: () -> Void
     var onArrowOut: (_ forward: Bool) -> Void
     var onFocusChange: (Bool) -> Void
+    var onMenuMove: (Int) -> Void = { _ in }
+    var onMenuChoose: () -> Void = {}
+    var onMenuDismiss: () -> Void = {}
+    var onTurnInto: () -> Void = {}
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -53,6 +59,7 @@ struct BlockTextView: NSViewRepresentable {
         view.focusRingType = .none
         view.setAccessibilityRole(.textArea)
         view.onFocusChange = { context.coordinator.parent.onFocusChange($0) }
+        view.onTurnInto = { context.coordinator.parent.onTurnInto() }
         view.string = text
         apply(style, to: view)
         return view
@@ -86,12 +93,18 @@ struct BlockTextView: NSViewRepresentable {
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView view: BlockNSTextView, context: Context) -> CGSize? {
+        // Measure a copy of the text: SwiftUI probes several widths, and
+        // resizing the live text container for a probe would leave it
+        // wrapping at the wrong width.
         let width = proposal.width ?? 400
-        guard width > 0, let container = view.textContainer, let layout = view.layoutManager else { return nil }
-        container.containerSize = NSSize(width: width, height: .greatestFiniteMagnitude)
-        layout.ensureLayout(for: container)
-        let used = layout.usedRect(for: container).height
-        return CGSize(width: width, height: max(ceil(used), style.lineHeight))
+        guard width > 0, let storage = view.textStorage else { return nil }
+        let text = NSAttributedString(attributedString: storage)
+        var height = text.length == 0 ? 0 : text.boundingRect(
+            with: NSSize(width: width, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading]
+        ).height
+        if view.string.hasSuffix("\n") { height += style.lineHeight }
+        return CGSize(width: width, height: max(ceil(height), style.lineHeight))
     }
 
     private func apply(_ style: BlockTextStyle, to view: BlockNSTextView) {
@@ -147,6 +160,24 @@ struct BlockTextView: NSViewRepresentable {
         func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
             let range = textView.selectedRange()
             let length = (textView.string as NSString).length
+            if parent.isMenuOpen {
+                switch selector {
+                case #selector(NSResponder.moveUp(_:)):
+                    parent.onMenuMove(-1)
+                    return true
+                case #selector(NSResponder.moveDown(_:)):
+                    parent.onMenuMove(1)
+                    return true
+                case #selector(NSResponder.insertNewline(_:)), #selector(NSResponder.insertTab(_:)):
+                    parent.onMenuChoose()
+                    return true
+                case #selector(NSResponder.cancelOperation(_:)):
+                    parent.onMenuDismiss()
+                    return true
+                default:
+                    break
+                }
+            }
             switch selector {
             case #selector(NSResponder.insertNewline(_:)):
                 parent.onReturn(range.location)
@@ -214,8 +245,20 @@ final class BlockNSTextView: NSTextView {
         didSet { if oldValue != placeholder { needsDisplay = true } }
     }
     var onFocusChange: ((Bool) -> Void)?
+    var onTurnInto: (() -> Void)?
 
     override var acceptsFirstResponder: Bool { true }
+
+    /// ⌘/ opens the Turn into menu for this line.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if window?.firstResponder === self,
+           event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
+           event.charactersIgnoringModifiers == "/" {
+            onTurnInto?()
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
+    }
 
     override func becomeFirstResponder() -> Bool {
         let accepted = super.becomeFirstResponder()

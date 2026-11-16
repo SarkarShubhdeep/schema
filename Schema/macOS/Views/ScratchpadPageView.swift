@@ -73,6 +73,15 @@ struct ScratchpadPageView: View {
         if page.blocks.isEmpty {
             editor.focusEnd()
         }
+        #if DEBUG
+        if DemoData.isEnabled, DemoData.opensSlashMenu,
+           let quote = editor.blocks.first(where: { $0.kind == .quote }) {
+            let line = editor.insertBlock(after: quote, kind: .text)
+            editor.userTyped("/", in: line)
+            editor.moveMenuSelection(by: 3)
+            editor.focus(line, caret: .end)
+        }
+        #endif
     }
 }
 
@@ -91,6 +100,8 @@ struct BlockListView: View {
                     editor: editor,
                     placeholder: placeholder(for: block, isOnly: blocks.count == 1)
                 )
+                // The / menu hangs over the lines below.
+                .zIndex(editor.slashMenu?.blockID == block.id ? 1 : 0)
             }
             Color.clear
                 .frame(maxWidth: .infinity, minHeight: 160)
@@ -108,7 +119,7 @@ struct BlockListView: View {
         case .heading: "Heading"
         case .todo: "To-do"
         case .bullet, .quote: ""
-        case .text, .divider: isOnly ? "Start writing…" : "Write something…"
+        case .text, .divider: isOnly ? "Start writing, or type / for blocks" : "Type / for blocks"
         }
     }
 }
