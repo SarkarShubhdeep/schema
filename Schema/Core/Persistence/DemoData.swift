@@ -40,6 +40,9 @@ enum DemoData {
     /// `-SchemaDemoMakeTask` puts the caret on an open to-do in Ideas, showing "Make task in …".
     static let focusesOpenToDo = CommandLine.arguments.contains("-SchemaDemoMakeTask")
 
+    /// `-SchemaDemoRoutine` opens an open routine task as a page.
+    static let opensRoutineTask = CommandLine.arguments.contains("-SchemaDemoRoutine")
+
     /// `-SchemaDemoPage` opens on the first page (Daily Todos).
     static let opensFirstPage = CommandLine.arguments.contains("-SchemaDemoPage")
 

@@ -169,7 +169,7 @@ private struct TaskPropertiesList: View {
     private var draft: TaskDetailDraft { editor.draft }
 
     var body: some View {
-        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 2) {
+        VStack(alignment: .leading, spacing: 2) {
             row("Page", systemImage: "checklist") {
                 Menu {
                     ForEach(taskPages) { page in
@@ -179,15 +179,16 @@ private struct TaskPropertiesList: View {
                 } label: {
                     valueText(task.list?.title ?? "None", isSet: task.list != nil)
                 }
-                .menuStyle(.borderlessButton)
+                .menuStyle(.button)
+                .buttonStyle(.plain)
                 .menuIndicator(.hidden)
-                .fixedSize()
+                .fixedSize(horizontal: false, vertical: true)
             }
 
             row("Due", systemImage: "calendar") {
-                HStack(spacing: 2) {
+                HStack(spacing: 10) {
                     Button { openDatePicker() } label: {
-                        valueText(dateLabel, isSet: draft.selectedDate != nil || draft.isRoutine)
+                        valueText(dateLabel, isSet: draft.selectedDate != nil)
                     }
                     .buttonStyle(.plain)
                     .disabled(draft.isRoutine)
@@ -205,40 +206,37 @@ private struct TaskPropertiesList: View {
 
             row("Reminder", systemImage: "bell") {
                 valueText(draft.selectedTime == nil ? "None" : "At due time", isSet: draft.selectedTime != nil)
-                    .padding(.horizontal, 8)
             }
 
             row("Routine", systemImage: "repeat") {
-                VStack(alignment: .leading, spacing: 8) {
-                    Toggle(isOn: Binding(
+                HStack(spacing: 8) {
+                    valueText(draft.isRoutine ? routineSummary : "Off", isSet: draft.isRoutine)
+                    Spacer(minLength: 0)
+                    Toggle("Routine", isOn: Binding(
                         get: { draft.isRoutine },
                         set: { isOn in
                             if isOn { editor.draft.enableRoutine() } else { editor.draft.disableRoutine() }
                             onSaveSchedule()
                         }
-                    )) {
-                        Text(draft.isRoutine ? routineSummary : "Off")
-                            .font(.satoshi(13, relativeTo: .callout))
-                            .foregroundStyle(draft.isRoutine ? SchemaTheme.ink : SchemaTheme.inkMuted)
-                    }
+                    ))
+                    .labelsHidden()
                     .toggleStyle(.switch)
                     .controlSize(.mini)
                     .tint(SchemaTheme.ink)
-                    .accessibilityLabel("Routine")
-
-                    if draft.isRoutine {
-                        HStack(spacing: 4) {
-                            ForEach(WeekdayInfo.ordered, id: \.weekday) { day in
-                                dayButton(day)
-                            }
-                        }
-                    }
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
             }
 
+            // The days get a full-width row so they never push the card wider.
             if draft.isRoutine {
+                HStack(spacing: 0) {
+                    ForEach(Array(WeekdayInfo.ordered.enumerated()), id: \.element.weekday) { index, day in
+                        if index > 0 { Spacer(minLength: 2) }
+                        dayButton(day)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+
                 row("After", systemImage: "arrow.turn.down.right") {
                     Menu {
                         Button("None") {
@@ -254,7 +252,8 @@ private struct TaskPropertiesList: View {
                     } label: {
                         valueText(afterTitle ?? "None", isSet: afterTitle != nil)
                     }
-                    .menuStyle(.borderlessButton)
+                    .menuStyle(.button)
+                    .buttonStyle(.plain)
                     .menuIndicator(.hidden)
                     .fixedSize(horizontal: false, vertical: true)
                 }
@@ -262,15 +261,21 @@ private struct TaskPropertiesList: View {
 
             row("Tags", systemImage: "number") {
                 valueText(task.tags.isEmpty ? "None" : task.tags.joined(separator: ", "), isSet: !task.tags.isEmpty)
-                    .padding(.horizontal, 8)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: Rows
 
+    private enum Metrics {
+        /// Label column; values all start at the same x.
+        static let labelWidth: CGFloat = 96
+        static let rowHeight: CGFloat = 30
+    }
+
     private func row(_ name: String, systemImage: String, @ViewBuilder value: () -> some View) -> some View {
-        GridRow(alignment: .top) {
+        HStack(spacing: 8) {
             Label {
                 Text(name)
             } icon: {
@@ -281,12 +286,12 @@ private struct TaskPropertiesList: View {
             .font(.satoshi(13, relativeTo: .callout))
             .foregroundStyle(SchemaTheme.inkMuted)
             .lineLimit(1)
-            .fixedSize()
-            .frame(minHeight: 28)
+            .frame(width: Metrics.labelWidth, alignment: .leading)
+
             value()
-                .frame(minHeight: 28, alignment: .leading)
-                .padding(.leading, -8)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(minHeight: Metrics.rowHeight)
     }
 
     private func valueText(_ text: String, isSet: Bool) -> some View {
@@ -294,8 +299,7 @@ private struct TaskPropertiesList: View {
             .font(.satoshi(13, relativeTo: .callout).monospacedDigit())
             .foregroundStyle(isSet ? SchemaTheme.ink : SchemaTheme.inkMuted)
             .lineLimit(1)
-            .padding(.horizontal, 8)
-            .frame(height: 26)
+            .truncationMode(.tail)
             .contentShape(Rectangle())
     }
 
@@ -334,7 +338,9 @@ private struct TaskPropertiesList: View {
         let days = draft.routineDays
         if days.count == 7 { return "Every day" }
         if days == [2, 3, 4, 5, 6] { return "Weekdays" }
-        return WeekdayInfo.ordered.filter { days.contains($0.weekday) }.map { String($0.fullName.prefix(3)) }.joined(separator: " ")
+        if days == [1, 7] { return "Weekends" }
+        if days.count > 3 { return "\(days.count) days" }
+        return WeekdayInfo.ordered.filter { days.contains($0.weekday) }.map { String($0.fullName.prefix(3)) }.joined(separator: ", ")
     }
 
     private var afterCandidates: [SchemaTask] {
