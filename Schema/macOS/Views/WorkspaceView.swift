@@ -233,6 +233,7 @@ struct WorkspaceView: View {
             isAddTaskFocused: $isAddTaskFocused,
             pageCount: listViewModel.pages(from: lists).count,
             canUndo: taskViewModel.canUndo,
+            allowsSingleKeyShortcuts: scratchpadPage == nil,
             onSelectListAtIndex: { index in
                 listViewModel.selectList(at: index, from: listViewModel.pages(from: lists))
             },

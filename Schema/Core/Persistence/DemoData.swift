@@ -128,6 +128,25 @@ enum DemoData {
         plan.manualSortIndex = index + 2
         context.insert(plan)
 
+        // The Ideas scratchpad, as on the canvas.
+        let ideaBlocks: [(BlockKind, String, Bool)] = [
+            (.text, "Schema keeps turning into more than a to-do app. Pages could be the core idea: every page has a type, and the type decides its structure.", false),
+            (.bullet, "To-do list: what we have today", false),
+            (.bullet, "Scratchpad: this page, free-form", false),
+            (.bullet, "Later: table, board, calendar", false),
+            (.todo, "Sketch the quick note panel", true),
+            (.todo, "Decide whether page type can change after creation", false),
+            (.heading, "Questions", false),
+            (.quote, "Should quick notes land at the top of Ideas, or in a daily note?", false),
+            (.divider, "", false),
+            (.text, "GitHub inbox: summarize review requests every morning and pin them to Today.", false),
+        ]
+        for (offset, item) in ideaBlocks.enumerated() {
+            let block = SchemaBlock(kind: item.0, text: item.1, sortIndex: Double(offset + 1), page: ideas)
+            block.isChecked = item.2
+            context.insert(block)
+        }
+
         try? context.save()
         defaults.set(daily.id.uuidString, forKey: "schema.preferences.defaultWritableListID")
     }
