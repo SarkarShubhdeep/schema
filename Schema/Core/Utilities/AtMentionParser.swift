@@ -226,7 +226,7 @@ enum AtMentionParser {
 
     private static func sortedWritableLists(_ lists: [SchemaList]) -> [SchemaList] {
         lists
-            .filter { !$0.isEverythingList }
+            .filter(\.acceptsTasks)
             .sorted {
                 $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
             }

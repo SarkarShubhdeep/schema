@@ -78,7 +78,25 @@ struct ContentView: View {
                 )
             }
         }
+        .overlay {
+            if listViewModel.showNewListSheet {
+                NewPageDialog(
+                    title: Binding(get: { listViewModel.newListTitle }, set: { listViewModel.newListTitle = $0 }),
+                    kind: Binding(get: { listViewModel.newPageKind }, set: { listViewModel.newPageKind = $0 }),
+                    shortcutNumber: newPageShortcutNumber(listViewModel),
+                    onCreate: {
+                        listViewModel.createList(
+                            title: listViewModel.newListTitle,
+                            kind: listViewModel.newPageKind,
+                            existingLists: lists
+                        )
+                    },
+                    onCancel: listViewModel.cancelNewPage
+                )
+            }
+        }
         .animation(SchemaMotion.fast, value: workspace.isConfirmingDelete)
+        .animation(SchemaMotion.fast, value: listViewModel.showNewListSheet)
         .focusedSceneValue(\.workspaceState, workspace)
         .onGeometryChange(for: CGFloat.self) { proxy in
             proxy.size.width
@@ -107,6 +125,12 @@ struct ContentView: View {
         }
     }
 
+    /// ⌘1–⌘9 go to the first nine pages; the new page is added last.
+    private func newPageShortcutNumber(_ listViewModel: ListViewModel) -> Int? {
+        let next = listViewModel.pages(from: lists).count + 1
+        return next <= 9 ? next : nil
+    }
+
     private func bootstrapIfNeeded() {
         guard listViewModel == nil else { return }
 
@@ -123,6 +147,14 @@ struct ContentView: View {
         }
         if DemoData.isEnabled, DemoData.opensSettings {
             workspace.showSettings = true
+        }
+        if DemoData.isEnabled, DemoData.opensNewPage {
+            listVM.openNewPage()
+            listVM.newListTitle = "Side project ideas"
+            listVM.newPageKind = .scratchpad
+        }
+        if DemoData.isEnabled, DemoData.opensScratchpad {
+            listVM.selectList(listVM.pages(from: lists).first(where: \.isScratchpad))
         }
         if DemoData.isEnabled, DemoData.opensFirstPage {
             listVM.selectList(listVM.pages(from: lists).first)
@@ -164,7 +196,7 @@ struct ContentView: View {
             listViewModel.selectedListID = lists.first?.id
         }
         if listViewModel.defaultWritableListID == nil {
-            listViewModel.defaultWritableListID = lists.first(where: { !$0.isEverythingList })?.id
+            listViewModel.defaultWritableListID = lists.first(where: \.acceptsTasks)?.id
         }
     }
 }

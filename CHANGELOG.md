@@ -7,6 +7,8 @@ All notable changes to Schema are documented in this file.
 ### Changed
 
 - Pages now have a type, To-do list or Scratchpad, and can hold blocks (text, heading, bullet, to-do, quote, divider); tasks can hold blocks too, for their own page later (#36). The data migrates to schema V6 automatically and every existing page stays a to-do list. Nothing in the window changes yet.
+- New page (⌘N) opens a dialog with a name and a page type, To-do list or Scratchpad (#37). The sidebar shows a document icon for scratchpads, and tooltips name each page's type. A new scratchpad opens as an empty page until the editor lands (#38).
+- Scratchpads never receive tasks: quick add, @page mentions, Move to page and the default page in Settings only offer to-do lists.
 - Added the first unit tests (Swift Testing, `SchemaTests` target): block ordering, page and block models, and the V5 → V6 migration. Tests run against an in-memory store, never the real one.
 
 ## [0.4.0] — 2026-11-15

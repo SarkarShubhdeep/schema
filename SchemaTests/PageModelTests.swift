@@ -39,6 +39,28 @@ struct PageModelTests {
         #expect(fetched.pageKind == .scratchpad)
     }
 
+    @Test func onlyToDoListsAcceptTasks() {
+        #expect(SchemaList(title: "Work").acceptsTasks)
+        #expect(!SchemaList(title: "Ideas", kind: .scratchpad).acceptsTasks)
+        #expect(!SchemaList(title: SchemaList.everythingTitle).acceptsTasks)
+    }
+
+    @Test func createListKeepsTheChosenKindAndSelectsIt() throws {
+        let viewModel = ListViewModel(modelContext: context)
+        viewModel.openNewPage()
+        viewModel.newListTitle = "  Side project ideas "
+        viewModel.newPageKind = .scratchpad
+        viewModel.createList(title: viewModel.newListTitle, kind: viewModel.newPageKind, existingLists: [])
+
+        let page = try #require(try context.fetch(FetchDescriptor<SchemaList>()).first)
+        #expect(page.title == "Side project ideas")
+        #expect(page.pageKind == .scratchpad)
+        #expect(viewModel.selectedListID == page.id)
+        #expect(!viewModel.showNewListSheet)
+        #expect(viewModel.newPageKind == .todo)
+        #expect(viewModel.taskPages(from: [page]).isEmpty)
+    }
+
     @Test func unknownStoredKindsFallBack() {
         let page = SchemaList(title: "Later")
         page.pageKindRaw = "board"

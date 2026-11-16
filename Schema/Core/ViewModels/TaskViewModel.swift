@@ -87,7 +87,7 @@ final class TaskViewModel {
         let targetList: SchemaList?
         if list.isEverythingList {
             if let defaultWritableListID,
-               let preferred = lists.first(where: { $0.id == defaultWritableListID && !$0.isEverythingList }) {
+               let preferred = lists.first(where: { $0.id == defaultWritableListID && $0.acceptsTasks }) {
                 targetList = preferred
             } else {
                 targetList = defaultWritableList(from: lists)
@@ -469,7 +469,7 @@ final class TaskViewModel {
     }
 
     private func defaultWritableList(from lists: [SchemaList]) -> SchemaList? {
-        lists.first(where: { !$0.isEverythingList })
+        lists.first(where: \.acceptsTasks)
     }
 
     private func applyFilter(_ tasks: [SchemaTask], option: TaskFilterOption) -> [SchemaTask] {

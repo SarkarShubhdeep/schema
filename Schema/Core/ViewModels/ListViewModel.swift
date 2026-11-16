@@ -55,6 +55,7 @@ final class ListViewModel {
     var smartView: SmartView?
     var showNewListSheet = false
     var newListTitle = ""
+    var newPageKind: PageKind = .todo
     var sortOption: TaskSortOption = SchemaPreferences.sortOption {
         didSet { SchemaPreferences.sortOption = sortOption }
     }
@@ -147,6 +148,11 @@ final class ListViewModel {
     }
 
     /// Pages in sidebar order: every list except Everything.
+    /// To-do lists only: where tasks can be added or moved.
+    func taskPages(from lists: [SchemaList]) -> [SchemaList] {
+        lists.filter(\.acceptsTasks)
+    }
+
     func pages(from lists: [SchemaList]) -> [SchemaList] {
         lists.filter { !$0.isEverythingList }
     }
@@ -162,7 +168,7 @@ final class ListViewModel {
         return lists.first
     }
 
-    func createList(title: String, existingLists: [SchemaList]) {
+    func createList(title: String, kind: PageKind = .todo, existingLists: [SchemaList]) {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
@@ -170,12 +176,24 @@ final class ListViewModel {
         let list = SchemaList(
             title: trimmed,
             order: nextOrder,
-            accentColorName: SchemaListColorName.fallback(for: trimmed).rawValue
+            accentColorName: SchemaListColorName.fallback(for: trimmed).rawValue,
+            kind: kind
         )
         modelContext.insert(list)
         save()
         selectedListID = list.id
+        cancelNewPage()
+    }
+
+    func openNewPage() {
         newListTitle = ""
+        newPageKind = .todo
+        showNewListSheet = true
+    }
+
+    func cancelNewPage() {
+        newListTitle = ""
+        newPageKind = .todo
         showNewListSheet = false
     }
 
