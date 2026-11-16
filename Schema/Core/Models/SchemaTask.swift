@@ -26,6 +26,10 @@ final class SchemaTask {
 
     var list: SchemaList?
 
+    /// The task's page body (schema V6, used by tasks as pages, #31).
+    @Relationship(deleteRule: .cascade, inverse: \SchemaBlock.task)
+    var blocks: [SchemaBlock] = []
+
     init(
         title: String,
         description: String? = nil,
@@ -48,6 +52,7 @@ final class SchemaTask {
         self.routineDays = routineDays
         self.lastRoutineReset = nil
         self.afterTaskID = afterTaskID
+        self.blocks = []
     }
 }
 
@@ -63,6 +68,8 @@ extension SchemaTask {
         guard let completedAt else { return false }
         return calendar.isDate(completedAt, inSameDayAs: date)
     }
+
+    var orderedBlocks: [SchemaBlock] { blocks.inDisplayOrder }
 
     static let allRoutineWeekdays: [Int] = [2, 3, 4, 5, 6, 7, 1]
 

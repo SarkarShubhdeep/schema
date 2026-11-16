@@ -32,7 +32,23 @@ enum ModelContainerFactory {
         return directory.appendingPathComponent("Schema.store")
     }
 
+    /// True while the app hosts the unit tests. The tests then get an empty
+    /// in-memory store, so running them never opens or migrates real data.
+    static var isHostingTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    }
+
     static func makeContainer(resetStore: Bool = false) -> Result<ModelContainer, ModelContainerError> {
+        if isHostingTests {
+            do {
+                let schema = Schema(versionedSchema: SchemaCurrentVersion.self)
+                let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+                return .success(try ModelContainer(for: schema, configurations: [configuration]))
+            } catch {
+                return .failure(ModelContainerError(message: error.localizedDescription))
+            }
+        }
+
         #if DEBUG
         if DemoData.isEnabled {
             do {
@@ -48,7 +64,7 @@ enum ModelContainerFactory {
         }
 
         do {
-            let schema = Schema(versionedSchema: SchemaMigrationV5.self)
+            let schema = Schema(versionedSchema: SchemaCurrentVersion.self)
             let configuration = ModelConfiguration(schema: schema, url: storeURL())
             let container = try ModelContainer(
                 for: schema,

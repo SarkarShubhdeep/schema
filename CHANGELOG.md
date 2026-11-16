@@ -4,6 +4,11 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Pages now have a type, To-do list or Scratchpad, and can hold blocks (text, heading, bullet, to-do, quote, divider); tasks can hold blocks too, for their own page later (#36). The data migrates to schema V6 automatically and every existing page stays a to-do list. Nothing in the window changes yet.
+- Added the first unit tests (Swift Testing, `SchemaTests` target): block ordering, page and block models, and the V5 → V6 migration. Tests run against an in-memory store, never the real one.
+
 ## [0.4.0] — 2026-11-15
 
 The Mac redesign: a three-column window, the Schema design system (neutral greys, one yellow accent, Space Grotesk and Satoshi), sidebar navigation, redesigned to-do pages, a Today dashboard and an overview panel.

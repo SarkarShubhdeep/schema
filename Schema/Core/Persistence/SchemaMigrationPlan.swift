@@ -279,7 +279,8 @@ enum SchemaMigrationV4: VersionedSchema {
     }
 }
 
-/// V5 adds `SchemaTask.completedAt` (#16). Uses the live models.
+/// V5 frozen as it shipped (v0.4): adds `SchemaTask.completedAt` (#16).
+/// Class names match the live ones so the stored entity names stay the same.
 enum SchemaMigrationV5: VersionedSchema {
     static var versionIdentifier: Schema.Version {
         Schema.Version(5, 0, 0)
@@ -288,7 +289,71 @@ enum SchemaMigrationV5: VersionedSchema {
     static var models: [any PersistentModel.Type] {
         [SchemaList.self, SchemaTask.self]
     }
+
+    @Model
+    final class SchemaList {
+        var id: UUID
+        var title: String
+        var createdAt: Date
+        var order: Int
+        var accentColorName: String?
+        var tagLabel: String?
+
+        @Relationship(deleteRule: .cascade, inverse: \SchemaTask.list)
+        var tasks: [SchemaTask]
+
+        init(id: UUID = UUID(), title: String, createdAt: Date = .now, order: Int = 0) {
+            self.id = id
+            self.title = title
+            self.createdAt = createdAt
+            self.order = order
+            self.tasks = []
+        }
+    }
+
+    @Model
+    final class SchemaTask {
+        var id: UUID
+        var title: String
+        var taskDescription: String?
+        var isCompleted: Bool
+        var createdAt: Date
+        var reminderTime: Date?
+        var tags: [String]
+        var isRoutine: Bool = false
+        var routineDays: [Int] = []
+        var lastRoutineReset: Date?
+        var afterTaskID: UUID?
+        var manualSortIndex: Double = 0
+        var completedAt: Date?
+
+        var list: SchemaList?
+
+        init(id: UUID = UUID(), title: String, createdAt: Date = .now) {
+            self.id = id
+            self.title = title
+            self.isCompleted = false
+            self.createdAt = createdAt
+            self.tags = []
+        }
+    }
 }
+
+/// V6 adds page types and blocks (#36): `SchemaList.pageKindRaw`, the
+/// `SchemaBlock` model, and block relationships on pages and tasks.
+/// Uses the live models.
+enum SchemaMigrationV6: VersionedSchema {
+    static var versionIdentifier: Schema.Version {
+        Schema.Version(6, 0, 0)
+    }
+
+    static var models: [any PersistentModel.Type] {
+        [SchemaList.self, SchemaTask.self, SchemaBlock.self]
+    }
+}
+
+/// The schema the app opens its store with.
+typealias SchemaCurrentVersion = SchemaMigrationV6
 
 enum SchemaAppMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
@@ -298,11 +363,12 @@ enum SchemaAppMigrationPlan: SchemaMigrationPlan {
             SchemaMigrationV3.self,
             SchemaMigrationV4.self,
             SchemaMigrationV5.self,
+            SchemaMigrationV6.self,
         ]
     }
 
     static var stages: [MigrationStage] {
-        [migrateV1toV2, migrateV2toV3, migrateV3toV4, migrateV4toV5]
+        [migrateV1toV2, migrateV2toV3, migrateV3toV4, migrateV4toV5, migrateV5toV6]
     }
 
     /// Adds the optional `completedAt`. Tasks already done keep it empty:
@@ -311,6 +377,13 @@ enum SchemaAppMigrationPlan: SchemaMigrationPlan {
     static let migrateV4toV5 = MigrationStage.lightweight(
         fromVersion: SchemaMigrationV4.self,
         toVersion: SchemaMigrationV5.self
+    )
+
+    /// Adds `pageKindRaw` (default "todo", so every existing page stays a
+    /// to-do list) and the empty block store. No data is rewritten.
+    static let migrateV5toV6 = MigrationStage.lightweight(
+        fromVersion: SchemaMigrationV5.self,
+        toVersion: SchemaMigrationV6.self
     )
 
     static let migrateV1toV2 = MigrationStage.lightweight(

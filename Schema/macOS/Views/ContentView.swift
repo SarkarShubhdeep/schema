@@ -171,5 +171,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: [SchemaList.self, SchemaTask.self], inMemory: true)
+        .modelContainer(for: [SchemaList.self, SchemaTask.self, SchemaBlock.self], inMemory: true)
 }

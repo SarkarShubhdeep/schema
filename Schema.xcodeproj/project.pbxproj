@@ -10,9 +10,20 @@
 		5404D2D12FDDF79900765A88 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 5404D2D02FDDF79900765A88 /* AppIcon.icon */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		SCHMA0012F00010000000026 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = SCHMA0012F00010000000009 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = SCHMA0012F00010000000006;
+			remoteInfo = Schema;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		5404D2D02FDDF79900765A88 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		SCHMA0012F00010000000001 /* Schema.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Schema.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		SCHMA0012F00010000000020 /* SchemaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SchemaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -21,10 +32,22 @@
 			path = Schema;
 			sourceTree = "<group>";
 		};
+		SCHMA0012F00010000000021 /* SchemaTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = SchemaTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		SCHMA0012F00010000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		SCHMA0012F00010000000024 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -39,6 +62,7 @@
 			children = (
 				5404D2D02FDDF79900765A88 /* AppIcon.icon */,
 				SCHMA0012F00010000000002 /* Schema */,
+				SCHMA0012F00010000000021 /* SchemaTests */,
 				SCHMA0012F00010000000004 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -47,6 +71,7 @@
 			isa = PBXGroup;
 			children = (
 				SCHMA0012F00010000000001 /* Schema.app */,
+				SCHMA0012F00010000000020 /* SchemaTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -76,6 +101,29 @@
 			productReference = SCHMA0012F00010000000001 /* Schema.app */;
 			productType = "com.apple.product-type.application";
 		};
+		SCHMA0012F00010000000022 /* SchemaTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = SCHMA0012F00010000000028 /* Build configuration list for PBXNativeTarget "SchemaTests" */;
+			buildPhases = (
+				SCHMA0012F00010000000023 /* Sources */,
+				SCHMA0012F00010000000024 /* Frameworks */,
+				SCHMA0012F00010000000025 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				SCHMA0012F00010000000027 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				SCHMA0012F00010000000021 /* SchemaTests */,
+			);
+			name = SchemaTests;
+			packageProductDependencies = (
+			);
+			productName = SchemaTests;
+			productReference = SCHMA0012F00010000000020 /* SchemaTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -88,6 +136,10 @@
 				TargetAttributes = {
 					SCHMA0012F00010000000006 = {
 						CreatedOnToolsVersion = 26.5;
+					};
+					SCHMA0012F00010000000022 = {
+						CreatedOnToolsVersion = 26.5;
+						TestTargetID = SCHMA0012F00010000000006;
 					};
 				};
 			};
@@ -106,6 +158,7 @@
 			projectRoot = "";
 			targets = (
 				SCHMA0012F00010000000006 /* Schema */,
+				SCHMA0012F00010000000022 /* SchemaTests */,
 			);
 		};
 /* End PBXProject section */
@@ -119,6 +172,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		SCHMA0012F00010000000025 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -129,7 +189,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		SCHMA0012F00010000000023 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		SCHMA0012F00010000000027 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = SCHMA0012F00010000000006 /* Schema */;
+			targetProxy = SCHMA0012F00010000000026 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		SCHMA0012F0001000000000D /* Debug */ = {
@@ -320,6 +395,48 @@
 			};
 			name = Release;
 		};
+		SCHMA0012F00010000000029 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Z62938YSA8;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sarkarshubhdeep.schema.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Schema.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Schema";
+			};
+			name = Debug;
+		};
+		SCHMA0012F0001000000002A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Z62938YSA8;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sarkarshubhdeep.schema.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Schema.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Schema";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -337,6 +454,15 @@
 			buildConfigurations = (
 				SCHMA0012F0001000000000F /* Debug */,
 				SCHMA0012F00010000000010 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		SCHMA0012F00010000000028 /* Build configuration list for PBXNativeTarget "SchemaTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				SCHMA0012F00010000000029 /* Debug */,
+				SCHMA0012F0001000000002A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

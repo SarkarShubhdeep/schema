@@ -63,7 +63,7 @@ enum DemoData {
 
     @MainActor
     static func makeContainer() throws -> ModelContainer {
-        let schema = Schema(versionedSchema: SchemaMigrationV5.self)
+        let schema = Schema(versionedSchema: SchemaCurrentVersion.self)
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [configuration])
         seed(container.mainContext)
