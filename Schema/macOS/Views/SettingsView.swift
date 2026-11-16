@@ -18,7 +18,7 @@ struct SettingsView: View {
     @State private var isRequestingAuthorization = false
 
     private var writableLists: [SchemaList] {
-        lists.filter { !$0.isEverythingList }
+        lists.filter(\.acceptsTasks)
     }
 
     var body: some View {

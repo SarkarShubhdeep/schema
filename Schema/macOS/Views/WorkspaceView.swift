@@ -25,6 +25,12 @@ struct WorkspaceView: View {
         listViewModel.selectedList(from: lists)
     }
 
+    /// The selected page when it is a scratchpad (and no smart view is shown).
+    var scratchpadPage: SchemaList? {
+        guard listViewModel.smartView == nil, let selectedList, selectedList.isScratchpad else { return nil }
+        return selectedList
+    }
+
     /// Open tasks grouped into Today, Later this week, Later and Someday.
     var incompleteSections: [TaskSectionGroup] {
         let open = inSmartView(taskViewModel.incompleteTasks(
@@ -81,6 +87,9 @@ struct WorkspaceView: View {
 
         HStack(spacing: 0) {
         VStack(spacing: 0) {
+            if let scratchpad = scratchpadPage {
+                ScratchpadPageView(page: scratchpad)
+            } else {
             TaskListView(
                 pageKey: listViewModel.smartView?.rawValue ?? listViewModel.selectedListID?.uuidString ?? "",
                 header: VStack(alignment: .leading, spacing: 22) {
@@ -149,6 +158,7 @@ struct WorkspaceView: View {
                     onOpenDetail: openTaskDetail
                 )
             )
+            }
         }
         .overlay(alignment: .bottom) {
             selectionToolbar
@@ -241,9 +251,7 @@ struct WorkspaceView: View {
                     listViewModel.selectEverythingList(from: lists)
                 }
             },
-            onCreateList: {
-                listViewModel.showNewListSheet = true
-            },
+            onCreateList: listViewModel.openNewPage,
             onCloseAddTask: closeAddTask,
             onUndo: {
                 withAnimation(SchemaMotion.smooth) {
@@ -251,24 +259,6 @@ struct WorkspaceView: View {
                 }
             }
         )
-        .sheet(isPresented: Binding(
-            get: { listViewModel.showNewListSheet },
-            set: { listViewModel.showNewListSheet = $0 }
-        )) {
-            NewListSheet(
-                title: Binding(
-                    get: { listViewModel.newListTitle },
-                    set: { listViewModel.newListTitle = $0 }
-                ),
-                onCreate: {
-                    listViewModel.createList(title: listViewModel.newListTitle, existingLists: lists)
-                },
-                onCancel: {
-                    listViewModel.newListTitle = ""
-                    listViewModel.showNewListSheet = false
-                }
-            )
-        }
     }
 
     @ViewBuilder
@@ -278,7 +268,7 @@ struct WorkspaceView: View {
             SelectionToolbar(
                 count: selected.count,
                 isAllCompleted: selected.allSatisfy(\.isCompleted),
-                pages: listViewModel.pages(from: lists),
+                pages: listViewModel.taskPages(from: lists),
                 onReschedule: { rescheduleSelected(to: $0) },
                 onMove: { moveSelected(to: $0) },
                 onDelete: { workspace.requestDelete(workspace.selectedTaskIDs) },

@@ -60,6 +60,9 @@ extension SchemaList {
 
     var isScratchpad: Bool { pageKind == .scratchpad }
 
+    /// Tasks can be added to or moved into this page: to-do lists only.
+    var acceptsTasks: Bool { !isEverythingList && pageKind == .todo }
+
     var orderedBlocks: [SchemaBlock] { blocks.inDisplayOrder }
 
     var isEverythingList: Bool {

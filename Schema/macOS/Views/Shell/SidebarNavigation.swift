@@ -56,8 +56,8 @@ struct SidebarNavigation: View {
                     isCollapsed: isCollapsed,
                     trailing: shortcut.map { .keys($0) } ?? .none,
                     tooltip: isCollapsed
-                        ? "\(page.title) (to-do list)" + (shortcut.map { "  \($0)" } ?? "")
-                        : "To-do list"
+                        ? "\(page.title) (\(page.pageKind.displayName.lowercased()))" + (shortcut.map { "  \($0)" } ?? "")
+                        : page.pageKind.displayName
                 ) {
                     ZStack {
                         if isCollapsed {
@@ -65,7 +65,7 @@ struct SidebarNavigation: View {
                                 .font(.spaceGrotesk(14, weight: .semibold, relativeTo: .body))
                                 .transition(.opacity)
                         } else {
-                            Image(systemName: "checklist")
+                            Image(systemName: page.pageKind.systemImage)
                                 .transition(.opacity)
                         }
                     }
@@ -84,7 +84,7 @@ struct SidebarNavigation: View {
             ) {
                 Image(systemName: "plus")
             } action: {
-                listViewModel.showNewListSheet = true
+                listViewModel.openNewPage()
             }
         }
     }
@@ -94,7 +94,7 @@ struct SidebarNavigation: View {
         if showsNewPage {
             SidebarSectionHeader(title: title, isCollapsed: isCollapsed) {
                 SchemaIconButton(systemImage: "plus", label: "New page", shortcut: "⌘N", size: 24) {
-                    listViewModel.showNewListSheet = true
+                    listViewModel.openNewPage()
                 }
             }
         } else {

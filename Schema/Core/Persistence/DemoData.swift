@@ -29,6 +29,11 @@ enum DemoData {
     /// `-SchemaDemoSettings` opens Settings.
     static let opensSettings = CommandLine.arguments.contains("-SchemaDemoSettings")
 
+    /// `-SchemaDemoNewPage` opens the New page dialog with Scratchpad picked.
+    static let opensNewPage = CommandLine.arguments.contains("-SchemaDemoNewPage")
+    /// `-SchemaDemoScratchpad` opens the Ideas scratchpad.
+    static let opensScratchpad = CommandLine.arguments.contains("-SchemaDemoScratchpad")
+
     /// `-SchemaDemoPage` opens on the first page (Daily Todos).
     static let opensFirstPage = CommandLine.arguments.contains("-SchemaDemoPage")
 
@@ -84,7 +89,8 @@ enum DemoData {
         let work = SchemaList(title: "Work", order: 2, accentColorName: SchemaListColorName.blue.rawValue, tagLabel: "Work")
         let groceries = SchemaList(title: "Groceries", order: 3, accentColorName: SchemaListColorName.purple.rawValue, tagLabel: "Groceries")
         let reading = SchemaList(title: "Reading", order: 4, accentColorName: SchemaListColorName.green.rawValue, tagLabel: "Reading")
-        [everything, daily, work, groceries, reading].forEach(context.insert)
+        let ideas = SchemaList(title: "Ideas", order: 5, accentColorName: SchemaListColorName.neutral.rawValue, kind: .scratchpad)
+        [everything, daily, work, groceries, reading, ideas].forEach(context.insert)
 
         var index = 0.0
         func add(_ title: String, to list: SchemaList, note: String? = nil, reminder: Date? = nil, done: Bool = false) {
