@@ -33,6 +33,13 @@ struct BlockRowView: View {
         .contentShape(Rectangle())
         .onHover { isHovered = $0 }
         .contextMenu { menu }
+        .overlay(alignment: .topLeading) {
+            if editor.isMenuOpen(on: block) {
+                SlashMenuView(editor: editor, block: block)
+                    .offset(x: Metrics.gutterWidth, y: lineHeight + 8 + (block.kind == .heading ? 12 : 0))
+                    .transition(.opacity)
+            }
+        }
     }
 
     // MARK: Gutter
@@ -110,7 +117,8 @@ struct BlockRowView: View {
             placeholder: placeholder,
             focusRequest: editor.focusRequest,
             blockID: block.id,
-            onTextChange: { editor.setText($0, of: block) },
+            isMenuOpen: editor.isMenuOpen(on: block),
+            onTextChange: { editor.userTyped($0, in: block) },
             onReturn: { editor.splitBlock(block, at: $0) },
             onBackspaceAtStart: { editor.backspaceAtStart(of: block) },
             onArrowOut: { forward in
@@ -119,10 +127,16 @@ struct BlockRowView: View {
             onFocusChange: { focused in
                 if focused {
                     editor.activeBlockID = block.id
+                    // Moving to another line closes a menu left open elsewhere.
+                    if let menu = editor.slashMenu, menu.blockID != block.id { editor.dismissMenu() }
                 } else if editor.activeBlockID == block.id {
                     editor.activeBlockID = nil
                 }
-            }
+            },
+            onMenuMove: { editor.moveMenuSelection(by: $0) },
+            onMenuChoose: { editor.chooseMenuItem(in: block) },
+            onMenuDismiss: { editor.dismissMenu() },
+            onTurnInto: { editor.openTurnInto(for: block) }
         )
         .accessibilityLabel(accessibilityName)
     }

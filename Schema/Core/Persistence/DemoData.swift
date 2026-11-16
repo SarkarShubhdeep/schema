@@ -34,6 +34,9 @@ enum DemoData {
     /// `-SchemaDemoScratchpad` opens the Ideas scratchpad.
     static let opensScratchpad = CommandLine.arguments.contains("-SchemaDemoScratchpad")
 
+    /// `-SchemaDemoSlash` also opens the / menu on a new line in Ideas.
+    static let opensSlashMenu = CommandLine.arguments.contains("-SchemaDemoSlash")
+
     /// `-SchemaDemoPage` opens on the first page (Daily Todos).
     static let opensFirstPage = CommandLine.arguments.contains("-SchemaDemoPage")
 

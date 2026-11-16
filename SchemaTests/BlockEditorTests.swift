@@ -134,4 +134,115 @@ struct BlockEditorTests {
         editor.splitBlock(block, at: 2)
         #expect(texts == ["👋", " hi"])
     }
+
+    // MARK: Markdown shortcuts (#39)
+
+    @Test(arguments: [
+        ("# ", BlockKind.heading), ("## ", .heading), ("- ", .bullet), ("* ", .bullet),
+        ("[] ", .todo), ("[ ] ", .todo), ("> ", .quote),
+    ])
+    func markdownPrefixTurnsTheLineIntoAKind(prefix: String, kind: BlockKind) {
+        let block = add(.text, "")
+        editor.userTyped(prefix, in: block)
+        #expect(block.kind == kind)
+        #expect(block.text.isEmpty)
+    }
+
+    @Test func markdownPrefixKeepsTheRestOfTheLine() {
+        let block = add(.text, "")
+        editor.userTyped("- milk", in: block)
+        // Only a prefix typed on its own converts; "- milk" arrives in one
+        // change only from a paste, and still converts.
+        #expect(block.kind == .bullet)
+        #expect(block.text == "milk")
+    }
+
+    @Test func threeDashesMakeADividerAndANewLine() {
+        let block = add(.text, "")
+        editor.userTyped("---", in: block)
+        #expect(kinds == [.divider, .text])
+        #expect(editor.focusRequest?.blockID == editor.blocks[1].id)
+    }
+
+    @Test func markdownOnlyAppliesToTextLines() {
+        let heading = add(.heading, "")
+        editor.userTyped("- ", in: heading)
+        #expect(heading.kind == .heading)
+        #expect(heading.text == "- ")
+    }
+
+    // MARK: Slash menu (#39)
+
+    @Test func slashOpensTheMenuAndLettersFilterIt() {
+        let block = add(.text, "")
+        editor.userTyped("/", in: block)
+        #expect(editor.isMenuOpen(on: block))
+        #expect(editor.menuItems == BlockKind.allCases)
+
+        editor.userTyped("/to", in: block)
+        #expect(editor.menuItems == [.todo])
+
+        editor.userTyped("/h", in: block)
+        #expect(editor.menuItems.first == .heading)
+    }
+
+    @Test func choosingFromTheMenuRemovesTheSlashText() {
+        let block = add(.text, "")
+        editor.userTyped("/quo", in: block)
+        editor.chooseMenuItem(in: block)
+        #expect(block.kind == .quote)
+        #expect(block.text.isEmpty)
+        #expect(editor.slashMenu == nil)
+    }
+
+    @Test func arrowsMoveTheSelectionAndWrap() {
+        let block = add(.text, "")
+        editor.userTyped("/", in: block)
+        editor.moveMenuSelection(by: -1)
+        #expect(editor.slashMenu?.selection == BlockKind.allCases.count - 1)
+        editor.moveMenuSelection(by: 1)
+        editor.moveMenuSelection(by: 1)
+        editor.chooseMenuItem(in: block)
+        #expect(block.kind == .heading)
+    }
+
+    @Test func aSpaceOrNoMatchClosesTheMenu() {
+        let block = add(.text, "")
+        editor.userTyped("/zzz", in: block)
+        #expect(!editor.isMenuOpen(on: block))
+        editor.userTyped("/ ", in: block)
+        #expect(editor.slashMenu == nil)
+    }
+
+    @Test func escapeKeepsTheTextAndStaysClosedUntilItChanges() {
+        let block = add(.text, "")
+        editor.userTyped("/", in: block)
+        editor.dismissMenu()
+        #expect(editor.slashMenu == nil)
+        #expect(block.text == "/")
+        editor.userTyped("/b", in: block)
+        #expect(editor.isMenuOpen(on: block))
+    }
+
+    @Test func slashInTheMiddleOfALineDoesNothing() {
+        let block = add(.text, "")
+        editor.userTyped("and/or", in: block)
+        #expect(editor.slashMenu == nil)
+    }
+
+    @Test func turnIntoKeepsTheTextAndChangesTheKind() {
+        let block = add(.text, "Questions")
+        editor.openTurnInto(for: block)
+        #expect(editor.isMenuOpen(on: block))
+        editor.chooseMenuItem(.heading, in: block)
+        #expect(block.kind == .heading)
+        #expect(block.text == "Questions")
+    }
+
+    @Test func choosingDividerFromTheMenuAddsALineBelow() {
+        let block = add(.text, "")
+        editor.userTyped("/div", in: block)
+        editor.chooseMenuItem(in: block)
+        #expect(kinds == [.divider, .text])
+    }
 }

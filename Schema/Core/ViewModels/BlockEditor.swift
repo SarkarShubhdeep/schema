@@ -91,6 +91,172 @@ final class BlockEditor {
         block.updatedAt = .now
     }
 
+    /// Text typed by the person (not set by the editor itself): applies
+    /// markdown shortcuts and keeps the / menu in step.
+    func userTyped(_ text: String, in block: SchemaBlock) {
+        setText(text, of: block)
+        if applyMarkdownShortcut(to: block) { return }
+        updateSlashMenu(for: block)
+    }
+
+    // MARK: Markdown shortcuts
+
+    /// Prefixes that turn a text line into another kind as you type them
+    /// at its start. `---` alone makes a divider.
+    static let markdownPrefixes: [(prefix: String, kind: BlockKind)] = [
+        ("### ", .heading), ("## ", .heading), ("# ", .heading),
+        ("- ", .bullet), ("* ", .bullet),
+        ("[ ] ", .todo), ("[] ", .todo),
+        ("> ", .quote),
+    ]
+
+    @discardableResult
+    private func applyMarkdownShortcut(to block: SchemaBlock) -> Bool {
+        guard block.kind == .text else { return false }
+        if block.text == "---" {
+            makeDivider(block)
+            return true
+        }
+        for (prefix, kind) in Self.markdownPrefixes where block.text.hasPrefix(prefix) {
+            let rest = String(block.text.dropFirst(prefix.count))
+            block.kind = kind
+            setText(rest, of: block)
+            slashMenu = nil
+            save()
+            focus(block, caret: .start)
+            return true
+        }
+        return false
+    }
+
+    /// Turns `block` into a divider and puts the caret on a new line below.
+    private func makeDivider(_ block: SchemaBlock) {
+        block.kind = .divider
+        slashMenu = nil
+        let next = insertBlock(after: block, kind: .text)
+        save()
+        focus(next, caret: .start)
+    }
+
+    // MARK: Slash menu
+
+    struct SlashMenu: Equatable {
+        enum Mode: Equatable {
+            /// Opened by typing / at the start of a line; the typed text filters it.
+            case insert
+            /// Opened with ⌘/ to change the line's kind; leaves the text alone.
+            case turnInto
+        }
+
+        let blockID: UUID
+        let mode: Mode
+        var query: String = ""
+        var selection: Int = 0
+    }
+
+    private(set) var slashMenu: SlashMenu?
+    /// Text the menu was closed on with Esc, so it stays closed until the line changes.
+    private var dismissedSlashText: (blockID: UUID, text: String)?
+
+    static let menuAliases: [BlockKind: [String]] = [
+        .text: ["text", "paragraph", "plain"],
+        .heading: ["heading", "title", "h1", "h2", "h3", "#"],
+        .bullet: ["bullet list", "list", "ul", "-"],
+        .todo: ["to-do", "todo", "task", "check", "checkbox", "[]"],
+        .quote: ["quote", "blockquote", ">"],
+        .divider: ["divider", "line", "separator", "hr", "---"],
+    ]
+
+    /// Kinds the open menu offers, filtered by what was typed after /.
+    var menuItems: [BlockKind] {
+        guard let menu = slashMenu else { return [] }
+        let query = menu.query.lowercased()
+        guard !query.isEmpty else { return BlockKind.allCases }
+        return BlockKind.allCases.filter { kind in
+            kind.menuTitle.lowercased().contains(query)
+                || (Self.menuAliases[kind] ?? []).contains { $0.hasPrefix(query) }
+        }
+    }
+
+    /// The menu is open on this block and has something to choose.
+    func isMenuOpen(on block: SchemaBlock) -> Bool {
+        slashMenu?.blockID == block.id && !menuItems.isEmpty
+    }
+
+    private func updateSlashMenu(for block: SchemaBlock) {
+        if let dismissed = dismissedSlashText, dismissed.blockID == block.id {
+            if dismissed.text == block.text { return }
+            dismissedSlashText = nil
+        }
+        if slashMenu?.mode == .turnInto {
+            // Typing closes the ⌘/ menu.
+            slashMenu = nil
+            return
+        }
+        guard block.kind.holdsText, block.text.hasPrefix("/") else {
+            if slashMenu?.blockID == block.id { slashMenu = nil }
+            return
+        }
+        let query = String(block.text.dropFirst())
+        guard !query.contains(" "), !query.contains("\n"), query.count <= 24 else {
+            slashMenu = nil
+            return
+        }
+        var menu = slashMenu?.blockID == block.id ? slashMenu! : SlashMenu(blockID: block.id, mode: .insert)
+        if menu.query != query { menu.selection = 0 }
+        menu.query = query
+        slashMenu = menu
+    }
+
+    /// ⌘/ on a line: choose a kind for it without typing.
+    func openTurnInto(for block: SchemaBlock) {
+        guard block.kind.holdsText else { return }
+        let current = BlockKind.allCases.firstIndex(of: block.kind) ?? 0
+        slashMenu = SlashMenu(blockID: block.id, mode: .turnInto, selection: current)
+    }
+
+    func moveMenuSelection(by delta: Int) {
+        guard var menu = slashMenu else { return }
+        let count = menuItems.count
+        guard count > 0 else { return }
+        menu.selection = (menu.selection + delta + count) % count
+        slashMenu = menu
+    }
+
+    func selectMenuItem(at index: Int) {
+        guard var menu = slashMenu, menuItems.indices.contains(index) else { return }
+        menu.selection = index
+        slashMenu = menu
+    }
+
+    /// Applies the selected kind (or `kind`) to the line the menu is on.
+    func chooseMenuItem(_ kind: BlockKind? = nil, in block: SchemaBlock) {
+        guard let menu = slashMenu, menu.blockID == block.id else { return }
+        let items = menuItems
+        guard let chosen = kind ?? (items.indices.contains(menu.selection) ? items[menu.selection] : nil) else { return }
+        slashMenu = nil
+        if menu.mode == .insert {
+            // Remove "/query" from the start of the line.
+            setText(String(block.text.dropFirst(1 + menu.query.count)), of: block)
+        }
+        if chosen == .divider {
+            makeDivider(block)
+            return
+        }
+        block.kind = chosen
+        save()
+        focus(block, caret: menu.mode == .insert ? .start : .end)
+    }
+
+    /// Esc: closes the menu and leaves the typed text as it is.
+    func dismissMenu() {
+        guard let menu = slashMenu else { return }
+        if menu.mode == .insert, let block = blocks.first(where: { $0.id == menu.blockID }) {
+            dismissedSlashText = (block.id, block.text)
+        }
+        slashMenu = nil
+    }
+
     /// Return at `offset` (UTF-16). Splits the block: the text after the
     /// caret moves into a new block below, which gets the caret.
     func splitBlock(_ block: SchemaBlock, at offset: Int) {
