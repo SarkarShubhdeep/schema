@@ -25,6 +25,29 @@ struct WorkspaceView: View {
         listViewModel.selectedList(from: lists)
     }
 
+    /// Lets lines in a scratchpad become tasks (#40).
+    var blockTaskActions: BlockTaskActions {
+        let taskPages = listViewModel.taskPages(from: lists)
+        return BlockTaskActions(
+            taskPages: taskPages,
+            defaultPage: taskPages.first { $0.id == listViewModel.defaultWritableListID },
+            task: { id in allTasks.first { $0.id == id } },
+            makeTask: { title, page in
+                // addTask clears the quick-add draft; keep it.
+                let draft = taskViewModel.quickEntryText
+                defer { taskViewModel.quickEntryText = draft }
+                return taskViewModel.addTask(to: page, title: title, lists: lists, allTasks: allTasks)
+            },
+            toggleTask: { task in toggleCompletion(task) },
+            openTask: { task in
+                withAnimation(SchemaMotion.smooth) {
+                    listViewModel.selectList(task.list)
+                }
+                workspace.highlightedTaskID = task.id
+            }
+        )
+    }
+
     /// The selected page when it is a scratchpad (and no smart view is shown).
     var scratchpadPage: SchemaList? {
         guard listViewModel.smartView == nil, let selectedList, selectedList.isScratchpad else { return nil }
@@ -88,7 +111,7 @@ struct WorkspaceView: View {
         HStack(spacing: 0) {
         VStack(spacing: 0) {
             if let scratchpad = scratchpadPage {
-                ScratchpadPageView(page: scratchpad)
+                ScratchpadPageView(page: scratchpad, taskActions: blockTaskActions)
             } else {
             TaskListView(
                 pageKey: listViewModel.smartView?.rawValue ?? listViewModel.selectedListID?.uuidString ?? "",

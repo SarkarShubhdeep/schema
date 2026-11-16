@@ -14,6 +14,7 @@ struct BlockRowView: View {
     let block: SchemaBlock
     let editor: BlockEditor
     let placeholder: String
+    var taskActions: BlockTaskActions?
 
     @State private var isHovered = false
 
@@ -86,15 +87,16 @@ struct BlockRowView: View {
         case .todo:
             HStack(alignment: .top, spacing: 0) {
                 SchemaCheckbox(
-                    isChecked: block.isChecked,
+                    isChecked: editor.isChecked(block, actions: taskActions),
                     size: 16,
                     label: block.text,
                     hitPadding: 3
                 ) {
-                    editor.toggleChecked(block)
+                    editor.toggleChecked(block, actions: taskActions)
                 }
                 .frame(width: Metrics.markerWidth + 4, height: lineHeight, alignment: .leading)
                 textView
+                taskAccessory
             }
         case .quote:
             HStack(alignment: .top, spacing: 12) {
@@ -141,6 +143,56 @@ struct BlockRowView: View {
         .accessibilityLabel(accessibilityName)
     }
 
+    // MARK: Task link (#40)
+
+    /// A linked line shows where its task lives; an open to-do shows
+    /// "Make task in …" while hovered or being edited.
+    @ViewBuilder
+    private var taskAccessory: some View {
+        if let task = editor.linkedTask(for: block, actions: taskActions), let actions = taskActions {
+            Button {
+                actions.openTask(task)
+            } label: {
+                HStack(spacing: 4) {
+                    Text("Task in \(task.list?.title ?? "a page")")
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 9, weight: .semibold))
+                }
+                .font(.satoshi(12, weight: .medium, relativeTo: .caption))
+                .foregroundStyle(SchemaTheme.inkMuted)
+                .lineLimit(1)
+                .padding(.horizontal, 8)
+                .frame(height: 22)
+                .background(Capsule(style: .continuous).fill(SchemaTheme.surfaceHover))
+                .fixedSize()
+            }
+            .buttonStyle(.plain)
+            .help("Open the task in \(task.list?.title ?? "its page")")
+            .padding(.leading, 8)
+            .padding(.top, 1)
+        } else if let actions = taskActions, let page = actions.defaultPage ?? actions.taskPages.first,
+                  !block.isChecked, editor.canMakeTask(from: block, actions: actions),
+                  isHovered || editor.activeBlockID == block.id {
+            Button {
+                editor.makeTask(from: block, in: page, actions: actions)
+            } label: {
+                Text("Make task in \(page.title)")
+                    .font(.satoshi(12, weight: .medium, relativeTo: .caption))
+                    .foregroundStyle(SchemaTheme.ink)
+                    .lineLimit(1)
+                    .padding(.horizontal, 10)
+                    .frame(height: 24)
+                    .overlay(Capsule(style: .continuous).strokeBorder(SchemaTheme.line, lineWidth: 1))
+                    .contentShape(Capsule())
+                    .fixedSize()
+            }
+            .buttonStyle(.plain)
+            .help("Add this line as a task in \(page.title). It stays here too.")
+            .padding(.leading, 8)
+            .transition(.opacity)
+        }
+    }
+
     // MARK: Menu
 
     @ViewBuilder
@@ -157,6 +209,16 @@ struct BlockRowView: View {
                     }
                 }
             }
+        }
+        if let actions = taskActions, editor.canMakeTask(from: block, actions: actions) {
+            Menu("Make task in") {
+                ForEach(actions.taskPages) { page in
+                    Button(page.title) { editor.makeTask(from: block, in: page, actions: actions) }
+                }
+            }
+        }
+        if let task = editor.linkedTask(for: block, actions: taskActions), let actions = taskActions {
+            Button("Open task in \(task.list?.title ?? "its page")") { actions.openTask(task) }
         }
         Button("Add a line below") { editor.addBlock(below: block) }
         Divider()

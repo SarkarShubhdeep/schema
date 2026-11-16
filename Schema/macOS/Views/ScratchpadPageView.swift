@@ -12,6 +12,7 @@ import SwiftUI
 
 struct ScratchpadPageView: View {
     let page: SchemaList
+    var taskActions: BlockTaskActions?
 
     @Environment(\.modelContext) private var modelContext
     @State private var editor: BlockEditor?
@@ -21,7 +22,7 @@ struct ScratchpadPageView: View {
             VStack(alignment: .leading, spacing: 22) {
                 header
                 if let editor {
-                    BlockListView(editor: editor)
+                    BlockListView(editor: editor, taskActions: taskActions)
                 }
             }
             .frame(maxWidth: 720, alignment: .leading)
@@ -40,6 +41,8 @@ struct ScratchpadPageView: View {
                 Text("Pages")
                 Text("/").foregroundStyle(SchemaTheme.inkFaint)
                 Text(page.title).lineLimit(1)
+                Spacer(minLength: 12)
+                pageMenu
             }
             .font(.satoshi(13, weight: .medium, relativeTo: .callout))
             .foregroundStyle(SchemaTheme.inkMuted)
@@ -57,6 +60,35 @@ struct ScratchpadPageView: View {
         }
         // Keep the gutter column of the blocks below aligned with the text.
         .padding(.leading, BlockListView.gutterWidth)
+    }
+
+    /// Page options: make tasks from every open to-do line at once.
+    @ViewBuilder
+    private var pageMenu: some View {
+        if let editor, let actions = taskActions {
+            let open = editor.openToDosWithoutTasks(actions: actions)
+            Menu {
+                Section(open.isEmpty ? "No open to-dos without a task" : "Make tasks from \(open.count) open to-do\(open.count == 1 ? "" : "s")") {
+                    ForEach(actions.taskPages) { target in
+                        Button("In \(target.title)") {
+                            _ = editor.makeTasksFromOpenToDos(in: target, actions: actions)
+                        }
+                        .disabled(open.isEmpty)
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(SchemaTheme.ink)
+                    .frame(width: 32, height: 32)
+                    .contentShape(Circle())
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help("Page options")
+            .accessibilityLabel("Page options")
+        }
     }
 
     private var editedLabel: String {
@@ -81,6 +113,10 @@ struct ScratchpadPageView: View {
             editor.moveMenuSelection(by: 3)
             editor.focus(line, caret: .end)
         }
+        if DemoData.isEnabled, DemoData.focusesOpenToDo,
+           let line = editor.blocks.first(where: { $0.kind == .todo && $0.linkedTaskID == nil }) {
+            editor.focus(line, caret: .end)
+        }
         #endif
     }
 }
@@ -90,6 +126,7 @@ struct BlockListView: View {
     static let gutterWidth: CGFloat = 32
 
     let editor: BlockEditor
+    var taskActions: BlockTaskActions?
 
     var body: some View {
         let blocks = editor.blocks
@@ -98,7 +135,8 @@ struct BlockListView: View {
                 BlockRowView(
                     block: block,
                     editor: editor,
-                    placeholder: placeholder(for: block, isOnly: blocks.count == 1)
+                    placeholder: placeholder(for: block, isOnly: blocks.count == 1),
+                    taskActions: taskActions
                 )
                 // The / menu hangs over the lines below.
                 .zIndex(editor.slashMenu?.blockID == block.id ? 1 : 0)

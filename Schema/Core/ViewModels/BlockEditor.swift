@@ -419,4 +419,7 @@ final class BlockEditor {
     private func save() {
         try? context.save()
     }
+
+    /// For extensions in other files.
+    func saveChanges() { save() }
 }

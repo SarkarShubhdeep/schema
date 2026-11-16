@@ -245,4 +245,96 @@ struct BlockEditorTests {
         editor.chooseMenuItem(in: block)
         #expect(kinds == [.divider, .text])
     }
+
+    // MARK: Make task from a line (#40)
+
+    /// Stand-in for the workspace: makes tasks in the test store.
+    private func taskActions(pages: [SchemaList]) -> BlockTaskActions {
+        let context = container.mainContext
+        return BlockTaskActions(
+            taskPages: pages,
+            defaultPage: pages.first,
+            task: { id in try? context.fetch(FetchDescriptor<SchemaTask>(predicate: #Predicate { $0.id == id })).first },
+            makeTask: { title, page in
+                let task = SchemaTask(title: title, list: page)
+                context.insert(task)
+                return task
+            },
+            toggleTask: { $0.setCompleted(!$0.isCompleted) },
+            openTask: { _ in }
+        )
+    }
+
+    private func todoPage() -> SchemaList {
+        let work = SchemaList(title: "Work")
+        container.mainContext.insert(work)
+        return work
+    }
+
+    @Test func makeTaskLinksTheLineAndKeepsIt() throws {
+        let work = todoPage()
+        let actions = taskActions(pages: [work])
+        let line = add(.todo, "Sketch the quick note panel")
+
+        let task = try #require(editor.makeTask(from: line, in: work, actions: actions))
+        #expect(task.title == "Sketch the quick note panel")
+        #expect(task.list?.id == work.id)
+        #expect(line.linkedTaskID == task.id)
+        #expect(texts == ["Sketch the quick note panel"])
+        #expect(!editor.canMakeTask(from: line, actions: actions))
+    }
+
+    @Test func makingATaskFromTextTurnsTheLineIntoAToDo() throws {
+        let work = todoPage()
+        let line = add(.bullet, "Call the venue")
+        editor.makeTask(from: line, in: work, actions: taskActions(pages: [work]))
+        #expect(line.kind == .todo)
+    }
+
+    @Test func emptyLinesCannotBecomeTasks() {
+        let work = todoPage()
+        let line = add(.todo, "   ")
+        #expect(!editor.canMakeTask(from: line, actions: taskActions(pages: [work])))
+        #expect(!editor.canMakeTask(from: add(.text, "No pages"), actions: taskActions(pages: [])))
+    }
+
+    @Test func checkingALinkedLineChecksTheTaskAndBack() throws {
+        let work = todoPage()
+        let actions = taskActions(pages: [work])
+        let line = add(.todo, "Book the room")
+        let task = try #require(editor.makeTask(from: line, in: work, actions: actions))
+
+        editor.toggleChecked(line, actions: actions)
+        #expect(task.isCompleted)
+        #expect(editor.isChecked(line, actions: actions))
+
+        task.setCompleted(false)
+        #expect(!editor.isChecked(line, actions: actions))
+    }
+
+    @Test func makeTasksFromOpenToDosSkipsDoneAndLinkedLines() throws {
+        let work = todoPage()
+        let actions = taskActions(pages: [work])
+        _ = add(.todo, "One")
+        let done = add(.todo, "Done already")
+        done.isChecked = true
+        _ = add(.text, "Plain text")
+        let linked = add(.todo, "Linked")
+        editor.makeTask(from: linked, in: work, actions: actions)
+        _ = add(.todo, "Two")
+
+        #expect(editor.makeTasksFromOpenToDos(in: work, actions: actions) == 2)
+        #expect(editor.openToDosWithoutTasks(actions: actions).isEmpty)
+    }
+
+    @Test func aDeletedTaskUnlinksTheLine() throws {
+        let work = todoPage()
+        let actions = taskActions(pages: [work])
+        let line = add(.todo, "Gone soon")
+        let task = try #require(editor.makeTask(from: line, in: work, actions: actions))
+        container.mainContext.delete(task)
+        try container.mainContext.save()
+        #expect(editor.linkedTask(for: line, actions: actions) == nil)
+        #expect(editor.canMakeTask(from: line, actions: actions))
+    }
 }
