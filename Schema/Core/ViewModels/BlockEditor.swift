@@ -53,12 +53,24 @@ final class BlockEditor {
         self.context = context
     }
 
+    /// The blocks in display order. Sorting a long page on every read was
+    /// a large part of each keystroke (#45), so the order is kept until a
+    /// block is added or removed. Reading the relationship still lets
+    /// SwiftUI track changes to it.
     var blocks: [SchemaBlock] {
-        switch owner {
-        case .page(let page): page.orderedBlocks
-        case .task(let task): task.orderedBlocks
+        let unordered: [SchemaBlock] = switch owner {
+        case .page(let page): page.blocks
+        case .task(let task): task.blocks
         }
+        if let cachedOrder, cachedOrder.count == unordered.count {
+            return cachedOrder
+        }
+        let ordered = unordered.inDisplayOrder
+        cachedOrder = ordered
+        return ordered
     }
+
+    @ObservationIgnored private var cachedOrder: [SchemaBlock]?
 
     // MARK: Focus
 
@@ -388,6 +400,7 @@ final class BlockEditor {
         case .task(let task): block = SchemaBlock(kind: kind, text: text, sortIndex: index, task: task)
         }
         context.insert(block)
+        cachedOrder = nil
         return block
     }
 
@@ -427,6 +440,7 @@ final class BlockEditor {
         block.page = nil
         block.task = nil
         context.delete(block)
+        cachedOrder = nil
     }
 
     private func save() {

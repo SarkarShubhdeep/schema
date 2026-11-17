@@ -25,6 +25,7 @@ struct SidebarNavigation: View {
     private static let rowStep = SidebarMetrics.rowHeight + 2
 
     var body: some View {
+        let counts = viewCounts()
         VStack(alignment: .leading, spacing: 2) {
             sectionHeader("Views")
 
@@ -32,7 +33,7 @@ struct SidebarNavigation: View {
                 SidebarRow(
                     title: view.title,
                     isActive: listViewModel.smartView == view,
-                    trailing: .count(count(for: view)),
+                    trailing: .count(counts[view] ?? 0),
                     tooltip: view.title
                 ) {
                     Image(systemName: view.systemImage)
@@ -181,9 +182,16 @@ struct SidebarNavigation: View {
         listViewModel.smartView == nil && listViewModel.selectedListID == page.id
     }
 
-    private func count(for view: SmartView) -> Int {
-        let now = Date.now
-        return allTasks.count { !$0.isCompleted && view.includes($0, now: now) }
+    /// Open tasks in Today and Upcoming, from one pass over the tasks (#45).
+    private func viewCounts() -> [SmartView: Int] {
+        let clock = TaskSectionClock(now: .now, calendar: .schema())
+        var today = 0
+        var upcoming = 0
+        for task in allTasks where !task.isCompleted {
+            if clock.section(for: task) == .today { today += 1 }
+            if let reminder = task.reminderTime, reminder >= clock.startOfTomorrow { upcoming += 1 }
+        }
+        return [.today: today, .upcoming: upcoming]
     }
 }
 

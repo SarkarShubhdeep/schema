@@ -18,6 +18,8 @@ struct WorkspaceView: View {
     let taskViewModel: TaskViewModel
     let notificationService: NotificationService
 
+    @State private var shownTasksMemo = ObservedMemo<(sections: [TaskSectionGroup], completed: [SchemaTask])>()
+    @State private var dayStatsMemo = ObservedMemo<DayStats>()
     @FocusState var isAddTaskFocused: Bool
     @FocusState var isTaskListFocused: Bool
 
@@ -56,12 +58,28 @@ struct WorkspaceView: View {
 
     /// Open tasks grouped into Today, Later this week, Later and Someday.
     var incompleteSections: [TaskSectionGroup] {
-        let open = inSmartView(taskViewModel.incompleteTasks(
+        shownTasks.sections
+    }
+
+    /// What the list shows, worked out in one pass: open tasks in sections
+    /// and done tasks (#45).
+    var shownTasks: (sections: [TaskSectionGroup], completed: [SchemaTask]) {
+        // Kept between redraws that change nothing it reads, such as moving
+        // the selection (#45).
+        shownTasksMemo.value(key: memoKey) { computeShownTasks() }
+    }
+
+    private func computeShownTasks() -> (sections: [TaskSectionGroup], completed: [SchemaTask]) {
+        let (open, done) = taskViewModel.partitionedTasks(
             for: selectedList,
             from: allTasks,
             sortOption: listViewModel.sortOption,
             filterOption: listViewModel.filterOption
-        ))
+        )
+        return (sections(for: inSmartView(open)), inSmartView(done))
+    }
+
+    private func sections(for open: [SchemaTask]) -> [TaskSectionGroup] {
         switch listViewModel.smartView {
         case .today: return TaskSection.groupByPage(open, pages: listViewModel.pages(from: lists))
         case .upcoming: return TaskSection.groupByDay(open, calendar: calendar)
@@ -76,7 +94,18 @@ struct WorkspaceView: View {
     }
 
     var dayStats: DayStats {
-        DayStats(tasks: allTasks, pages: listViewModel.pages(from: lists), calendar: calendar)
+        dayStatsMemo.value(key: memoKey) {
+            DayStats(tasks: allTasks, pages: listViewModel.pages(from: lists), calendar: calendar)
+        }
+    }
+
+    /// What the memos can't observe: which tasks and pages exist (the
+    /// arrays are passed in), and the time, to the minute.
+    private var memoKey: MemoKey {
+        var hasher = Hasher()
+        for task in allTasks { hasher.combine(ObjectIdentifier(task)) }
+        for list in lists { hasher.combine(ObjectIdentifier(list)) }
+        return MemoKey(models: hasher.finalize(), minute: Int(Date.now.timeIntervalSinceReferenceDate / 60))
     }
 
     /// Open tasks in display order (section by section). Keyboard navigation
@@ -86,27 +115,28 @@ struct WorkspaceView: View {
     }
 
     var completedTasks: [SchemaTask] {
-        inSmartView(taskViewModel.completedTasks(
-            for: selectedList,
-            from: allTasks,
-            sortOption: listViewModel.sortOption,
-            filterOption: listViewModel.filterOption
-        ))
+        shownTasks.completed
     }
 
     private func inSmartView(_ tasks: [SchemaTask]) -> [SchemaTask] {
         guard let smartView = listViewModel.smartView else { return tasks }
-        let now = Date.now
-        return tasks.filter { smartView.includes($0, now: now) }
+        let calendar = Calendar.schema()
+        let clock = TaskSectionClock(now: .now, calendar: calendar)
+        return tasks.filter { smartView.includes($0, clock: clock, calendar: calendar) }
     }
 
     var body: some View {
         @Bindable var workspace = workspace
-        let sections = incompleteSections
+        // A scratchpad shows no tasks, so skip working out the list (#45).
+        let shown: (sections: [TaskSectionGroup], completed: [SchemaTask]) = scratchpadPage == nil ? shownTasks : ([], [])
+        let sections = shown.sections
         let incomplete = sections.flatMap(\.tasks)
-        let completed = completedTasks
+        let completed = shown.completed
         let navigableTaskIDs = (incomplete + completed).map(\.id)
-        let requiresManualSort = RoutineSequenceOrdering.requiresManualSort(for: selectedList, in: allTasks)
+        // Today shows the stats twice (tiles and overview); work them out once.
+        let todayStats = listViewModel.smartView == .today ? dayStats : nil
+        let requiresManualSort = scratchpadPage == nil && openTask == nil
+            && RoutineSequenceOrdering.requiresManualSort(for: selectedList, in: allTasks)
 
         HStack(spacing: 0) {
         VStack(spacing: 0) {
@@ -139,7 +169,7 @@ struct WorkspaceView: View {
                     )
 
                     if listViewModel.smartView == .today {
-                        TodaySummaryTiles(stats: dayStats)
+                        TodaySummaryTiles(stats: todayStats ?? dayStats)
                     }
 
                     AddTaskBar(
@@ -196,7 +226,7 @@ struct WorkspaceView: View {
             }
         }
         .overlay(alignment: .bottom) {
-            selectionToolbar
+            selectionToolbar(visible: incomplete + completed)
         }
         .animation(SchemaMotion.appear, value: workspace.selectedTaskIDs.isEmpty)
         // Room for the floating sidebar bar when the sidebar is collapsed.
@@ -220,7 +250,7 @@ struct WorkspaceView: View {
                         onMove: { page in taskViewModel.moveTask(task, to: page, allTasks: allTasks) }
                     )
                 } else {
-                    OverviewPanel(stats: dayStats)
+                    OverviewPanel(stats: todayStats ?? dayStats)
                 }
             }
         }
@@ -323,8 +353,8 @@ struct WorkspaceView: View {
     }
 
     @ViewBuilder
-    private var selectionToolbar: some View {
-        let selected = (incompleteTasks + completedTasks).filter { workspace.isSelected($0.id) }
+    private func selectionToolbar(visible: [SchemaTask]) -> some View {
+        let selected = workspace.selectedTaskIDs.isEmpty ? [] : visible.filter { workspace.isSelected($0.id) }
         if !selected.isEmpty, !workspace.isTaskPageOpen {
             SelectionToolbar(
                 count: selected.count,
@@ -434,4 +464,10 @@ struct WorkspaceView: View {
         let parsed = AtMentionParser.preview(taskViewModel.quickEntryText, lists: lists)
         return parsed.hasPreviewContent ? parsed : nil
     }
+}
+
+/// Inputs to WorkspaceView's memos that Observation can't track.
+private struct MemoKey: Hashable {
+    let models: Int
+    let minute: Int
 }
