@@ -82,7 +82,6 @@ extension WorkspaceState {
     }
 
     private func withPanelAnimation(_ changes: () -> Void) {
-        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        withAnimation(SchemaMotion.animation(SchemaMotion.standard, reduceMotion: reduceMotion), changes)
+        withAnimation(SchemaMotion.smooth, changes)
     }
 }

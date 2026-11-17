@@ -74,7 +74,7 @@ struct TaskListView<Header: View>: View {
                     if completedTasks.contains(where: { $0.id == taskID }), !showCompleted {
                         showCompleted = true
                     }
-                    withAnimation(SchemaMotion.fast) {
+                    withAnimation(SchemaMotion.smooth) {
                         proxy.scrollTo(taskID)
                     }
                 }
@@ -205,7 +205,7 @@ struct TaskListView<Header: View>: View {
     private var completedHeader: some View {
         Button {
             workspace.clearSelection()
-            withAnimation(SchemaMotion.fast) {
+            withAnimation(SchemaMotion.smooth) {
                 showCompleted.toggle()
             }
         } label: {

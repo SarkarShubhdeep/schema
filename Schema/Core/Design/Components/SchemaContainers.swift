@@ -43,8 +43,6 @@ struct SchemaProgressBar: View {
     var height: CGFloat = 6
     var accessibilityText: String?
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
@@ -55,7 +53,7 @@ struct SchemaProgressBar: View {
             }
         }
         .frame(height: height)
-        .animation(SchemaMotion.animation(SchemaMotion.smooth, reduceMotion: reduceMotion), value: value)
+        .animation(SchemaMotion.smooth, value: value)
         .accessibilityElement()
         .accessibilityLabel(accessibilityText ?? "Progress")
         .accessibilityValue("\(Int((max(0, min(1, value)) * 100).rounded())) percent")
