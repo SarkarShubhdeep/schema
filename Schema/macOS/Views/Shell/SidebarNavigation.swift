@@ -2,8 +2,7 @@
 //  SidebarNavigation.swift
 //  Schema
 //
-//  The sidebar's Views (Today, Upcoming, Everything) and Pages. The same rows
-//  serve the open sidebar and the collapsed rail (see SidebarRow).
+//  The sidebar's Views (Today, Upcoming, Everything) and Pages.
 //
 
 import SwiftUI
@@ -14,7 +13,6 @@ struct SidebarNavigation: View {
     let lists: [SchemaList]
     let allTasks: [SchemaTask]
     let listViewModel: ListViewModel
-    let isCollapsed: Bool
 
     private var pages: [SchemaList] { listViewModel.pages(from: lists) }
 
@@ -34,7 +32,6 @@ struct SidebarNavigation: View {
                 SidebarRow(
                     title: view.title,
                     isActive: listViewModel.smartView == view,
-                    isCollapsed: isCollapsed,
                     trailing: .count(count(for: view)),
                     tooltip: view.title
                 ) {
@@ -47,7 +44,6 @@ struct SidebarNavigation: View {
             SidebarRow(
                 title: SchemaList.everythingTitle,
                 isActive: isEverythingActive,
-                isCollapsed: isCollapsed,
                 trailing: .keys("/"),
                 tooltip: "\(SchemaList.everythingTitle)  /"
             ) {
@@ -63,22 +59,10 @@ struct SidebarNavigation: View {
                 SidebarRow(
                     title: page.title,
                     isActive: isActive(page),
-                    isCollapsed: isCollapsed,
                     trailing: shortcut.map { .keys($0) } ?? .none,
-                    tooltip: isCollapsed
-                        ? "\(page.title) (\(page.pageKind.displayName.lowercased()))" + (shortcut.map { "  \($0)" } ?? "")
-                        : page.pageKind.displayName
+                    tooltip: page.pageKind.displayName
                 ) {
-                    ZStack {
-                        if isCollapsed {
-                            Text(page.title.prefix(1).uppercased())
-                                .font(.spaceGrotesk(14, weight: .semibold, relativeTo: .body))
-                                .transition(.opacity)
-                        } else {
-                            Image(systemName: page.pageKind.systemImage)
-                                .transition(.opacity)
-                        }
-                    }
+                    Image(systemName: page.pageKind.systemImage)
                 } action: {
                     listViewModel.selectList(page)
                 }
@@ -115,7 +99,6 @@ struct SidebarNavigation: View {
             SidebarRow(
                 title: "New page",
                 isActive: false,
-                isCollapsed: isCollapsed,
                 isSubtle: true,
                 trailing: .keys("⌘N"),
                 tooltip: "New page  ⌘N"
@@ -137,13 +120,13 @@ struct SidebarNavigation: View {
     @ViewBuilder
     private func sectionHeader(_ title: String, showsNewPage: Bool = false) -> some View {
         if showsNewPage {
-            SidebarSectionHeader(title: title, isCollapsed: isCollapsed) {
+            SidebarSectionHeader(title: title) {
                 SchemaIconButton(systemImage: "plus", label: "New page", shortcut: "⌘N", size: 24) {
                     listViewModel.openNewPage()
                 }
             }
         } else {
-            SidebarSectionHeader(title: title, isCollapsed: isCollapsed)
+            SidebarSectionHeader(title: title)
         }
     }
 

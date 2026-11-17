@@ -199,6 +199,8 @@ struct WorkspaceView: View {
             selectionToolbar
         }
         .animation(SchemaMotion.standard, value: workspace.selectedTaskIDs.isEmpty)
+        // Room for the floating sidebar bar when the sidebar is collapsed.
+        .padding(.leading, workspace.isSidebarCollapsed ? ShellMetrics.floatingBarContentInset : 0)
         .frame(minWidth: ShellMetrics.mainMinWidth, maxWidth: .infinity, minHeight: 520)
         .clipped()
 
