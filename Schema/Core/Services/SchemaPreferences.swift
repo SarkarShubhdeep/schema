@@ -14,6 +14,7 @@ enum SchemaPreferences {
         static let isSidebarCollapsed = "schema.preferences.isSidebarCollapsed"
         static let isDetailsPanelCollapsed = "schema.preferences.isDetailsPanelCollapsed"
         static let weekStart = "schema.preferences.weekStart"
+        static let quickNotePageID = "schema.preferences.quickNotePageID"
     }
 
     #if DEBUG
@@ -81,6 +82,18 @@ enum SchemaPreferences {
     static var isDetailsPanelCollapsed: Bool {
         get { defaults.bool(forKey: Key.isDetailsPanelCollapsed) }
         set { defaults.set(newValue, forKey: Key.isDetailsPanelCollapsed) }
+    }
+
+    /// The scratchpad Quick note (⌃⌥N) saves into; nil means the first scratchpad.
+    static var quickNotePageID: UUID? {
+        get { defaults.string(forKey: Key.quickNotePageID).flatMap(UUID.init(uuidString:)) }
+        set {
+            if let newValue {
+                defaults.set(newValue.uuidString, forKey: Key.quickNotePageID)
+            } else {
+                defaults.removeObject(forKey: Key.quickNotePageID)
+            }
+        }
     }
 
     /// First day of the week for the week chart and "Later this week". Monday unless changed.
