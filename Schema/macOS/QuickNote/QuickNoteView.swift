@@ -105,14 +105,23 @@ struct QuickNoteView: View {
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(SchemaTheme.surface)
-                .shadow(color: .black.opacity(0.18), radius: 20, y: 8)
+                // A wide soft shadow and a tight contact one. The window
+                // leaves room around the card so neither is cut off.
+                .shadow(color: .black.opacity(0.14), radius: 24, y: 12)
+                .shadow(color: .black.opacity(0.06), radius: 2, y: 1)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(SchemaTheme.line, lineWidth: 1)
         )
-        .padding(20)
+        .padding(.horizontal, QuickNoteView.shadowRoom)
+        .padding(.top, QuickNoteView.shadowRoom - 12)
+        .padding(.bottom, QuickNoteView.shadowRoom + 12)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Quick note")
     }
+
+    /// Clear space around the card inside the window, so the shadow fades
+    /// out before the window edge instead of being clipped by it.
+    static let shadowRoom: CGFloat = 60
 }
