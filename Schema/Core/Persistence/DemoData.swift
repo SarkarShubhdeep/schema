@@ -49,6 +49,8 @@ enum DemoData {
     static let opensPageDelete = CommandLine.arguments.contains("-SchemaDemoDeletePage")
     /// `-SchemaDemoRenamePage` starts renaming the selected page (#42).
     static let renamesPage = CommandLine.arguments.contains("-SchemaDemoRenamePage")
+    /// Shows the first page mid-drag, two and a half rows down (#42).
+    static let dragsPage = CommandLine.arguments.contains("-SchemaDemoDragPage")
 
     /// `-SchemaDemoPage` opens on the first page (Daily Todos).
     static let opensFirstPage = CommandLine.arguments.contains("-SchemaDemoPage")

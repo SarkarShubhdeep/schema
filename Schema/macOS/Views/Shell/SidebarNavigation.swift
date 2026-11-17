@@ -7,7 +7,6 @@
 //
 
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct SidebarNavigation: View {
     @Environment(WorkspaceState.self) private var workspace
@@ -19,8 +18,13 @@ struct SidebarNavigation: View {
 
     private var pages: [SchemaList] { listViewModel.pages(from: lists) }
 
-    /// The page being dragged to a new place (#42).
-    @State private var draggingPageID: UUID?
+    /// The page being dragged to a new place (#42). Nothing is saved until
+    /// the drag ends: while it moves, the row follows the pointer and the
+    /// rows it passes slide out of its way.
+    @State private var drag: PageDrag?
+
+    /// Distance between two page rows (row height plus the stack spacing).
+    private static let rowStep = SidebarMetrics.rowHeight + 2
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -78,7 +82,6 @@ struct SidebarNavigation: View {
                 } action: {
                     listViewModel.selectList(page)
                 }
-                .opacity(draggingPageID == page.id ? 0.4 : 1)
                 .contextMenu {
                     Button("Rename") {
                         listViewModel.selectList(page)
@@ -88,21 +91,25 @@ struct SidebarNavigation: View {
                         workspace.requestPageDelete(page.id)
                     }
                 }
-                // Drag a page onto another to take its place; the list
-                // reorders as the drag passes over rows.
-                .onDrag {
-                    draggingPageID = page.id
-                    return NSItemProvider(object: page.id.uuidString as NSString)
-                }
-                .onDrop(of: [.plainText], delegate: PageDropDelegate(
-                    targetID: page.id,
-                    draggingID: $draggingPageID,
-                    move: { moving, target in
-                        withAnimation(SchemaMotion.smooth) {
-                            _ = listViewModel.movePage(moving, to: target, in: lists)
-                        }
+                .background {
+                    if drag?.id == page.id {
+                        Capsule(style: .continuous)
+                            .fill(SchemaTheme.surface)
+                            .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
+                            .transition(.opacity)
                     }
-                ))
+                }
+                // Rows the drag passes over slide one step up or down.
+                .offset(y: shift(forRowAt: index, id: page.id))
+                .animation(SchemaMotion.smooth, value: shift(forRowAt: index, id: page.id))
+                // The dragged row tracks the pointer exactly, unanimated.
+                .offset(y: drag?.id == page.id ? drag?.offset ?? 0 : 0)
+                .zIndex(drag?.id == page.id ? 1 : 0)
+                .highPriorityGesture(
+                    DragGesture(minimumDistance: 4, coordinateSpace: .global)
+                        .onChanged { value in dragChanged(page.id, from: index, by: value.translation.height) }
+                        .onEnded { _ in dragEnded() }
+                )
             }
 
             SidebarRow(
@@ -118,6 +125,13 @@ struct SidebarNavigation: View {
                 listViewModel.openNewPage()
             }
         }
+        #if DEBUG
+        .onAppear {
+            if DemoData.isEnabled, DemoData.dragsPage, let first = pages.first {
+                drag = PageDrag(id: first.id, from: 0, offset: Self.rowStep * 2.6)
+            }
+        }
+        #endif
     }
 
     @ViewBuilder
@@ -131,6 +145,47 @@ struct SidebarNavigation: View {
         } else {
             SidebarSectionHeader(title: title, isCollapsed: isCollapsed)
         }
+    }
+
+    // MARK: Reordering
+
+    private func dragChanged(_ id: UUID, from index: Int, by translation: CGFloat) {
+        if drag == nil {
+            withAnimation(SchemaMotion.fast) { drag = PageDrag(id: id, from: index, offset: 0) }
+        }
+        guard drag?.id == id else { return }
+        // Keep the row within the list of pages.
+        let step = Self.rowStep
+        let low = -CGFloat(index) * step
+        let high = CGFloat(pages.count - 1 - index) * step
+        drag?.offset = min(max(translation, low), high)
+    }
+
+    private func dragEnded() {
+        guard let drag else { return }
+        let to = targetIndex(of: drag)
+        // Save the new order and let the row settle into its slot together.
+        withAnimation(SchemaMotion.smooth) {
+            if to != drag.from, pages.indices.contains(to) {
+                listViewModel.movePage(drag.id, to: pages[to].id, in: lists)
+            }
+            self.drag = nil
+        }
+    }
+
+    /// The slot the dragged row would land in if dropped now.
+    private func targetIndex(of drag: PageDrag) -> Int {
+        let moved = Int((drag.offset / Self.rowStep).rounded())
+        return min(max(drag.from + moved, 0), pages.count - 1)
+    }
+
+    /// How far a row moves aside to make room for the dragged one.
+    private func shift(forRowAt index: Int, id: UUID) -> CGFloat {
+        guard let drag, drag.id != id else { return 0 }
+        let to = targetIndex(of: drag)
+        if drag.from < to, index > drag.from, index <= to { return -Self.rowStep }
+        if to < drag.from, index >= to, index < drag.from { return Self.rowStep }
+        return 0
     }
 
     // MARK: State
@@ -149,23 +204,9 @@ struct SidebarNavigation: View {
     }
 }
 
-/// Reorders pages live while one is dragged over the others (#42).
-private struct PageDropDelegate: DropDelegate {
-    let targetID: UUID
-    @Binding var draggingID: UUID?
-    let move: (_ moving: UUID, _ target: UUID) -> Void
-
-    func dropEntered(info: DropInfo) {
-        guard let draggingID, draggingID != targetID else { return }
-        move(draggingID, targetID)
-    }
-
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        DropProposal(operation: draggingID == nil ? .forbidden : .move)
-    }
-
-    func performDrop(info: DropInfo) -> Bool {
-        draggingID = nil
-        return true
-    }
+/// A page row being dragged: where it started and how far it has moved.
+private struct PageDrag: Equatable {
+    let id: UUID
+    let from: Int
+    var offset: CGFloat
 }
