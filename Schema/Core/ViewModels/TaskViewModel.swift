@@ -49,24 +49,19 @@ final class TaskViewModel {
         return applySort(result, option: effectiveSort)
     }
 
-    func incompleteTasks(
+    /// Open and done tasks from one pass (the list views need both).
+    func partitionedTasks(
         for list: SchemaList?,
         from allTasks: [SchemaTask],
         sortOption: TaskSortOption = .manual,
         filterOption: TaskFilterOption = .all
-    ) -> [SchemaTask] {
-        tasks(for: list, from: allTasks, sortOption: sortOption, filterOption: filterOption)
-            .filter { !$0.isCompleted }
-    }
-
-    func completedTasks(
-        for list: SchemaList?,
-        from allTasks: [SchemaTask],
-        sortOption: TaskSortOption = .manual,
-        filterOption: TaskFilterOption = .all
-    ) -> [SchemaTask] {
-        tasks(for: list, from: allTasks, sortOption: sortOption, filterOption: filterOption)
-            .filter(\.isCompleted)
+    ) -> (open: [SchemaTask], done: [SchemaTask]) {
+        var open: [SchemaTask] = []
+        var done: [SchemaTask] = []
+        for task in tasks(for: list, from: allTasks, sortOption: sortOption, filterOption: filterOption) {
+            if task.isCompleted { done.append(task) } else { open.append(task) }
+        }
+        return (open, done)
     }
 
     @discardableResult
@@ -501,10 +496,10 @@ final class TaskViewModel {
         case .manual:
             return applyManualSort(tasks)
         case .createdAt:
-            return tasks.sorted { $0.createdAt > $1.createdAt }
+            return tasks.sorted(byKey: \.createdAt) { $0 > $1 }
         case .reminderTime:
-            return tasks.sorted { lhs, rhs in
-                switch (lhs.reminderTime, rhs.reminderTime) {
+            return tasks.sorted(byKey: { ($0.reminderTime, $0.createdAt) }) { lhs, rhs in
+                switch (lhs.0, rhs.0) {
                 case let (left?, right?):
                     return left < right
                 case (nil, _?):
@@ -512,12 +507,12 @@ final class TaskViewModel {
                 case (_?, nil):
                     return true
                 case (nil, nil):
-                    return lhs.createdAt < rhs.createdAt
+                    return lhs.1 < rhs.1
                 }
             }
         case .alphabetical:
-            return tasks.sorted {
-                $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+            return tasks.sorted(byKey: \.title) {
+                $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
             }
         }
     }
@@ -526,10 +521,10 @@ final class TaskViewModel {
         let hasChains = tasks.contains { $0.isRoutine && $0.afterTaskID != nil }
         
         if !hasChains {
-            return tasks.sorted { $0.manualSortIndex < $1.manualSortIndex }
+            return tasks.sorted(byKey: \.manualSortIndex) { $0 < $1 }
         }
         
-        let sortedByIndex = tasks.sorted { $0.manualSortIndex < $1.manualSortIndex }
+        let sortedByIndex = tasks.sorted(byKey: \.manualSortIndex) { $0 < $1 }
         let taskByID = Dictionary(uniqueKeysWithValues: tasks.map { ($0.id, $0) })
         let taskIDs = Set(taskByID.keys)
         var placed = Set<UUID>()
@@ -581,5 +576,16 @@ final class TaskViewModel {
         } catch {
             assertionFailure("Failed to save tasks: \(error)")
         }
+    }
+}
+
+extension Array where Element == SchemaTask {
+    /// Sorts by a key read once per task. Reading a SwiftData property is
+    /// far slower than comparing two values, and a comparison sort reads
+    /// each key many times (#45).
+    func sorted<Key>(byKey key: (SchemaTask) -> Key, by areInIncreasingOrder: (Key, Key) -> Bool) -> [SchemaTask] {
+        map { (task: $0, key: key($0)) }
+            .sorted { areInIncreasingOrder($0.key, $1.key) }
+            .map(\.task)
     }
 }

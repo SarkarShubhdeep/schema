@@ -33,16 +33,20 @@ enum SmartView: String, CaseIterable, Identifiable {
     /// plus tasks completed today.
     /// Upcoming: open tasks due after today.
     func includes(_ task: SchemaTask, now: Date = .now, calendar: Calendar = .schema()) -> Bool {
+        includes(task, clock: TaskSectionClock(now: now, calendar: calendar), calendar: calendar)
+    }
+
+    /// Same, with the day boundaries worked out once for many tasks.
+    func includes(_ task: SchemaTask, clock: TaskSectionClock, calendar: Calendar = .schema()) -> Bool {
         switch self {
         case .today:
             if task.isCompleted {
-                return task.wasCompleted(onSameDayAs: now, calendar: calendar)
+                return task.wasCompleted(onSameDayAs: clock.now, calendar: calendar)
             }
-            return TaskSection.section(for: task, now: now, calendar: calendar) == .today
+            return clock.section(for: task) == .today
         case .upcoming:
             guard !task.isCompleted, let reminder = task.reminderTime else { return false }
-            let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) ?? now
-            return reminder >= startOfTomorrow
+            return reminder >= clock.startOfTomorrow
         }
     }
 }

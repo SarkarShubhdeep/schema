@@ -24,6 +24,10 @@ struct TaskListActions {
 /// drag needed an AppKit mouse shim that broke when the window was key
 /// (issue #3). Here layout is plain SwiftUI and drag-to-reorder is a
 /// `DragGesture` against measured row frames.
+///
+/// Rows sit directly in a `LazyVStack` so only the visible ones are built
+/// (#45: a 1,000-task page). Each row draws its own slice of the section's
+/// card, so the cards still read as one rounded box.
 struct TaskListView<Header: View>: View {
     @Environment(WorkspaceState.self) private var workspace
 
@@ -42,10 +46,10 @@ struct TaskListView<Header: View>: View {
     var isTaskListFocused: FocusState<Bool>.Binding
 
     @State private var showCompleted = false
-    @State private var rowFrames: [UUID: CGRect] = [:]
+    /// Measured row frames for drag-to-reorder. Kept in a reference so
+    /// that measuring doesn't re-render the list.
+    @State private var rowFrames = RowFrameStore()
     @State private var drag: DragSession?
-
-
 
     private struct DragSession: Equatable {
         let taskID: UUID
@@ -58,9 +62,17 @@ struct TaskListView<Header: View>: View {
         ZStack {
             ScrollViewReader { proxy in
                 ScrollView(.vertical) {
-                    VStack(alignment: .leading, spacing: TaskListMetrics.sectionSpacing) {
+                    LazyVStack(alignment: .leading, spacing: 0) {
                         header
+                            .padding(.bottom, TaskListMetrics.sectionSpacing)
                         content
+                    }
+                    .coordinateSpace(name: taskListCoordinateSpace)
+                    .onPreferenceChange(RowFramePreferenceKey.self) { frames in
+                        rowFrames.frames.merge(frames, uniquingKeysWith: { $1 })
+                    }
+                    .overlay(alignment: .topLeading) {
+                        insertionIndicator
                     }
                     .frame(maxWidth: TaskListMetrics.maxContentWidth)
                     .padding(.horizontal, TaskListMetrics.horizontalInset)
@@ -104,81 +116,48 @@ struct TaskListView<Header: View>: View {
             )
             .frame(maxWidth: .infinity, minHeight: 240)
         } else {
-            VStack(alignment: .leading, spacing: TaskListMetrics.sectionSpacing) {
-                ForEach(sections) { group in
-                    sectionCard(group)
-                }
-
-                if !completedTasks.isEmpty {
-                    completedCard
-                }
-            }
-            .coordinateSpace(name: taskListCoordinateSpace)
-            .onPreferenceChange(RowFramePreferenceKey.self) { rowFrames = $0 }
-            .overlay(alignment: .topLeading) {
-                insertionIndicator
-            }
-        }
-    }
-
-    private func sectionCard(_ group: TaskSectionGroup) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Text(group.title)
-                    .font(.spaceGrotesk(15, weight: .semibold, relativeTo: .headline))
-                    .foregroundStyle(SchemaTheme.ink)
-                    .accessibilityAddTraits(.isHeader)
-                SchemaBadge(count: group.tasks.count)
-                Spacer(minLength: 8)
-                if !group.hint.isEmpty {
-                    Text(group.hint)
-                        .font(.schemaCaption)
-                        .foregroundStyle(SchemaTheme.inkMuted)
-                        .lineLimit(1)
-                }
-            }
-            .padding(.horizontal, 6)
-
-            card {
-                ForEach(group.tasks) { task in
+            ForEach(Array(sections.enumerated()), id: \.element.id) { index, group in
+                sectionHeader(group)
+                    .padding(.top, index == 0 ? 0 : TaskListMetrics.sectionSpacing)
+                    .padding(.bottom, 8)
+                ForEach(Array(group.tasks.enumerated()), id: \.element.id) { position, task in
                     incompleteRow(for: task)
+                        .cardSlice(.init(index: position, count: group.tasks.count))
                 }
             }
-        }
-    }
 
-    /// Done tasks, collapsed by default and kept quiet: no fill, faint titles.
-    private var completedCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            completedHeader
-
-            if showCompleted {
-                card(isQuiet: true) {
-                    ForEach(completedTasks) { task in
+            if !completedTasks.isEmpty {
+                completedHeader
+                    .padding(.top, sections.isEmpty ? 0 : TaskListMetrics.sectionSpacing)
+                    .padding(.bottom, 8)
+                if showCompleted {
+                    ForEach(Array(completedTasks.enumerated()), id: \.element.id) { position, task in
                         taskRow(for: task)
                             .id(task.id)
+                            .cardSlice(.init(index: position, count: completedTasks.count), isQuiet: true)
                             .transition(.opacity)
                     }
                 }
-                .transition(.opacity)
             }
         }
     }
 
-    private func card<Content: View>(isQuiet: Bool = false, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: TaskListMetrics.rowSpacing) {
-            content()
+    private func sectionHeader(_ group: TaskSectionGroup) -> some View {
+        HStack(spacing: 8) {
+            Text(group.title)
+                .font(.spaceGrotesk(15, weight: .semibold, relativeTo: .headline))
+                .foregroundStyle(SchemaTheme.ink)
+                .accessibilityAddTraits(.isHeader)
+            SchemaBadge(count: group.tasks.count)
+            Spacer(minLength: 8)
+            if !group.hint.isEmpty {
+                Text(group.hint)
+                    .font(.schemaCaption)
+                    .foregroundStyle(SchemaTheme.inkMuted)
+                    .lineLimit(1)
+            }
         }
-        .padding(TaskListMetrics.cardPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: TaskListMetrics.cardRadius, style: .continuous)
-                .fill(isQuiet ? Color.clear : SchemaTheme.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: TaskListMetrics.cardRadius, style: .continuous)
-                .strokeBorder(SchemaTheme.line, lineWidth: 1)
-        )
+        .padding(.horizontal, 6)
     }
 
     private func incompleteRow(for task: SchemaTask) -> some View {
@@ -278,6 +257,7 @@ struct TaskListView<Header: View>: View {
     /// Drags stay inside their section: moving a task between Today and
     /// Someday would need a new due date, which a drag doesn't set.
     private func insertionIndex(for session: DragSession) -> Int {
+        let rowFrames = rowFrames.frames
         guard let frame = rowFrames[session.taskID] else { return session.insertionIndex }
         let range = sectionRange(containing: session.taskID)
         let draggedMidY = frame.midY + session.translation
@@ -318,6 +298,7 @@ struct TaskListView<Header: View>: View {
     }
 
     private func indicatorY(for session: DragSession) -> CGFloat? {
+        let rowFrames = rowFrames.frames
         let index = session.insertionIndex
         let range = sectionRange(containing: session.taskID)
         if index < range.upperBound, let frame = rowFrames[incompleteTasks[index].id] {
@@ -342,6 +323,51 @@ private enum TaskListMetrics {
     static let bottomInset: CGFloat = 104
     static let cardPadding: CGFloat = 4
     static let cardRadius: CGFloat = 16
+}
+
+/// Where a row sits in its section's card.
+private struct CardSlice {
+    let isFirst: Bool
+    let isLast: Bool
+
+    init(index: Int, count: Int) {
+        isFirst = index == 0
+        isLast = index == count - 1
+    }
+}
+
+private extension View {
+    /// Pads a row as the card did and draws its part of the card: the
+    /// rounded top on the first row, the rounded bottom on the last, and
+    /// only the side edges in between.
+    func cardSlice(_ slice: CardSlice, isQuiet: Bool = false) -> some View {
+        let overhang = TaskListMetrics.cardRadius * 2
+        let shape = RoundedRectangle(cornerRadius: TaskListMetrics.cardRadius, style: .continuous)
+        return self
+            .padding(.horizontal, TaskListMetrics.cardPadding)
+            .padding(.top, slice.isFirst ? TaskListMetrics.cardPadding : TaskListMetrics.rowSpacing / 2)
+            .padding(.bottom, slice.isLast ? TaskListMetrics.cardPadding : TaskListMetrics.rowSpacing / 2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background {
+                // The whole card's shape, stretched past this row and clipped
+                // to it, so corners only show where the card really ends.
+                Color.clear
+                    .overlay {
+                        shape
+                            .fill(isQuiet ? Color.clear : SchemaTheme.surface)
+                            .overlay(shape.strokeBorder(SchemaTheme.line, lineWidth: 1))
+                            .padding(.top, slice.isFirst ? 0 : -overhang)
+                            .padding(.bottom, slice.isLast ? 0 : -overhang)
+                    }
+                    .clipped()
+            }
+    }
+}
+
+/// Row frames for drag-to-reorder, held by reference so updates don't
+/// invalidate the view.
+private final class RowFrameStore {
+    var frames: [UUID: CGRect] = [:]
 }
 
 private struct RowFramePreferenceKey: PreferenceKey {

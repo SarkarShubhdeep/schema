@@ -29,29 +29,34 @@ struct RoutineSequenceValidationResult: Equatable {
 
 enum RoutineSequenceOrdering {
     static func hasConnectedRoutineTasks(in tasks: [SchemaTask], forListID listID: UUID) -> Bool {
-        let routineTasks = tasks.filter { $0.list?.id == listID && $0.isRoutine }
-        guard routineTasks.count >= 2 else { return false }
+        listsWithConnectedRoutines(in: tasks).contains(listID)
+    }
 
-        let routineIDs = Set(routineTasks.map(\.id))
-        let linkedTasks = routineTasks.filter { task in
-            if let afterID = task.afterTaskID, routineIDs.contains(afterID) {
-                return true
-            }
-            return routineTasks.contains { $0.afterTaskID == task.id }
+    /// Pages holding at least two routine tasks linked to each other. One
+    /// pass over the tasks (#45); this runs on every redraw of a list.
+    static func listsWithConnectedRoutines(in tasks: [SchemaTask]) -> Set<UUID> {
+        var routinesByList: [UUID: [(id: UUID, afterID: UUID?)]] = [:]
+        for task in tasks where task.isRoutine {
+            guard let listID = task.list?.id else { continue }
+            routinesByList[listID, default: []].append((task.id, task.afterTaskID))
         }
-
-        return linkedTasks.count >= 2
+        var result = Set<UUID>()
+        for (listID, routines) in routinesByList where routines.count >= 2 {
+            let ids = Set(routines.map(\.id))
+            let followed = Set(routines.compactMap(\.afterID))
+            let linked = routines.count { routine in
+                if let afterID = routine.afterID, ids.contains(afterID) { return true }
+                return followed.contains(routine.id)
+            }
+            if linked >= 2 { result.insert(listID) }
+        }
+        return result
     }
 
     static func requiresManualSort(for list: SchemaList?, in tasks: [SchemaTask]) -> Bool {
         guard let list else { return false }
-
-        if list.isEverythingList {
-            let listIDs = Set(tasks.compactMap { $0.list?.id })
-            return listIDs.contains { hasConnectedRoutineTasks(in: tasks, forListID: $0) }
-        }
-
-        return hasConnectedRoutineTasks(in: tasks, forListID: list.id)
+        let connected = listsWithConnectedRoutines(in: tasks)
+        return list.isEverythingList ? !connected.isEmpty : connected.contains(list.id)
     }
 
     static func persistOrder(in tasks: [SchemaTask], forListID listID: UUID) {

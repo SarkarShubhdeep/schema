@@ -52,6 +52,12 @@ enum DemoData {
     /// `-SchemaDemoToggleSidebar` collapses (or expands) the sidebar 3 seconds
     /// after launch, to film the motion (#44). Pair with `-SchemaDemoSlowMotion`.
     static let togglesSidebar = CommandLine.arguments.contains("-SchemaDemoToggleSidebar")
+    /// `-SchemaDemoLarge` adds a 1,000-task to-do list and a 500-block
+    /// scratchpad, for the performance pass (#45).
+    static let seedsLargePages = CommandLine.arguments.contains("-SchemaDemoLarge")
+    /// `-SchemaDemoBenchmark` (with `-SchemaDemoLarge`) switches between the
+    /// large pages and edits a block, printing how long each step takes.
+    static let runsBenchmark = CommandLine.arguments.contains("-SchemaDemoBenchmark")
     /// Shows the first page mid-drag, two and a half rows down (#42).
     static let dragsPage = CommandLine.arguments.contains("-SchemaDemoDragPage")
 
@@ -90,10 +96,43 @@ enum DemoData {
     @MainActor
     static func makeContainer() throws -> ModelContainer {
         let schema = Schema(versionedSchema: SchemaCurrentVersion.self)
-        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        // The large pages go in a throwaway file on disk, like the real store,
+        // so the performance numbers match the app (#45).
+        let configuration: ModelConfiguration
+        if seedsLargePages {
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("schema-demo-large-\(UUID().uuidString).store")
+            configuration = ModelConfiguration(schema: schema, url: url)
+        } else {
+            configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        }
         let container = try ModelContainer(for: schema, configurations: [configuration])
         seed(container.mainContext)
         return container
+    }
+
+    @MainActor
+    private static func seedLargePages(_ context: ModelContext, startingAt start: Double) {
+        let backlog = SchemaList(title: "Backlog", order: 6, accentColorName: SchemaListColorName.blue.rawValue, tagLabel: "Backlog")
+        let journal = SchemaList(title: "Journal", order: 7, accentColorName: SchemaListColorName.neutral.rawValue, kind: .scratchpad)
+        context.insert(backlog)
+        context.insert(journal)
+        let calendar = Calendar.current
+        for n in 0..<1000 {
+            let reminder = n % 7 == 0 ? calendar.date(byAdding: .hour, value: n % 200, to: .now) : nil
+            let task = SchemaTask(title: "Backlog item \(n + 1): tidy up the \(["settings", "sync", "sidebar", "export", "search"][n % 5]) code", list: backlog, reminderTime: reminder)
+            task.manualSortIndex = start + Double(n)
+            if n % 4 == 0 { task.setCompleted(true) }
+            context.insert(task)
+        }
+        let kinds: [BlockKind] = [.text, .bullet, .bullet, .todo, .heading, .text, .quote, .todo]
+        for n in 0..<500 {
+            let kind = kinds[n % kinds.count]
+            let text = kind == .heading
+                ? "Week \(n / 8 + 1)"
+                : "Line \(n + 1). Notes on what went well, what didn’t, and what to try next time around."
+            context.insert(SchemaBlock(kind: kind, text: text, sortIndex: Double(n + 1), page: journal))
+        }
     }
 
     @MainActor
@@ -194,6 +233,10 @@ enum DemoData {
                 context.insert(block)
             }
             landlord.taskDescription = nil
+        }
+
+        if seedsLargePages {
+            seedLargePages(context, startingAt: index + 10)
         }
 
         try? context.save()

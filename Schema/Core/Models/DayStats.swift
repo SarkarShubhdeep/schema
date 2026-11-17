@@ -44,19 +44,58 @@ struct DayStats {
 
     var totalToday: Int { doneToday + dueToday }
 
+    /// One pass over the tasks, reading each property once: this runs on
+    /// every redraw of the Today view and the overview panel, and reading a
+    /// SwiftData property is slow next to the arithmetic here (#45).
     init(tasks: [SchemaTask], pages: [SchemaList], now: Date = .now, calendar: Calendar = .schema(), reminderLimit: Int = 4) {
-        doneToday = tasks.count { $0.wasCompleted(onSameDayAs: now, calendar: calendar) }
+        let clock = TaskSectionClock(now: now, calendar: calendar)
+        let startOfToday = calendar.startOfDay(for: now)
+        let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? startOfToday
+        let weekEnd = calendar.date(byAdding: .day, value: 7, to: weekStart) ?? weekStart
 
-        let openToday = tasks.filter { !$0.isCompleted && TaskSection.section(for: $0, now: now, calendar: calendar) == .today }
-        dueToday = openToday.count
-        nextDueTime = openToday.compactMap(\.reminderTime).filter { $0 > now }.min()
+        var doneToday = 0
+        var dueToday = 0
+        var nextDueTime: Date?
+        var countsByDay: [Date: Int] = [:]
+        var upcoming: [(task: SchemaTask, date: Date)] = []
+        var routineCounts: [UUID: (done: Int, total: Int)] = [:]
+
+        for task in tasks {
+            if let completedAt = task.completedAt {
+                if completedAt >= startOfToday, completedAt < clock.startOfTomorrow { doneToday += 1 }
+                if completedAt >= weekStart, completedAt < weekEnd {
+                    countsByDay[calendar.startOfDay(for: completedAt), default: 0] += 1
+                }
+            }
+            let isCompleted = task.isCompleted
+            let reminder = task.reminderTime
+            // As TaskSection: a routine with no time is due on the days it runs.
+            let runsToday = task.isRoutine && task.effectiveRoutineDays.contains(clock.weekday)
+            if !isCompleted {
+                let isDueToday = reminder.map { $0 < clock.startOfTomorrow } ?? runsToday
+                if isDueToday {
+                    dueToday += 1
+                    if let reminder, reminder > now, reminder < (nextDueTime ?? .distantFuture) {
+                        nextDueTime = reminder
+                    }
+                }
+                if let reminder, reminder > now {
+                    upcoming.append((task, reminder))
+                }
+            }
+            if runsToday, let listID = task.list?.id {
+                var counts = routineCounts[listID] ?? (0, 0)
+                counts.total += 1
+                if isCompleted { counts.done += 1 }
+                routineCounts[listID] = counts
+            }
+        }
+
+        self.doneToday = doneToday
+        self.dueToday = dueToday
+        self.nextDueTime = nextDueTime
 
         // Completions per day of the current calendar week.
-        let weekInterval = calendar.dateInterval(of: .weekOfYear, for: now)
-        let weekStart = weekInterval?.start ?? calendar.startOfDay(for: now)
-        let startOfToday = calendar.startOfDay(for: now)
-        let completionDays = tasks.compactMap { $0.completedAt.map { calendar.startOfDay(for: $0) } }
-        let countsByDay = Dictionary(completionDays.map { ($0, 1) }, uniquingKeysWith: +)
         week = (0..<7).compactMap { offset in
             guard let day = calendar.date(byAdding: .day, value: offset, to: weekStart) else { return nil }
             return WeekDay(
@@ -69,24 +108,15 @@ struct DayStats {
         }
         weekTotal = week.reduce(0) { $0 + $1.count }
 
-        reminders = tasks
-            .filter { !$0.isCompleted && ($0.reminderTime ?? .distantPast) > now }
-            .sorted { ($0.reminderTime ?? .distantFuture) < ($1.reminderTime ?? .distantFuture) }
+        reminders = upcoming
+            .sorted { $0.date < $1.date }
             .prefix(reminderLimit)
-            .map { Reminder(id: $0.id, title: $0.title, pageTitle: $0.list?.title, date: $0.reminderTime ?? now) }
+            .map { Reminder(id: $0.task.id, title: $0.task.title, pageTitle: $0.task.list?.title, date: $0.date) }
 
         // Routines that run today, per page.
-        let weekday = calendar.component(.weekday, from: now)
-        let routinesToday = tasks.filter { $0.isRoutine && $0.effectiveRoutineDays.contains(weekday) }
-        let byPage = Dictionary(grouping: routinesToday) { $0.list?.id }
         routines = pages.compactMap { page in
-            guard let pageRoutines = byPage[page.id], !pageRoutines.isEmpty else { return nil }
-            return RoutineProgress(
-                id: page.id,
-                title: page.title,
-                done: pageRoutines.count(where: \.isCompleted),
-                total: pageRoutines.count
-            )
+            guard let counts = routineCounts[page.id], counts.total > 0 else { return nil }
+            return RoutineProgress(id: page.id, title: page.title, done: counts.done, total: counts.total)
         }
     }
 }

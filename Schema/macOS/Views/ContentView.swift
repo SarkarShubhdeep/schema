@@ -11,8 +11,19 @@ import SwiftData
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
 
-    @Query(sort: \SchemaList.order) private var lists: [SchemaList]
-    @Query(sort: \SchemaTask.createdAt) private var allTasks: [SchemaTask]
+    /// Pages and tasks, fetched again only when one is added or removed
+    /// (#45; see ModelStore). `@Query` fetched every task on each keystroke.
+    @State private var listStore: ModelStore<SchemaList>?
+    @State private var taskStore: ModelStore<SchemaTask>?
+
+    private var lists: [SchemaList] {
+        (listStore?.items ?? []).sorted { $0.order < $1.order }
+    }
+
+    /// Unsorted: every view sorts what it shows.
+    private var allTasks: [SchemaTask] {
+        taskStore?.items ?? []
+    }
 
     @State private var listViewModel: ListViewModel?
     @State private var taskViewModel: TaskViewModel?
@@ -157,8 +168,14 @@ struct ContentView: View {
     private func bootstrapIfNeeded() {
         guard listViewModel == nil else { return }
 
+        let loadedLists = ModelStore<SchemaList>(context: modelContext)
+        listStore = loadedLists
+        let loadedTasks = ModelStore<SchemaTask>(context: modelContext)
+        taskStore = loadedTasks
         let listVM = ListViewModel(modelContext: modelContext)
-        listVM.ensureDefaultListsIfNeeded(from: lists)
+        // Read the fetched pages directly: this must never see an empty
+        // store by mistake, or it would add the default pages again.
+        listVM.ensureDefaultListsIfNeeded(from: loadedLists.items.sorted { $0.order < $1.order })
         listViewModel = listVM
         ensureListSelection()
         #if DEBUG
@@ -167,6 +184,11 @@ struct ContentView: View {
         }
         if DemoData.isEnabled, DemoData.opensUpcoming {
             listVM.selectSmartView(.upcoming, from: lists)
+        }
+        if DemoData.isEnabled, DemoData.runsBenchmark {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [lists, modelContext] in
+                DemoBenchmark.run(lists: lists, listViewModel: listVM, workspace: workspace, context: modelContext)
+            }
         }
         if DemoData.isEnabled, DemoData.togglesSidebar {
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [workspace] in
@@ -223,10 +245,10 @@ struct ContentView: View {
         )
 
         RoutineResetService(modelContext: modelContext)
-            .resetRoutineTasksIfNeeded(tasks: allTasks)
+            .resetRoutineTasksIfNeeded(tasks: loadedTasks.items)
 
         Task {
-            await notificationService.rescheduleAllReminders(for: allTasks)
+            await notificationService.rescheduleAllReminders(for: loadedTasks.items)
             await workspace.refreshNotifications(using: notificationService)
         }
     }

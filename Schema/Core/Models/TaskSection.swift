@@ -36,24 +36,13 @@ enum TaskSection: Int, CaseIterable, Identifiable {
     }
 
     static func section(for task: SchemaTask, now: Date = .now, calendar: Calendar = .schema()) -> TaskSection {
-        let startOfToday = calendar.startOfDay(for: now)
-        let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? now
-        let startOfNextWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.end ?? startOfTomorrow
-
-        guard let reminder = task.reminderTime else {
-            if task.isRoutine, task.effectiveRoutineDays.contains(calendar.component(.weekday, from: now)) {
-                return .today
-            }
-            return .someday
-        }
-        if reminder < startOfTomorrow { return .today }
-        if reminder < startOfNextWeek { return .thisWeek }
-        return .later
+        TaskSectionClock(now: now, calendar: calendar).section(for: task)
     }
 
     /// Non-empty sections in display order. Tasks keep their incoming order
     /// within a section.
     static func group(_ tasks: [SchemaTask], now: Date = .now, calendar: Calendar = .schema()) -> [TaskSectionGroup] {
+        let clock = TaskSectionClock(now: now, calendar: calendar)
         let byID = Dictionary(tasks.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         var sectionByID: [UUID: TaskSection] = [:]
 
@@ -63,7 +52,7 @@ enum TaskSection: Int, CaseIterable, Identifiable {
             if depth < 64, let previousID = task.afterTaskID, let previous = byID[previousID] {
                 section = resolve(previous, depth: depth + 1)
             } else {
-                section = Self.section(for: task, now: now, calendar: calendar)
+                section = clock.section(for: task)
             }
             sectionByID[task.id] = section
             return section
@@ -107,6 +96,35 @@ enum TaskSection: Int, CaseIterable, Identifiable {
                 tasks: byDay[day] ?? []
             )
         }
+    }
+}
+
+/// The day boundaries `TaskSection` needs, worked out once for a whole list
+/// rather than per task (#45).
+struct TaskSectionClock {
+    let now: Date
+    let startOfTomorrow: Date
+    let startOfNextWeek: Date
+    let weekday: Int
+
+    init(now: Date = .now, calendar: Calendar = .schema()) {
+        self.now = now
+        let startOfToday = calendar.startOfDay(for: now)
+        startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? now
+        startOfNextWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.end ?? startOfTomorrow
+        weekday = calendar.component(.weekday, from: now)
+    }
+
+    func section(for task: SchemaTask) -> TaskSection {
+        guard let reminder = task.reminderTime else {
+            if task.isRoutine, task.effectiveRoutineDays.contains(weekday) {
+                return .today
+            }
+            return .someday
+        }
+        if reminder < startOfTomorrow { return .today }
+        if reminder < startOfNextWeek { return .thisWeek }
+        return .later
     }
 }
 

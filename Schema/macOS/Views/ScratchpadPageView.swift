@@ -167,7 +167,11 @@ struct BlockListView: View {
 
     var body: some View {
         let blocks = editor.blocks
-        VStack(alignment: .leading, spacing: 2) {
+        // Lazy, so a long page only builds the lines on screen (#45). The
+        // reader brings a line into view before it takes the caret, since an
+        // off-screen line has no text view yet.
+        ScrollViewReader { proxy in
+        LazyVStack(alignment: .leading, spacing: 2) {
             ForEach(blocks) { block in
                 BlockRowView(
                     block: block,
@@ -195,8 +199,11 @@ struct BlockListView: View {
                 .accessibilityLabel("Add a line")
                 .accessibilityAddTraits(.isButton)
         }
-        // The gutter hangs left of the text column, as on the canvas.
-        .padding(.leading, 0)
+        .onChange(of: editor.focusRequest?.token) { _, _ in
+            guard let id = editor.focusRequest?.blockID else { return }
+            proxy.scrollTo(id)
+        }
+        }
     }
 
     private func placeholder(for block: SchemaBlock, isOnly: Bool) -> String {
