@@ -24,15 +24,16 @@ struct PageHeaderModel {
 }
 
 struct PageHeader: View {
+    @Environment(WorkspaceState.self) private var workspace
+
     let model: PageHeaderModel
     @Bindable var listViewModel: ListViewModel
     let requiresManualSort: Bool
     let onRename: (SchemaList, String) -> Void
     @Binding var isEditingListName: Bool
 
-    @State private var isEditing = false
-    @State private var editedTitle = ""
-    @FocusState private var isTitleFocused: Bool
+    /// Set by Rename in a menu; focuses the title with its text selected.
+    @State private var titleFocus: BlockFocusRequest?
 
     private static let titleFont = Font.spaceGrotesk(44, weight: .semibold, relativeTo: .largeTitle)
 
@@ -41,9 +42,9 @@ struct PageHeader: View {
             topBar
             titleBlock
         }
-        .onChange(of: model.renamableList?.id) { _, _ in
-            if isEditing { endEditing() }
-        }
+        // Rename from the page menu or the sidebar (#42).
+        .onAppear(perform: takeRenameRequest)
+        .onChange(of: workspace.pageRenameRequest) { _, _ in takeRenameRequest() }
     }
 
     // MARK: Top bar
@@ -72,7 +73,7 @@ struct PageHeader: View {
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Sort")
 
-            ListPreferencesMenu(listViewModel: listViewModel, requiresManualSort: requiresManualSort)
+            ListPreferencesMenu(listViewModel: listViewModel, requiresManualSort: requiresManualSort, page: model.renamableList)
         }
     }
 
@@ -109,20 +110,17 @@ struct PageHeader: View {
         }
     }
 
+    /// A page's title is editable in place; views (Today, Everything) are not.
     @ViewBuilder
     private var titleView: some View {
-        if isEditing, let list = model.renamableList {
-            TextField("Page name", text: $editedTitle)
-                .textFieldStyle(.plain)
-                .font(Self.titleFont)
-                .tracking(-1.2)
-                .foregroundStyle(SchemaTheme.ink)
-                .focused($isTitleFocused)
-                .onSubmit { commit(list) }
-                .onKeyPress(.escape) {
-                    endEditing()
-                    return .handled
-                }
+        if let list = model.renamableList {
+            PageTitleField(
+                title: list.title,
+                pageID: list.id,
+                focusRequest: titleFocus,
+                onRename: { onRename(list, $0) },
+                onEditingChange: { isEditingListName = $0 }
+            )
         } else {
             Text(model.title)
                 .font(Self.titleFont)
@@ -131,8 +129,6 @@ struct PageHeader: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 .truncationMode(.tail)
-                .onTapGesture(count: 2) { beginEditing() }
-                .help(model.renamableList == nil ? "" : "Double-click to rename")
                 .accessibilityAddTraits(.isHeader)
         }
     }
@@ -163,26 +159,9 @@ struct PageHeader: View {
 
     // MARK: Rename
 
-    private func beginEditing() {
-        guard let list = model.renamableList else { return }
-        editedTitle = list.title
-        isEditing = true
-        isEditingListName = true
-        isTitleFocused = true
-    }
-
-    private func commit(_ list: SchemaList) {
-        let trimmed = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty, trimmed != list.title {
-            onRename(list, trimmed)
-        }
-        endEditing()
-    }
-
-    private func endEditing() {
-        isEditing = false
-        isTitleFocused = false
-        isEditingListName = false
+    private func takeRenameRequest() {
+        guard let id = model.renamableList?.id, workspace.takePageRenameRequest(for: id) else { return }
+        titleFocus = BlockFocusRequest(blockID: id, caret: .all)
     }
 }
 

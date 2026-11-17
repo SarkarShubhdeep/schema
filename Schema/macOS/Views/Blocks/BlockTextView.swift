@@ -17,6 +17,8 @@ struct BlockTextStyle: Equatable {
     var lineHeight: CGFloat
     var isStruckThrough = false
     var isItalic = false
+    /// Letter spacing in points, like SwiftUI's `tracking`.
+    var kern: CGFloat = 0
 }
 
 struct BlockTextView: NSViewRepresentable {
@@ -87,6 +89,9 @@ struct BlockTextView: NSViewRepresentable {
                 case .start: location = 0
                 case .end: location = length
                 case .offset(let offset): location = min(max(offset, 0), length)
+                case .all:
+                    view.setSelectedRange(NSRange(location: 0, length: length))
+                    return
                 }
                 view.setSelectedRange(NSRange(location: location, length: 0))
                 view.scrollRangeToVisible(NSRange(location: location, length: 0))
@@ -126,6 +131,7 @@ struct BlockTextView: NSViewRepresentable {
             .foregroundColor: style.color,
             .paragraphStyle: paragraph,
             .baselineOffset: max(0, offset / 2),
+            .kern: style.kern,
         ]
         if style.isStruckThrough {
             attributes[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
@@ -299,6 +305,7 @@ final class BlockNSTextView: NSTextView {
             .foregroundColor: NSColor(SchemaTheme.inkFaint),
             .paragraphStyle: paragraph,
             .baselineOffset: max(0, offset / 2),
+            .kern: style.kern,
         ]
         NSAttributedString(string: placeholder, attributes: attributes)
             .draw(in: NSRect(x: 0, y: 0, width: bounds.width, height: style.lineHeight))

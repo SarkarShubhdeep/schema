@@ -2,22 +2,21 @@
 //  DeleteConfirmationDialog.swift
 //  Schema
 //
-//  The one question before deleting tasks: a small card over a dimmed
-//  window. Esc or a click outside cancels; the red button deletes.
+//  The one question before deleting tasks or a page: a small card over a
+//  dimmed window. Esc or a click outside cancels; the red button deletes.
 //
 
 import SwiftUI
 
 struct DeleteConfirmationDialog: View {
-    let count: Int
+    let title: String
+    let message: String
+    let cta: String
     let onCancel: () -> Void
     let onConfirm: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isFocused: Bool
-
-    private var title: String { count == 1 ? "Delete this task?" : "Delete \(count) tasks?" }
-    private var cta: String { count == 1 ? "Delete task" : "Delete \(count) tasks" }
 
     var body: some View {
         ZStack {
@@ -41,7 +40,7 @@ struct DeleteConfirmationDialog: View {
                 .padding(.trailing, 40)
                 .accessibilityAddTraits(.isHeader)
 
-            Text("You can undo this with ⌘Z. Reminders for \(count == 1 ? "this task" : "these tasks") are cancelled.")
+            Text(message)
                 .font(.schemaBody)
                 .foregroundStyle(SchemaTheme.inkMuted)
                 .fixedSize(horizontal: false, vertical: true)
@@ -84,6 +83,39 @@ struct DeleteConfirmationDialog: View {
         .accessibilityElement(children: .contain)
         .accessibilityAddTraits(.isModal)
         .accessibilityLabel(title)
+    }
+}
+
+extension DeleteConfirmationDialog {
+    /// Deleting selected tasks; ⌘Z brings them back.
+    init(taskCount count: Int, onCancel: @escaping () -> Void, onConfirm: @escaping () -> Void) {
+        self.init(
+            title: count == 1 ? "Delete this task?" : "Delete \(count) tasks?",
+            message: "You can undo this with ⌘Z. Reminders for \(count == 1 ? "this task" : "these tasks") are cancelled.",
+            cta: count == 1 ? "Delete task" : "Delete \(count) tasks",
+            onCancel: onCancel,
+            onConfirm: onConfirm
+        )
+    }
+
+    /// Deleting a page and everything on it (#42). There is no undo.
+    init(page: SchemaList, onCancel: @escaping () -> Void, onConfirm: @escaping () -> Void) {
+        let contents: String
+        if page.isScratchpad {
+            contents = "Its notes are deleted with it."
+        } else {
+            let count = page.tasks.count
+            contents = count == 0
+                ? "It has no tasks."
+                : "Its \(count == 1 ? "task" : "\(count) tasks") \(count == 1 ? "is" : "are") deleted with it, and \(count == 1 ? "its reminder is" : "their reminders are") cancelled."
+        }
+        self.init(
+            title: "Delete \u{201C}\(page.title)\u{201D}?",
+            message: contents + " This can\u{2019}t be undone.",
+            cta: "Delete page",
+            onCancel: onCancel,
+            onConfirm: onConfirm
+        )
     }
 }
 

@@ -18,6 +18,8 @@ enum CaretPlacement: Equatable {
     case end
     /// UTF-16 offset, as NSTextView counts.
     case offset(Int)
+    /// Select all the text, e.g. to rename a page title.
+    case all
 }
 
 /// A request to move the caret. `token` changes on every request, so asking

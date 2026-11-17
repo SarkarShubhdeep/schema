@@ -15,7 +15,10 @@ struct ScratchpadPageView: View {
     var taskActions: BlockTaskActions?
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(WorkspaceState.self) private var workspace
     @State private var editor: BlockEditor?
+    /// Set by Rename in a menu; focuses the title with its text selected.
+    @State private var titleFocus: BlockFocusRequest?
 
     var body: some View {
         ScrollView {
@@ -31,8 +34,12 @@ struct ScratchpadPageView: View {
             .padding(.top, 28)
         }
         .scrollContentBackground(.hidden)
-        .onAppear(perform: makeEditor)
+        .onAppear {
+            makeEditor()
+            takeRenameRequest()
+        }
         .onChange(of: page.id) { _, _ in makeEditor() }
+        .onChange(of: workspace.pageRenameRequest) { _, _ in takeRenameRequest() }
     }
 
     private var header: some View {
@@ -61,23 +68,33 @@ struct ScratchpadPageView: View {
                 Label(editedLabel, systemImage: PageKind.scratchpad.systemImage)
                     .font(.satoshi(13, weight: .medium, relativeTo: .callout))
                     .foregroundStyle(SchemaTheme.inkMuted)
-                Text(page.title)
-                    .font(.spaceGrotesk(44, weight: .semibold, relativeTo: .largeTitle))
-                    .foregroundStyle(SchemaTheme.ink)
-                    .lineLimit(2)
-                    .accessibilityAddTraits(.isHeader)
+                title
             }
         }
         // Keep the gutter column of the blocks below aligned with the text.
         .padding(.leading, BlockListView.gutterWidth)
     }
 
-    /// Page options: make tasks from every open to-do line at once.
-    @ViewBuilder
+    /// The page title, editable in place (#42). Return or ↓ moves to the first line.
+    private var title: some View {
+        PageTitleField(
+            title: page.title,
+            pageID: page.id,
+            focusRequest: titleFocus,
+            onRename: { newTitle in
+                page.title = newTitle
+                try? modelContext.save()
+            },
+            onDone: { editor?.focusFirstLine() },
+            onEditingChange: { workspace.isEditingListName = $0 }
+        )
+    }
+
+    /// Page options: make tasks from every open to-do line at once, rename, delete.
     private var pageMenu: some View {
-        if let editor, let actions = taskActions {
-            let open = editor.openToDosWithoutTasks(actions: actions)
-            Menu {
+        Menu {
+            if let editor, let actions = taskActions {
+                let open = editor.openToDosWithoutTasks(actions: actions)
                 Section(open.isEmpty ? "No open to-dos without a task" : "Make tasks from \(open.count) open to-do\(open.count == 1 ? "" : "s")") {
                     ForEach(actions.taskPages) { target in
                         Button("In \(target.title)") {
@@ -86,19 +103,27 @@ struct ScratchpadPageView: View {
                         .disabled(open.isEmpty)
                     }
                 }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(SchemaTheme.ink)
-                    .frame(width: 32, height: 32)
-                    .contentShape(Circle())
             }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .help("Page options")
-            .accessibilityLabel("Page options")
+            PageManageMenuItems(page: page)
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(SchemaTheme.ink)
+                .frame(width: 32, height: 32)
+                .contentShape(Circle())
         }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help("Page options")
+        .accessibilityLabel("Page options")
+    }
+
+    // MARK: Rename
+
+    private func takeRenameRequest() {
+        guard workspace.takePageRenameRequest(for: page.id) else { return }
+        titleFocus = BlockFocusRequest(blockID: page.id, caret: .all)
     }
 
     private var editedLabel: String {

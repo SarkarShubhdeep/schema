@@ -20,6 +20,17 @@ struct DeleteRequest: Equatable {
     let token = UUID()
 }
 
+/// Ask the page header showing this page to start renaming it (#42).
+struct PageRenameRequest: Equatable {
+    let pageID: UUID
+    let token = UUID()
+}
+
+struct PageDeleteRequest: Equatable {
+    let pageID: UUID
+    let token = UUID()
+}
+
 struct FocusRequest: Equatable {
     let target: WorkspaceFocus
     let token = UUID()
@@ -76,7 +87,7 @@ final class WorkspaceState {
     /// Set when the dialog is confirmed; the workspace performs the delete.
     private(set) var confirmedDelete: DeleteRequest?
 
-    var isConfirmingDelete: Bool { pendingDeleteIDs != nil }
+    var isConfirmingDelete: Bool { pendingDeleteIDs != nil || pendingPageDeleteID != nil }
 
     func requestDelete(_ taskIDs: Set<UUID>) {
         guard !taskIDs.isEmpty else { return }
@@ -93,6 +104,41 @@ final class WorkspaceState {
     func cancelPendingDelete() {
         pendingDeleteIDs = nil
         requestFocus(.taskList)
+    }
+
+    // MARK: Pages (#42)
+
+    /// The page waiting for the delete dialog's answer.
+    var pendingPageDeleteID: UUID?
+    /// Set when the page dialog is confirmed; the workspace performs it.
+    private(set) var confirmedPageDelete: PageDeleteRequest?
+    /// Picked up by the header of the page, now or once it appears.
+    var pageRenameRequest: PageRenameRequest?
+
+    func requestPageDelete(_ pageID: UUID) {
+        pendingPageDeleteID = pageID
+    }
+
+    func confirmPendingPageDelete() {
+        if let id = pendingPageDeleteID {
+            confirmedPageDelete = PageDeleteRequest(pageID: id)
+        }
+        pendingPageDeleteID = nil
+    }
+
+    func cancelPendingPageDelete() {
+        pendingPageDeleteID = nil
+    }
+
+    func requestPageRename(_ pageID: UUID) {
+        pageRenameRequest = PageRenameRequest(pageID: pageID)
+    }
+
+    /// The header calls this when it starts editing; true if the request was for `pageID`.
+    func takePageRenameRequest(for pageID: UUID?) -> Bool {
+        guard let pageID, pageRenameRequest?.pageID == pageID else { return false }
+        pageRenameRequest = nil
+        return true
     }
 
     // MARK: Focus

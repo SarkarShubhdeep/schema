@@ -45,6 +45,12 @@ enum DemoData {
 
     /// `-SchemaDemoQuickNote` opens the Quick note panel with some text.
     static let opensQuickNote = CommandLine.arguments.contains("-SchemaDemoQuickNote")
+    /// `-SchemaDemoDeletePage` asks to delete the first page (#42).
+    static let opensPageDelete = CommandLine.arguments.contains("-SchemaDemoDeletePage")
+    /// `-SchemaDemoRenamePage` starts renaming the selected page (#42).
+    static let renamesPage = CommandLine.arguments.contains("-SchemaDemoRenamePage")
+    /// Shows the first page mid-drag, two and a half rows down (#42).
+    static let dragsPage = CommandLine.arguments.contains("-SchemaDemoDragPage")
 
     /// `-SchemaDemoPage` opens on the first page (Daily Todos).
     static let opensFirstPage = CommandLine.arguments.contains("-SchemaDemoPage")
