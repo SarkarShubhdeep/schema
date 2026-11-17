@@ -302,7 +302,8 @@ final class BlockNSTextView: NSTextView {
         let offset = (style.lineHeight - (style.font.ascender - style.font.descender)) / 2
         let attributes: [NSAttributedString.Key: Any] = [
             .font: style.font,
-            .foregroundColor: NSColor(SchemaTheme.inkFaint),
+            // inkMuted: placeholder hints are read, so they need 4.5:1 (#46).
+            .foregroundColor: NSColor(SchemaTheme.inkMuted),
             .paragraphStyle: paragraph,
             .baselineOffset: max(0, offset / 2),
             .kern: style.kern,

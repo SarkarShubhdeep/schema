@@ -4,6 +4,14 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-11-17
+
+Pages and capture: every page has a type, scratchpads with a block editor, the / menu and markdown shortcuts, tasks that open as pages, a Quick note panel from any app, page management, a floating collapsed sidebar, smoother motion and fast long pages.
+
+### Fixed
+
+- Contrast (#46): placeholder hints in scratchpads and task pages ("Type / for blocks", "Untitled", "Add notes, steps or links") and the + beside a line used the faint ink, 3.1–3.7:1. They now use the muted ink, 6.1:1 or better. Faint ink stays only on decorative marks: the breadcrumb "/" and done-checkbox rings.
+
 ### Changed
 
 - Pages now have a type, To-do list or Scratchpad, and can hold blocks (text, heading, bullet, to-do, quote, divider); tasks can hold blocks too, for their own page later (#36). The data migrates to schema V6 automatically and every existing page stays a to-do list. Nothing in the window changes yet.

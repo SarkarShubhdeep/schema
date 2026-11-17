@@ -185,7 +185,7 @@ struct BlockListView: View {
             if blocks.isEmpty, let emptyPrompt {
                 Text(emptyPrompt)
                     .font(.satoshi(15, relativeTo: .body))
-                    .foregroundStyle(SchemaTheme.inkFaint)
+                    .foregroundStyle(SchemaTheme.inkMuted)
                     .padding(.leading, Self.gutterWidth)
                     .padding(.vertical, 2)
                     .frame(maxWidth: .infinity, alignment: .leading)

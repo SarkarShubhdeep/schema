@@ -51,7 +51,7 @@ struct BlockRowView: View {
         } label: {
             Image(systemName: "plus")
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(SchemaTheme.inkFaint)
+                .foregroundStyle(SchemaTheme.inkMuted)
                 .frame(width: 22, height: 22)
                 .contentShape(Rectangle())
         }
