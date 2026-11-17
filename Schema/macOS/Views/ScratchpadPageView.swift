@@ -17,9 +17,8 @@ struct ScratchpadPageView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(WorkspaceState.self) private var workspace
     @State private var editor: BlockEditor?
-    @State private var isRenaming = false
-    @State private var editedTitle = ""
-    @FocusState private var isTitleFocused: Bool
+    /// Set by Rename in a menu; focuses the title with its text selected.
+    @State private var titleFocus: BlockFocusRequest?
 
     var body: some View {
         ScrollView {
@@ -39,10 +38,7 @@ struct ScratchpadPageView: View {
             makeEditor()
             takeRenameRequest()
         }
-        .onChange(of: page.id) { _, _ in
-            endRename()
-            makeEditor()
-        }
+        .onChange(of: page.id) { _, _ in makeEditor() }
         .onChange(of: workspace.pageRenameRequest) { _, _ in takeRenameRequest() }
     }
 
@@ -79,35 +75,19 @@ struct ScratchpadPageView: View {
         .padding(.leading, BlockListView.gutterWidth)
     }
 
-    private static let titleFont = Font.spaceGrotesk(44, weight: .semibold, relativeTo: .largeTitle)
-
-    /// The page title; double-click, or Rename in the menu, edits it (#42).
-    @ViewBuilder
+    /// The page title, editable in place (#42). Return or ↓ moves to the first line.
     private var title: some View {
-        if isRenaming {
-            TextField("Page name", text: $editedTitle)
-                .textFieldStyle(.plain)
-                .font(Self.titleFont)
-                .foregroundStyle(SchemaTheme.ink)
-                .focused($isTitleFocused)
-                .onSubmit(commitRename)
-                .onKeyPress(.escape) {
-                    endRename()
-                    return .handled
-                }
-                .onChange(of: isTitleFocused) { _, focused in
-                    if !focused, isRenaming { commitRename() }
-                }
-                .accessibilityLabel("Page name")
-        } else {
-            Text(page.title)
-                .font(Self.titleFont)
-                .foregroundStyle(SchemaTheme.ink)
-                .lineLimit(2)
-                .onTapGesture(count: 2, perform: beginRename)
-                .help("Double-click to rename")
-                .accessibilityAddTraits(.isHeader)
-        }
+        PageTitleField(
+            title: page.title,
+            pageID: page.id,
+            focusRequest: titleFocus,
+            onRename: { newTitle in
+                page.title = newTitle
+                try? modelContext.save()
+            },
+            onDone: { editor?.focusFirstLine() },
+            onEditingChange: { workspace.isEditingListName = $0 }
+        )
     }
 
     /// Page options: make tasks from every open to-do line at once, rename, delete.
@@ -142,32 +122,8 @@ struct ScratchpadPageView: View {
     // MARK: Rename
 
     private func takeRenameRequest() {
-        if workspace.takePageRenameRequest(for: page.id) {
-            beginRename()
-        }
-    }
-
-    private func beginRename() {
-        editedTitle = page.title
-        isRenaming = true
-        workspace.isEditingListName = true
-        isTitleFocused = true
-    }
-
-    private func commitRename() {
-        let trimmed = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        // "Everything" is reserved for the built-in view.
-        if !trimmed.isEmpty, trimmed != page.title, trimmed != SchemaList.everythingTitle {
-            page.title = trimmed
-            try? modelContext.save()
-        }
-        endRename()
-    }
-
-    private func endRename() {
-        isRenaming = false
-        isTitleFocused = false
-        workspace.isEditingListName = false
+        guard workspace.takePageRenameRequest(for: page.id) else { return }
+        titleFocus = BlockFocusRequest(blockID: page.id, caret: .all)
     }
 
     private var editedLabel: String {

@@ -17,7 +17,7 @@ All notable changes to Schema are documented in this file.
 - Fixed: long lines in a scratchpad could wrap at the wrong width and overlap the line below.
 - Scratchpads never receive tasks: quick add, @page mentions, Move to page and the default page in Settings only offer to-do lists.
 - Added the first unit tests (Swift Testing, `SchemaTests` target): block ordering, page and block models, and the V5 → V6 migration. Tests run against an in-memory store, never the real one.
-- Pages can be renamed, deleted and reordered (#42). Rename and Delete page… are in each page's ••• menu and in the sidebar's right-click menu; Rename edits the title in place, and double-clicking a scratchpad's title does too. Deleting asks once and removes the page's tasks or notes with it, cancelling their reminders; it can't be undone, and it clears ⌘Z history. Drag a page in the sidebar to move it; ⌘1–9 follow the new order. A page can't be named Everything.
+- Pages can be renamed, deleted and reordered (#42). Rename and Delete page… are in each page's ••• menu and in the sidebar's right-click menu; Page titles are editable in place: click and type, Return or clicking away saves, Esc puts the old name back; Rename selects the title. The title keeps its letter spacing while you edit. Deleting asks once and removes the page's tasks or notes with it, cancelling their reminders; it can't be undone, and it clears ⌘Z history. Drag a page in the sidebar to move it; ⌘1–9 follow the new order. A page can't be named Everything.
 
 ## [0.4.0] — 2026-11-15
 
