@@ -61,8 +61,8 @@ struct TaskRowView: View {
         }
         .animation(SchemaMotion.fast, value: isHovered)
         .animation(SchemaMotion.fast, value: isLifted)
-        .animation(SchemaMotion.standard, value: isHighlighted)
-        .animation(SchemaMotion.standard, value: isKeyboardSelected)
+        .animation(SchemaMotion.fast, value: isHighlighted)
+        .animation(SchemaMotion.fast, value: isKeyboardSelected)
         .onHover { isHovered = $0 }
         .contextMenu {
             Button("Open Details") {
@@ -222,7 +222,7 @@ struct TaskRowView: View {
     private func handleToggle() {
         guard !isSequenceBlocked || task.isCompleted else { return }
         onDeselect()
-        withAnimation(SchemaMotion.spring) {
+        withAnimation(SchemaMotion.smooth) {
             onToggle()
         }
     }

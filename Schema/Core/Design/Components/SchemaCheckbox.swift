@@ -19,7 +19,6 @@ struct SchemaCheckbox: View {
     var hitPadding: CGFloat = 6
     let action: () -> Void
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isHovered = false
     @State private var pressScale: CGFloat = 1
 
@@ -47,7 +46,7 @@ struct SchemaCheckbox: View {
         .disabled(isBlocked && !isChecked)
         .onHover { isHovered = $0 }
         .animation(SchemaMotion.fast, value: isHovered)
-        .animation(SchemaMotion.animation(SchemaMotion.fast, reduceMotion: reduceMotion), value: isChecked)
+        .animation(SchemaMotion.fast, value: isChecked)
         .help(isBlocked && !isChecked ? "Complete the previous task in the sequence first" : "")
         .accessibilityLabel(label.isEmpty ? "Task" : label)
         .accessibilityValue(isChecked ? "Completed" : (isBlocked ? "Blocked" : "Not completed"))
@@ -61,12 +60,12 @@ struct SchemaCheckbox: View {
     }
 
     private func toggle() {
-        guard !reduceMotion else {
+        guard let spring = SchemaMotion.spring else {
             action()
             return
         }
-        withAnimation(SchemaMotion.spring) { pressScale = 0.94 }
+        withAnimation(spring) { pressScale = 0.94 }
         action()
-        withAnimation(SchemaMotion.spring.delay(0.08)) { pressScale = 1 }
+        withAnimation(spring.delay(0.08)) { pressScale = 1 }
     }
 }

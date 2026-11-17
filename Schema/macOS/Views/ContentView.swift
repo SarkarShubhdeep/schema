@@ -58,7 +58,7 @@ struct ContentView: View {
                 SidebarView(lists: lists, allTasks: allTasks, listViewModel: listViewModel, onNotificationSelect: { item in
                     openNotification(item, listViewModel: listViewModel)
                 })
-                .transition(.move(edge: .leading))
+                .transition(SchemaMotion.moving(.move(edge: .leading)))
             }
 
             WorkspaceView(
@@ -78,7 +78,7 @@ struct ContentView: View {
                 FloatingSidebarBar(lists: lists, listViewModel: listViewModel, onNotificationSelect: { item in
                     openNotification(item, listViewModel: listViewModel)
                 })
-                    .transition(.opacity.combined(with: .offset(x: -8)))
+                    .transition(SchemaMotion.followingPanel(.opacity.combined(with: .offset(x: -8))))
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -118,8 +118,8 @@ struct ContentView: View {
                 )
             }
         }
-        .animation(SchemaMotion.fast, value: workspace.isConfirmingDelete)
-        .animation(SchemaMotion.fast, value: listViewModel.showNewListSheet)
+        .animation(SchemaMotion.appear, value: workspace.isConfirmingDelete)
+        .animation(SchemaMotion.appear, value: listViewModel.showNewListSheet)
         .focusedSceneValue(\.workspaceState, workspace)
         .onGeometryChange(for: CGFloat.self) { proxy in
             proxy.size.width
@@ -167,6 +167,11 @@ struct ContentView: View {
         }
         if DemoData.isEnabled, DemoData.opensUpcoming {
             listVM.selectSmartView(.upcoming, from: lists)
+        }
+        if DemoData.isEnabled, DemoData.togglesSidebar {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [workspace] in
+                workspace.toggleSidebar()
+            }
         }
         if DemoData.isEnabled, DemoData.opensSettings {
             workspace.showSettings = true

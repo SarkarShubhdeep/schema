@@ -25,7 +25,7 @@ struct AddTaskBar: View {
             if let parsedMentions, parsedMentions.hasPreviewContent {
                 mentionPreview(parsedMentions)
                     .padding(.leading, 20)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(SchemaMotion.moving(.opacity.combined(with: .move(edge: .top))))
             }
         }
         .animation(SchemaMotion.fast, value: parsedMentions?.hasPreviewContent ?? false)

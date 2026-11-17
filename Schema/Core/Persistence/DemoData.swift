@@ -49,6 +49,9 @@ enum DemoData {
     static let opensPageDelete = CommandLine.arguments.contains("-SchemaDemoDeletePage")
     /// `-SchemaDemoRenamePage` starts renaming the selected page (#42).
     static let renamesPage = CommandLine.arguments.contains("-SchemaDemoRenamePage")
+    /// `-SchemaDemoToggleSidebar` collapses (or expands) the sidebar 3 seconds
+    /// after launch, to film the motion (#44). Pair with `-SchemaDemoSlowMotion`.
+    static let togglesSidebar = CommandLine.arguments.contains("-SchemaDemoToggleSidebar")
     /// Shows the first page mid-drag, two and a half rows down (#42).
     static let dragsPage = CommandLine.arguments.contains("-SchemaDemoDragPage")
 

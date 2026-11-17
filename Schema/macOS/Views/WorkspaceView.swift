@@ -198,7 +198,7 @@ struct WorkspaceView: View {
         .overlay(alignment: .bottom) {
             selectionToolbar
         }
-        .animation(SchemaMotion.standard, value: workspace.selectedTaskIDs.isEmpty)
+        .animation(SchemaMotion.appear, value: workspace.selectedTaskIDs.isEmpty)
         // Room for the floating sidebar bar when the sidebar is collapsed.
         .padding(.leading, workspace.isSidebarCollapsed ? ShellMetrics.floatingBarContentInset : 0)
         .frame(minWidth: ShellMetrics.mainMinWidth, maxWidth: .infinity, minHeight: 520)
@@ -224,7 +224,7 @@ struct WorkspaceView: View {
                 }
             }
         }
-        .animation(SchemaMotion.animation(SchemaMotion.standard, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion), value: workspace.isTaskPageOpen)
+        .animation(SchemaMotion.smooth, value: workspace.isTaskPageOpen)
         .background(SchemaTheme.canvas)
         .clickOutsideDismiss(isActive: workspace.hasDismissibleState) {
             dismissActiveEditing()
@@ -342,7 +342,7 @@ struct WorkspaceView: View {
             .keepsSelectionOnClick()
             .padding(.bottom, 24)
             .padding(.horizontal, 16)
-            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .transition(SchemaMotion.moving(.move(edge: .bottom).combined(with: .opacity)))
         }
     }
 
