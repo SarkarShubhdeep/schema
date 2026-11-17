@@ -42,17 +42,24 @@ struct ContentView: View {
         }
     }
 
+    private func openNotification(_ item: SchemaNotificationItem, listViewModel: ListViewModel) {
+        if let listID = item.listID {
+            listViewModel.selectedListID = listID
+        }
+        workspace.highlightedTaskID = item.taskID
+        workspace.showNotifications = false
+    }
+
     private func workspaceStack(listViewModel: ListViewModel, taskViewModel: TaskViewModel) -> some View {
         @Bindable var workspace = workspace
 
         return HStack(spacing: 0) {
-            SidebarView(lists: lists, allTasks: allTasks, listViewModel: listViewModel, onNotificationSelect: { item in
-                if let listID = item.listID {
-                    listViewModel.selectedListID = listID
-                }
-                workspace.highlightedTaskID = item.taskID
-                workspace.showNotifications = false
-            })
+            if !workspace.isSidebarCollapsed {
+                SidebarView(lists: lists, allTasks: allTasks, listViewModel: listViewModel, onNotificationSelect: { item in
+                    openNotification(item, listViewModel: listViewModel)
+                })
+                .transition(.move(edge: .leading))
+            }
 
             WorkspaceView(
                 lists: lists,
@@ -65,6 +72,15 @@ struct ContentView: View {
             .clipped()
         }
         .background(SchemaTheme.canvas.ignoresSafeArea())
+        // Collapsed, the sidebar is a floating bar over the main column (#43).
+        .overlay(alignment: .topLeading) {
+            if workspace.isSidebarCollapsed {
+                FloatingSidebarBar(lists: lists, listViewModel: listViewModel, onNotificationSelect: { item in
+                    openNotification(item, listViewModel: listViewModel)
+                })
+                    .transition(.opacity.combined(with: .offset(x: -8)))
+            }
+        }
         .overlay(alignment: .topTrailing) {
             DetailsPanelTitleBarStrip()
         }
