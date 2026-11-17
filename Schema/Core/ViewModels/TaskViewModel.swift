@@ -273,6 +273,19 @@ final class TaskViewModel {
         return copies
     }
 
+    /// Deletes every task on a page that is being deleted (#42): reminders
+    /// are cancelled and routine links into the page cleared. Undo history
+    /// is dropped, since it may point at the page.
+    func deleteTasks(onPage page: SchemaList) {
+        for task in page.tasks {
+            clearSequenceLinks(pointingTo: task.id)
+            notificationService.cancelReminder(for: task)
+            modelContext.delete(task)
+        }
+        undoStack.removeAll()
+        save()
+    }
+
     func deleteTask(_ task: SchemaTask, recordUndo: Bool = true) {
         if recordUndo {
             pushUndo(.deletedTask(TaskSnapshot(task: task)))

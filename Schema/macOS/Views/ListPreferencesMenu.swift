@@ -6,8 +6,11 @@
 import SwiftUI
 
 struct ListPreferencesMenu: View {
+    @Environment(WorkspaceState.self) private var workspace
     @Bindable var listViewModel: ListViewModel
     let requiresManualSort: Bool
+    /// The page shown, for Rename and Delete; nil for views (#42).
+    var page: SchemaList?
 
     var body: some View {
         Menu {
@@ -45,6 +48,10 @@ struct ListPreferencesMenu: View {
                     }
                 }
             }
+
+            if let page {
+                PageManageMenuItems(page: page)
+            }
         } label: {
             Image(systemName: "ellipsis")
                 .font(.system(size: 13, weight: .semibold))
@@ -59,5 +66,17 @@ struct ListPreferencesMenu: View {
         .fixedSize()
         .help("Page options")
         .accessibilityLabel("Page options")
+    }
+}
+
+/// Rename and Delete for a page; in the page menus and the sidebar (#42).
+struct PageManageMenuItems: View {
+    @Environment(WorkspaceState.self) private var workspace
+    let page: SchemaList
+
+    var body: some View {
+        Divider()
+        Button("Rename") { workspace.requestPageRename(page.id) }
+        Button("Delete page\u{2026}", role: .destructive) { workspace.requestPageDelete(page.id) }
     }
 }

@@ -200,7 +200,7 @@ final class ListViewModel {
     func updateListTitle(_ list: SchemaList, title: String) {
         guard !list.isEverythingList else { return }
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        guard !trimmed.isEmpty, trimmed != SchemaList.everythingTitle else { return }
         list.title = trimmed
         save()
     }
@@ -214,6 +214,28 @@ final class ListViewModel {
 
         modelContext.delete(list)
         save()
+    }
+
+    /// Puts the page `movingID` where `targetID` is now (#42): after it when
+    /// moving down, before it when moving up. Everything keeps its place.
+    /// Returns whether anything moved.
+    @discardableResult
+    func movePage(_ movingID: UUID, to targetID: UUID, in lists: [SchemaList]) -> Bool {
+        var pages = pages(from: lists)
+        guard movingID != targetID,
+              let from = pages.firstIndex(where: { $0.id == movingID }),
+              let to = pages.firstIndex(where: { $0.id == targetID }) else { return false }
+        let page = pages.remove(at: from)
+        pages.insert(page, at: to)
+        // Pages take 1…n; Everything, if any, stays at 0 ahead of them.
+        for (index, page) in pages.enumerated() {
+            page.order = index + 1
+        }
+        if let everything = lists.first(where: \.isEverythingList) {
+            everything.order = 0
+        }
+        save()
+        return true
     }
 
     func reorderLists(_ lists: [SchemaList]) {

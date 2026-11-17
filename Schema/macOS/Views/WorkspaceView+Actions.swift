@@ -98,6 +98,20 @@ extension WorkspaceView {
         workspace.requestFocus(.taskList)
     }
 
+    /// Deletes a page and everything on it, after the dialog (#42).
+    func deletePage(_ pageID: UUID) {
+        guard let page = lists.first(where: { $0.id == pageID }), !page.isEverythingList else { return }
+        if let editor = workspace.taskDetailEditor, page.tasks.contains(where: { $0.id == editor.taskID }) {
+            closeTaskDetail()
+        }
+        workspace.clearSelection()
+        withAnimation(SchemaMotion.smooth) {
+            taskViewModel.deleteTasks(onPage: page)
+            listViewModel.deleteList(page, from: listViewModel.pages(from: lists))
+        }
+        Task { await refreshNotifications() }
+    }
+
     func deleteSelected(_ taskIDs: Set<UUID>) {
         let visible = incompleteTasks + completedTasks
         let toDelete = visible.filter { taskIDs.contains($0.id) }

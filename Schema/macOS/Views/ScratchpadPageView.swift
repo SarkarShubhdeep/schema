@@ -15,7 +15,11 @@ struct ScratchpadPageView: View {
     var taskActions: BlockTaskActions?
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(WorkspaceState.self) private var workspace
     @State private var editor: BlockEditor?
+    @State private var isRenaming = false
+    @State private var editedTitle = ""
+    @FocusState private var isTitleFocused: Bool
 
     var body: some View {
         ScrollView {
@@ -31,8 +35,15 @@ struct ScratchpadPageView: View {
             .padding(.top, 28)
         }
         .scrollContentBackground(.hidden)
-        .onAppear(perform: makeEditor)
-        .onChange(of: page.id) { _, _ in makeEditor() }
+        .onAppear {
+            makeEditor()
+            takeRenameRequest()
+        }
+        .onChange(of: page.id) { _, _ in
+            endRename()
+            makeEditor()
+        }
+        .onChange(of: workspace.pageRenameRequest) { _, _ in takeRenameRequest() }
     }
 
     private var header: some View {
@@ -61,23 +72,49 @@ struct ScratchpadPageView: View {
                 Label(editedLabel, systemImage: PageKind.scratchpad.systemImage)
                     .font(.satoshi(13, weight: .medium, relativeTo: .callout))
                     .foregroundStyle(SchemaTheme.inkMuted)
-                Text(page.title)
-                    .font(.spaceGrotesk(44, weight: .semibold, relativeTo: .largeTitle))
-                    .foregroundStyle(SchemaTheme.ink)
-                    .lineLimit(2)
-                    .accessibilityAddTraits(.isHeader)
+                title
             }
         }
         // Keep the gutter column of the blocks below aligned with the text.
         .padding(.leading, BlockListView.gutterWidth)
     }
 
-    /// Page options: make tasks from every open to-do line at once.
+    private static let titleFont = Font.spaceGrotesk(44, weight: .semibold, relativeTo: .largeTitle)
+
+    /// The page title; double-click, or Rename in the menu, edits it (#42).
     @ViewBuilder
+    private var title: some View {
+        if isRenaming {
+            TextField("Page name", text: $editedTitle)
+                .textFieldStyle(.plain)
+                .font(Self.titleFont)
+                .foregroundStyle(SchemaTheme.ink)
+                .focused($isTitleFocused)
+                .onSubmit(commitRename)
+                .onKeyPress(.escape) {
+                    endRename()
+                    return .handled
+                }
+                .onChange(of: isTitleFocused) { _, focused in
+                    if !focused, isRenaming { commitRename() }
+                }
+                .accessibilityLabel("Page name")
+        } else {
+            Text(page.title)
+                .font(Self.titleFont)
+                .foregroundStyle(SchemaTheme.ink)
+                .lineLimit(2)
+                .onTapGesture(count: 2, perform: beginRename)
+                .help("Double-click to rename")
+                .accessibilityAddTraits(.isHeader)
+        }
+    }
+
+    /// Page options: make tasks from every open to-do line at once, rename, delete.
     private var pageMenu: some View {
-        if let editor, let actions = taskActions {
-            let open = editor.openToDosWithoutTasks(actions: actions)
-            Menu {
+        Menu {
+            if let editor, let actions = taskActions {
+                let open = editor.openToDosWithoutTasks(actions: actions)
                 Section(open.isEmpty ? "No open to-dos without a task" : "Make tasks from \(open.count) open to-do\(open.count == 1 ? "" : "s")") {
                     ForEach(actions.taskPages) { target in
                         Button("In \(target.title)") {
@@ -86,19 +123,51 @@ struct ScratchpadPageView: View {
                         .disabled(open.isEmpty)
                     }
                 }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(SchemaTheme.ink)
-                    .frame(width: 32, height: 32)
-                    .contentShape(Circle())
             }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .help("Page options")
-            .accessibilityLabel("Page options")
+            PageManageMenuItems(page: page)
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(SchemaTheme.ink)
+                .frame(width: 32, height: 32)
+                .contentShape(Circle())
         }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help("Page options")
+        .accessibilityLabel("Page options")
+    }
+
+    // MARK: Rename
+
+    private func takeRenameRequest() {
+        if workspace.takePageRenameRequest(for: page.id) {
+            beginRename()
+        }
+    }
+
+    private func beginRename() {
+        editedTitle = page.title
+        isRenaming = true
+        workspace.isEditingListName = true
+        isTitleFocused = true
+    }
+
+    private func commitRename() {
+        let trimmed = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        // "Everything" is reserved for the built-in view.
+        if !trimmed.isEmpty, trimmed != page.title, trimmed != SchemaList.everythingTitle {
+            page.title = trimmed
+            try? modelContext.save()
+        }
+        endRename()
+    }
+
+    private func endRename() {
+        isRenaming = false
+        isTitleFocused = false
+        workspace.isEditingListName = false
     }
 
     private var editedLabel: String {

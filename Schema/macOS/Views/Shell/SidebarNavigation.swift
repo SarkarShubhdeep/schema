@@ -7,14 +7,20 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SidebarNavigation: View {
+    @Environment(WorkspaceState.self) private var workspace
+
     let lists: [SchemaList]
     let allTasks: [SchemaTask]
     let listViewModel: ListViewModel
     let isCollapsed: Bool
 
     private var pages: [SchemaList] { listViewModel.pages(from: lists) }
+
+    /// The page being dragged to a new place (#42).
+    @State private var draggingPageID: UUID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -72,6 +78,31 @@ struct SidebarNavigation: View {
                 } action: {
                     listViewModel.selectList(page)
                 }
+                .opacity(draggingPageID == page.id ? 0.4 : 1)
+                .contextMenu {
+                    Button("Rename") {
+                        listViewModel.selectList(page)
+                        workspace.requestPageRename(page.id)
+                    }
+                    Button("Delete page\u{2026}", role: .destructive) {
+                        workspace.requestPageDelete(page.id)
+                    }
+                }
+                // Drag a page onto another to take its place; the list
+                // reorders as the drag passes over rows.
+                .onDrag {
+                    draggingPageID = page.id
+                    return NSItemProvider(object: page.id.uuidString as NSString)
+                }
+                .onDrop(of: [.plainText], delegate: PageDropDelegate(
+                    targetID: page.id,
+                    draggingID: $draggingPageID,
+                    move: { moving, target in
+                        withAnimation(SchemaMotion.smooth) {
+                            _ = listViewModel.movePage(moving, to: target, in: lists)
+                        }
+                    }
+                ))
             }
 
             SidebarRow(
@@ -115,5 +146,26 @@ struct SidebarNavigation: View {
     private func count(for view: SmartView) -> Int {
         let now = Date.now
         return allTasks.count { !$0.isCompleted && view.includes($0, now: now) }
+    }
+}
+
+/// Reorders pages live while one is dragged over the others (#42).
+private struct PageDropDelegate: DropDelegate {
+    let targetID: UUID
+    @Binding var draggingID: UUID?
+    let move: (_ moving: UUID, _ target: UUID) -> Void
+
+    func dropEntered(info: DropInfo) {
+        guard let draggingID, draggingID != targetID else { return }
+        move(draggingID, targetID)
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: draggingID == nil ? .forbidden : .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggingID = nil
+        return true
     }
 }

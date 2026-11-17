@@ -236,6 +236,10 @@ struct WorkspaceView: View {
                 deleteSelected(request.taskIDs)
             }
         }
+        .onChange(of: workspace.confirmedPageDelete) { _, request in
+            guard let request else { return }
+            deletePage(request.pageID)
+        }
         .onChange(of: workspace.focusRequest) { _, request in
             guard let request else { return }
             isAddTaskFocused = request.target == .addTask

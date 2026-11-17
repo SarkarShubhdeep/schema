@@ -72,9 +72,16 @@ struct ContentView: View {
         .overlay {
             if let ids = workspace.pendingDeleteIDs {
                 DeleteConfirmationDialog(
-                    count: ids.count,
+                    taskCount: ids.count,
                     onCancel: workspace.cancelPendingDelete,
                     onConfirm: workspace.confirmPendingDelete
+                )
+            } else if let id = workspace.pendingPageDeleteID,
+                      let page = lists.first(where: { $0.id == id }) {
+                DeleteConfirmationDialog(
+                    page: page,
+                    onCancel: workspace.cancelPendingPageDelete,
+                    onConfirm: workspace.confirmPendingPageDelete
                 )
             }
         }
@@ -158,6 +165,13 @@ struct ContentView: View {
         }
         if DemoData.isEnabled, DemoData.opensFirstPage {
             listVM.selectList(listVM.pages(from: lists).first)
+        }
+        if DemoData.isEnabled, DemoData.opensPageDelete, let page = listVM.pages(from: lists).first {
+            listVM.selectList(page)
+            workspace.requestPageDelete(page.id)
+        }
+        if DemoData.isEnabled, DemoData.renamesPage, let id = listVM.selectedListID {
+            workspace.requestPageRename(id)
         }
         if DemoData.isEnabled, DemoData.selectsTasks || DemoData.opensDeleteDialog {
             let ids = allTasks

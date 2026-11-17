@@ -24,6 +24,8 @@ struct PageHeaderModel {
 }
 
 struct PageHeader: View {
+    @Environment(WorkspaceState.self) private var workspace
+
     let model: PageHeaderModel
     @Bindable var listViewModel: ListViewModel
     let requiresManualSort: Bool
@@ -44,6 +46,9 @@ struct PageHeader: View {
         .onChange(of: model.renamableList?.id) { _, _ in
             if isEditing { endEditing() }
         }
+        // Rename from the page menu or the sidebar (#42).
+        .onAppear(perform: takeRenameRequest)
+        .onChange(of: workspace.pageRenameRequest) { _, _ in takeRenameRequest() }
     }
 
     // MARK: Top bar
@@ -72,7 +77,7 @@ struct PageHeader: View {
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Sort")
 
-            ListPreferencesMenu(listViewModel: listViewModel, requiresManualSort: requiresManualSort)
+            ListPreferencesMenu(listViewModel: listViewModel, requiresManualSort: requiresManualSort, page: model.renamableList)
         }
     }
 
@@ -162,6 +167,12 @@ struct PageHeader: View {
     }
 
     // MARK: Rename
+
+    private func takeRenameRequest() {
+        if workspace.takePageRenameRequest(for: model.renamableList?.id) {
+            beginEditing()
+        }
+    }
 
     private func beginEditing() {
         guard let list = model.renamableList else { return }
