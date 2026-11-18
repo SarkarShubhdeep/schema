@@ -8,9 +8,11 @@ All notable changes to Schema are documented in this file.
 
 - The new page editor (#76): TipTap, bundled with the app and loaded from it, never from the network, with Schema's fonts and colours and a bridge for loading, saving, focus and Esc. Scratchpads and task pages now open in it (#77).
 
+- Blocks in the new editor (#78): Return starts a new block and Shift+Return breaks the line inside it. Hovering a block shows one handle in the margin instead of a plus on every line: drag it to move the block, or click it for Turn into, Duplicate (⌘D) and Delete (⌫). Each line of a list is its own block. The / menu is back with the same kinds plus Code, and ⌘/ opens Turn into for the block with the caret. Menus use Schema's panel style in light and dark.
+
 ### Changed
 
-- Page content is stored as one document per page and per task (#77), with a plain-text copy for search. Updating moves every existing line over: lists, ticks and each to-do's link to the task it was made into are kept, and a task's old notes become the first line of its page. Quick note writes into the same document. Until #78–#80, the block handle, / menu and "Make task" badge are missing from the new editor; "Make tasks from open to-dos" in the page menu still works.
+- Page content is stored as one document per page and per task (#77), with a plain-text copy for search. Updating moves every existing line over: lists, ticks and each to-do's link to the task it was made into are kept, and a task's old notes become the first line of its page. Quick note writes into the same document. Until #80, the "Make task" badge is missing from the new editor; "Make tasks from open to-dos" in the page menu still works.
 
 - The app can now make outgoing network connections. macOS needs this for the editor's web view to start at all, even though the editor itself only loads files from the app; GitHub (v0.6) uses it too.
 

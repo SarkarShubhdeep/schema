@@ -19,6 +19,10 @@ import { TaskList, TaskItem } from '@tiptap/extension-list'
 import { Placeholder } from '@tiptap/extensions'
 import { Markdown } from '@tiptap/markdown'
 import { EditorState } from '@tiptap/pm/state'
+import { installHandle } from './handle.js'
+import { updateSlash, openTurnInto } from './slash.js'
+import { menuKeyDown, isMenuOpen, closeMenu } from './menu.js'
+import { blockAt, duplicate } from './blocks.js'
 
 const post = (message) => {
   try {
@@ -65,6 +69,8 @@ const flushChange = (e) => {
   if (changeTimer !== null) postChange(e)
 }
 
+const isMac = /Mac/.test(navigator.platform)
+
 const editor = new Editor({
   element: document.querySelector('#editor'),
   extensions: [
@@ -84,14 +90,30 @@ const editor = new Editor({
   editorProps: {
     attributes: { 'aria-label': 'Page', spellcheck: 'true' },
     handleKeyDown: (_view, event) => {
+      // An open menu takes ↑ ↓ Return Esc first.
+      if (isMenuOpen() && menuKeyDown(event)) return true
       if (event.key === 'Escape') {
         post({ type: 'escape' })
+        return true
+      }
+      const mod = isMac ? event.metaKey : event.ctrlKey
+      if (mod && !event.shiftKey && !event.altKey && event.key === '/') {
+        openTurnInto(editor)
+        return true
+      }
+      if (mod && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'd') {
+        const block = blockAt(editor.state.doc, editor.state.selection.from)
+        if (block) duplicate(editor, block)
         return true
       }
       return false
     },
   },
-  onUpdate: ({ editor: e }) => sendChange(e),
+  onUpdate: ({ editor: e }) => {
+    sendChange(e)
+    updateSlash(e)
+  },
+  onSelectionUpdate: ({ editor: e }) => updateSlash(e),
   onFocus: () => post({ type: 'focus', focused: true }),
   onBlur: ({ editor: e }) => {
     flushChange(e)
@@ -103,6 +125,8 @@ window.schemaEditor = {
   setContent(json, key) {
     const started = performance.now()
     flushChange(editor)
+    closeMenu()
+    handle.reset()
     if (key !== currentKey) {
       // Another page: its own document and its own undo history.
       currentKey = key
@@ -128,9 +152,18 @@ window.schemaEditor = {
   },
 }
 
+const handle = installHandle(editor)
+
+// Menus opened from the handle take keys even when the text has no focus.
+document.addEventListener('keydown', (event) => {
+  if (editor.view.dom.contains(event.target)) return
+  if (menuKeyDown(event)) event.preventDefault()
+}, true)
+
 // Clicking below the last line keeps writing there.
 document.addEventListener('mousedown', (event) => {
   if (editor.view.dom.contains(event.target)) return
+  if (event.target.closest?.('.schema-handle, .schema-menu')) return
   event.preventDefault()
   editor.commands.focus('end')
 })
