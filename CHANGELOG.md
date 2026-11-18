@@ -4,7 +4,13 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- The new page editor (#76): TipTap, bundled with the app and loaded from it, never from the network, with Schema's fonts and colours and a bridge for loading, saving, focus and Esc. Pages still use the v0.5 editor until their content moves over in #77; debug builds can compare the two side by side.
+
 ### Changed
+
+- The app can now make outgoing network connections. macOS needs this for the editor's web view to start at all, even though the editor itself only loads files from the app; GitHub (v0.6) uses it too.
 
 - The app now declares that it uses no encryption, so TestFlight builds no longer stop at "Missing Compliance" waiting for the export question.
 

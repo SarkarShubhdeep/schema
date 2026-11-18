@@ -1,0 +1,23 @@
+{
+  "name": "schema-editor",
+  "private": true,
+  "version": "0.0.0",
+  "description": "The TipTap editor bundled into Schema. Build-time only: the app ships dist/editor.js, never node_modules.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "esbuild src/editor.js --bundle --minify --format=iife --target=safari17 --outfile=../Schema/Resources/Editor/editor.js"
+  },
+  "dependencies": {
+    "@tiptap/core": "3.32.2",
+    "@tiptap/pm": "3.32.2",
+    "@tiptap/starter-kit": "3.32.2",
+    "@tiptap/extension-list": "3.32.2",
+    "@tiptap/extensions": "3.32.2",
+    "@tiptap/extension-mention": "3.32.2",
+    "@tiptap/suggestion": "3.32.2",
+    "@tiptap/markdown": "3.32.2"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}
