@@ -11,6 +11,7 @@
 //     loaded  – a document from setContent is on screen; carries ms
 //     escape  – Esc pressed with nothing to close, so the app can take focus
 //     focus   – the editor gained or lost focus
+//     copyMarkdown – Copy as Markdown on a block; carries the block as a document
 //     error   – a script error, for the app's log
 
 import { Editor } from '@tiptap/core'
@@ -23,6 +24,7 @@ import { installHandle } from './handle.js'
 import { updateSlash, openTurnInto } from './slash.js'
 import { menuKeyDown, isMenuOpen, closeMenu } from './menu.js'
 import { blockAt, duplicate } from './blocks.js'
+import { markdownPaste } from './paste.js'
 
 const post = (message) => {
   try {
@@ -89,6 +91,7 @@ const editor = new Editor({
   autofocus: false,
   editorProps: {
     attributes: { 'aria-label': 'Page', spellcheck: 'true' },
+    handlePaste: (view, event) => markdownPaste(editor)(view, event),
     handleKeyDown: (_view, event) => {
       // An open menu takes ↑ ↓ Return Esc first.
       if (isMenuOpen() && menuKeyDown(event)) return true
