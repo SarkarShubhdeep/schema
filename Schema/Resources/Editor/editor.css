@@ -1,0 +1,141 @@
+/* Schema's page editor (#76): the same type and colours as the native block
+   editor, from the Schema design system. Fonts come from the app bundle; the
+   second src covers builds that keep the Fonts folder. */
+
+@font-face { font-family: Satoshi; font-weight: 400; src: url("Satoshi-Regular.ttf"), url("Fonts/Satoshi-Regular.ttf"); }
+@font-face { font-family: Satoshi; font-weight: 500; src: url("Satoshi-Medium.ttf"), url("Fonts/Satoshi-Medium.ttf"); }
+@font-face { font-family: Satoshi; font-weight: 700; src: url("Satoshi-Bold.ttf"), url("Fonts/Satoshi-Bold.ttf"); }
+
+:root {
+  color-scheme: light dark;
+  --canvas: #f4f4f2;
+  --surface: #ffffff;
+  --hover: #e6e6e3;
+  --line: #e0e0dc;
+  --line-strong: #8a8a85;
+  --ink: #151515;
+  --ink-muted: #5c5c58;
+  --ink-faint: #8a8a85;
+  --accent: #f5c518;
+  --on-accent: #151515;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #111111;
+    --surface: #1a1a1a;
+    --hover: #252525;
+    --line: #2a2a2a;
+    --line-strong: #6f6f6c;
+    --ink: #f2f2ef;
+    --ink-muted: #a3a3a0;
+    --ink-faint: #6f6f6c;
+  }
+}
+
+html, body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: Satoshi, -apple-system, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 24px;
+  -webkit-font-smoothing: antialiased;
+}
+
+#editor { padding: 0 0 160px; }
+
+.ProseMirror {
+  outline: none;
+  caret-color: var(--ink);
+  min-height: 24px;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.ProseMirror > * + * { margin-top: 4px; }
+.ProseMirror p { margin: 0; }
+
+.ProseMirror h1, .ProseMirror h2, .ProseMirror h3 {
+  font-family: "Space Grotesk", Satoshi, -apple-system, system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 16px 0 0;
+}
+.ProseMirror h1 { font-size: 24px; line-height: 30px; }
+.ProseMirror h2 { font-size: 19px; line-height: 26px; }
+.ProseMirror h3 { font-size: 16px; line-height: 24px; }
+
+.ProseMirror ul, .ProseMirror ol { margin: 0; padding-left: 22px; }
+.ProseMirror li::marker { color: var(--ink-muted); }
+.ProseMirror li > p { margin: 0; }
+
+.ProseMirror blockquote {
+  margin: 0;
+  padding-left: 14px;
+  border-left: 2px solid var(--line);
+  color: var(--ink-muted);
+}
+
+.ProseMirror hr { border: 0; border-top: 1px solid var(--line); margin: 11px 0; }
+
+.ProseMirror code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--hover);
+}
+.ProseMirror pre {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--hover);
+  white-space: pre-wrap;
+}
+.ProseMirror pre code { padding: 0; background: none; }
+
+/* To-dos: the round Schema checkbox, filled yellow when done. */
+.ProseMirror ul[data-type="taskList"] { list-style: none; padding-left: 0; }
+.ProseMirror ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 10px; }
+.ProseMirror ul[data-type="taskList"] li > label { flex: none; margin-top: 4px; user-select: none; }
+.ProseMirror ul[data-type="taskList"] li > div { flex: 1; min-width: 0; }
+.ProseMirror ul[data-type="taskList"] input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line-strong);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.ProseMirror ul[data-type="taskList"] input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.ProseMirror ul[data-type="taskList"] input[type="checkbox"]:checked::after {
+  content: "";
+  width: 4px;
+  height: 7px;
+  margin-top: -2px;
+  border: solid var(--on-accent);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div { color: var(--ink-faint); text-decoration: line-through; }
+
+.ProseMirror a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
+
+/* Placeholder on the line with the caret. */
+.ProseMirror .is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--ink-faint);
+}
+
+::selection { background: color-mix(in srgb, var(--accent) 45%, transparent); }

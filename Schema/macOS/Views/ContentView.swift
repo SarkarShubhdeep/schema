@@ -204,7 +204,9 @@ struct ContentView: View {
             listVM.newPageKind = .scratchpad
         }
         if DemoData.isEnabled, DemoData.opensScratchpad {
-            listVM.selectList(listVM.pages(from: lists).first(where: \.isScratchpad))
+            // With the large pages, open the 500-block Journal instead of Ideas.
+            let scratchpads = listVM.pages(from: lists).filter(\.isScratchpad)
+            listVM.selectList(DemoData.seedsLargePages ? scratchpads.first { $0.title == "Journal" } : scratchpads.first)
         }
         if DemoData.isEnabled, DemoData.opensFirstPage {
             listVM.selectList(listVM.pages(from: lists).first)

@@ -58,6 +58,10 @@ enum DemoData {
     /// `-SchemaDemoBenchmark` (with `-SchemaDemoLarge`) switches between the
     /// large pages and edits a block, printing how long each step takes.
     static let runsBenchmark = CommandLine.arguments.contains("-SchemaDemoBenchmark")
+    /// `-SchemaEditorFeelCheck` shows a scratchpad in the current editor and
+    /// in TipTap side by side (#76). TipTap's edits are not saved. Works with
+    /// or without the demo data.
+    static let showsEditorFeelCheck = CommandLine.arguments.contains("-SchemaEditorFeelCheck")
     /// Shows the first page mid-drag, two and a half rows down (#42).
     static let dragsPage = CommandLine.arguments.contains("-SchemaDemoDragPage")
 

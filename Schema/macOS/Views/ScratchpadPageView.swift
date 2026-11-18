@@ -21,6 +21,18 @@ struct ScratchpadPageView: View {
     @State private var titleFocus: BlockFocusRequest?
 
     var body: some View {
+        #if DEBUG
+        if DemoData.showsEditorFeelCheck {
+            EditorFeelCheckView(page: page) { pageColumn }
+        } else {
+            pageColumn
+        }
+        #else
+        pageColumn
+        #endif
+    }
+
+    private var pageColumn: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 header
