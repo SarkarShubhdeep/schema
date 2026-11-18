@@ -6,8 +6,10 @@
 //  (#77). The header stays put while the page scrolls under it.
 //
 
+import AppKit
 import SwiftData
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ScratchpadPageView: View {
     let page: SchemaList
@@ -33,6 +35,7 @@ struct ScratchpadPageView: View {
                 focusRequest: editorFocus
             )
         }
+        .background(hiddenShortcuts)
         .onAppear(perform: pageAppeared)
         .onChange(of: page.id) { _, _ in pageAppeared() }
         .onChange(of: workspace.pageRenameRequest) { _, _ in takeRenameRequest() }
@@ -86,7 +89,8 @@ struct ScratchpadPageView: View {
         )
     }
 
-    /// Page options: make tasks from every open to-do line at once, rename, delete.
+    /// Page options: make tasks from every open to-do line at once, rename,
+    /// copy or export as Markdown (#79), delete.
     private var pageMenu: some View {
         Menu {
             if let actions = taskActions {
@@ -98,7 +102,13 @@ struct ScratchpadPageView: View {
                     }
                 }
             }
-            PageManageMenuItems(page: page)
+            Divider()
+            Button("Rename") { workspace.requestPageRename(page.id) }
+            Button("Copy as Markdown", action: copyMarkdown)
+                .keyboardShortcut("c", modifiers: [.command, .shift])
+            Button("Export as Markdown\u{2026}", action: exportMarkdown)
+            Divider()
+            Button("Delete page\u{2026}", role: .destructive) { workspace.requestPageDelete(page.id) }
         } label: {
             Image(systemName: "ellipsis")
                 .font(.system(size: 13, weight: .semibold))
@@ -111,6 +121,44 @@ struct ScratchpadPageView: View {
         .fixedSize()
         .help("Page options")
         .accessibilityLabel("Page options")
+    }
+
+    /// ⇧⌘C copies the page as Markdown, even while the editor has focus.
+    private var hiddenShortcuts: some View {
+        Button("Copy as Markdown", action: copyMarkdown)
+            .keyboardShortcut("c", modifiers: [.command, .shift])
+            .hidden()
+            .frame(width: 0, height: 0)
+            .accessibilityHidden(true)
+    }
+
+    // MARK: Markdown
+
+    private var markdown: String {
+        PageMarkdown.markdown(fromJSON: page.documentJSON, title: page.title)
+    }
+
+    private func copyMarkdown() {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(markdown, forType: .string)
+    }
+
+    private func exportMarkdown() {
+        let panel = NSSavePanel()
+        panel.title = "Export as Markdown"
+        panel.nameFieldStringValue = PageMarkdown.fileName(for: page.title)
+        panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
+        panel.canCreateDirectories = true
+        let text = markdown
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            do {
+                try Data(text.utf8).write(to: url, options: .atomic)
+            } catch {
+                NSAlert(error: error).runModal()
+            }
+        }
     }
 
     private func makeTasksFromOpenToDos(in target: SchemaList, actions: BlockTaskActions) {

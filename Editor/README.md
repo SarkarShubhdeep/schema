@@ -29,8 +29,8 @@ Xcode builds never run npm.
 
 Swift talks to the page through `window.schemaEditor` (`setContent`,
 `setMarkdown`, `getJSON`, `getMarkdown`, `focus`). The page answers through the
-`schema` message handler with `ready`, `change`, `loaded`, `escape`, `focus`
-and `error`. See `src/editor.js` and `Schema/Core/Editor/TipTapBridge.swift`.
+`schema` message handler with `ready`, `change`, `loaded`, `escape`, `focus`,
+`copyMarkdown` and `error`. See `src/editor.js` and `Schema/Core/Editor/TipTapBridge.swift`.
 
 ## Documents
 
@@ -47,3 +47,12 @@ into a task carries the task's id in its `taskId` attribute.
 - `src/handle.js` is the hover handle and its Block options menu.
 - `src/slash.js` is the / menu and ⌘/ Turn into.
 - `src/menu.js` is the Schema menu panel the others use.
+- `src/paste.js` pastes Markdown as formatted blocks (#79).
+
+## Markdown
+
+Typing shortcuts come from TipTap's own input rules. Pasted text is parsed
+with `@tiptap/markdown` when it looks like Markdown and the clipboard has no
+rich HTML. Copying and exporting write Markdown in Swift
+(`Schema/Core/Editor/PageMarkdown.swift`), so a block copied from its handle
+and a page copied from its menu read the same.
