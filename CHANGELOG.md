@@ -4,6 +4,10 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- The app now declares that it uses no encryption, so TestFlight builds no longer stop at "Missing Compliance" waiting for the export question.
+
 ## [0.5.0] — 2026-11-17
 
 Pages and capture: every page has a type, scratchpads with a block editor, the / menu and markdown shortcuts, tasks that open as pages, a Quick note panel from any app, page management, a floating collapsed sidebar, smoother motion and fast long pages.
