@@ -5,6 +5,7 @@
 @font-face { font-family: Satoshi; font-weight: 400; src: url("Satoshi-Regular.ttf"), url("Fonts/Satoshi-Regular.ttf"); }
 @font-face { font-family: Satoshi; font-weight: 500; src: url("Satoshi-Medium.ttf"), url("Fonts/Satoshi-Medium.ttf"); }
 @font-face { font-family: Satoshi; font-weight: 700; src: url("Satoshi-Bold.ttf"), url("Fonts/Satoshi-Bold.ttf"); }
+@font-face { font-family: "Space Grotesk"; font-weight: 300 700; src: url("SpaceGrotesk-Variable.ttf"), url("Fonts/SpaceGrotesk-Variable.ttf"); }
 
 :root {
   color-scheme: light dark;
@@ -18,6 +19,9 @@
   --ink-faint: #8a8a85;
   --accent: #f5c518;
   --on-accent: #151515;
+  --danger: #b42318;
+  --focus: #151515;
+  --menu-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -30,6 +34,9 @@
     --ink: #f2f2ef;
     --ink-muted: #a3a3a0;
     --ink-faint: #6f6f6c;
+    --danger: #ff7a66;
+    --focus: #f5c518;
+    --menu-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -46,7 +53,7 @@ html, body {
 /* The page column: 720 wide at most, centred, with the 32 pt side margins
    and the gutter the page header uses, so title and text line up. */
 body { padding: 0 32px; }
-#editor { max-width: 720px; margin: 0 auto; padding: 4px 0 160px 32px; min-height: 100vh; box-sizing: border-box; }
+#editor { position: relative; max-width: 720px; margin: 0 auto; padding: 4px 0 160px 32px; min-height: 100vh; box-sizing: border-box; }
 
 .ProseMirror {
   outline: none;
@@ -138,7 +145,100 @@ body { padding: 0 32px; }
   float: left;
   height: 0;
   pointer-events: none;
-  color: var(--ink-faint);
+  color: var(--ink-muted);
 }
 
 ::selection { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+
+/* The block handle (#78): one six-dot grip in the gutter, on hover only. */
+.schema-handle {
+  position: absolute;
+  width: 22px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: grab;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+.schema-handle.is-visible { opacity: 1; pointer-events: auto; }
+.schema-handle:hover { background: var(--hover); color: var(--ink-muted); }
+.schema-handle.is-active { background: var(--line); color: var(--ink-muted); }
+.schema-handle:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.ProseMirror .schema-block-active { background: var(--hover); border-radius: 8px; box-shadow: 0 0 0 4px var(--hover); }
+.ProseMirror .ProseMirror-selectednode { background: var(--hover); border-radius: 8px; box-shadow: 0 0 0 4px var(--hover); }
+.prosemirror-dropcursor-block { background: var(--ink-faint) !important; }
+
+/* Menus: the Schema menu panel (#78, #83). */
+.schema-menu {
+  position: absolute;
+  z-index: 10;
+  width: 236px;
+  max-height: 320px;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--menu-shadow);
+  font-family: Satoshi, -apple-system, system-ui, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.schema-menu-header {
+  padding: 6px 8px 4px;
+  font-family: "Space Grotesk", Satoshi, -apple-system, system-ui, sans-serif;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.schema-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: default;
+}
+.schema-menu-item.is-selected { background: var(--hover); }
+.schema-menu-item.is-danger, .schema-menu-item.is-danger .schema-menu-trail { color: var(--danger); }
+.schema-menu-glyph {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+.schema-menu-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.schema-menu-trail {
+  flex: none;
+  font-family: "Space Grotesk", Satoshi, -apple-system, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+.schema-menu-separator { height: 1px; margin: 4px 6px; background: var(--line); }
+.schema-menu-empty { padding: 6px 8px; font-size: 13px; color: var(--ink-muted); }

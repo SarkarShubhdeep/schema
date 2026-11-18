@@ -39,3 +39,11 @@ document is shown with a key (the page's or task's id); a change comes back
 with the key it was made in, so typing just before switching pages is saved
 to the right page, and a new key starts a fresh undo history. A to-do made
 into a task carries the task's id in its `taskId` attribute.
+
+## Source files
+
+- `src/editor.js` sets up TipTap and the bridge.
+- `src/blocks.js` finds the block around a position (a list item counts as its own block) and does Turn into, Duplicate, Delete and dragging.
+- `src/handle.js` is the hover handle and its Block options menu.
+- `src/slash.js` is the / menu and ⌘/ Turn into.
+- `src/menu.js` is the Schema menu panel the others use.
