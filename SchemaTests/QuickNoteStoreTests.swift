@@ -29,33 +29,43 @@ struct QuickNoteStoreTests {
 
     private func lists() throws -> [SchemaList] { try context.fetch(FetchDescriptor<SchemaList>()) }
 
+    /// The page's top-level blocks, by TipTap type.
+    private func types(_ page: SchemaList) -> [String] {
+        (PageDocument.parse(page.documentJSON)?["content"] as? [TipTapDocument.Node] ?? []).compactMap { $0["type"] as? String }
+    }
+
+    private func lines(_ page: SchemaList) -> [String] {
+        page.documentText.components(separatedBy: "\n")
+    }
+
     @Test func firstNoteMakesIdeasWhenThereIsNoScratchpad() throws {
         context.insert(SchemaList(title: "Work"))
         let page = try #require(QuickNoteStore.saveNote("Call Sam", lists: try lists(), preferredPageID: nil, context: context, now: monday, calendar: calendar))
         #expect(page.title == "Ideas")
         #expect(page.isScratchpad)
-        #expect(page.orderedBlocks.map(\.kind) == [.heading, .text])
-        #expect(page.orderedBlocks.last?.text == "Call Sam")
+        #expect(types(page) == ["heading", "paragraph"])
+        #expect(lines(page).last == "Call Sam")
     }
 
     @Test func notesGoUnderTodaysHeadingNewestFirst() throws {
         let ideas = SchemaList(title: "Ideas", kind: .scratchpad)
         context.insert(ideas)
-        context.insert(SchemaBlock(text: "Older note", sortIndex: 1, page: ideas))
+        ideas.setDocument(TipTapDocument.json(TipTapDocument.document(from: [TipTapDocument.Line(kind: .text, text: "Older note")])))
 
         QuickNoteStore.saveNote("First", lists: try lists(), preferredPageID: nil, context: context, now: monday, calendar: calendar)
         QuickNoteStore.saveNote("Second", lists: try lists(), preferredPageID: nil, context: context, now: monday, calendar: calendar)
 
         let heading = QuickNoteStore.dateHeading(for: monday, calendar: calendar)
-        #expect(ideas.orderedBlocks.map(\.text) == [heading, "Second", "First", "Older note"])
+        #expect(lines(ideas) == [heading, "Second", "First", "Older note"])
+        #expect(types(ideas) == ["heading", "paragraph", "paragraph", "paragraph"])
     }
 
-    @Test func eachLineBecomesABlockWithMarkdown() throws {
+    @Test func eachLineBecomesALineWithMarkdown() throws {
         let ideas = SchemaList(title: "Ideas", kind: .scratchpad)
         context.insert(ideas)
         QuickNoteStore.saveNote("Trip\n- passport\n[] book train\n\n> pack light", lists: try lists(), preferredPageID: nil, context: context, now: monday, calendar: calendar)
-        #expect(ideas.orderedBlocks.dropFirst().map(\.kind) == [.text, .bullet, .todo, .quote])
-        #expect(ideas.orderedBlocks.dropFirst().map(\.text) == ["Trip", "passport", "book train", "pack light"])
+        #expect(types(ideas) == ["heading", "paragraph", "bulletList", "taskList", "blockquote"])
+        #expect(Array(lines(ideas).dropFirst()) == ["Trip", "passport", "book train", "pack light"])
     }
 
     @Test func thePreferredScratchpadWins() throws {
@@ -65,7 +75,7 @@ struct QuickNoteStoreTests {
         context.insert(meetings)
         let page = QuickNoteStore.saveNote("Agenda", lists: try lists(), preferredPageID: meetings.id, context: context, now: monday, calendar: calendar)
         #expect(page?.id == meetings.id)
-        #expect(ideas.blocks.isEmpty)
+        #expect(!ideas.hasDocument)
     }
 
     @Test func emptyNotesAreNotSaved() throws {

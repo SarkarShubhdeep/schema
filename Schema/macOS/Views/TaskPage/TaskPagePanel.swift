@@ -21,7 +21,8 @@ struct TaskPagePanel: View {
     let onSaveSchedule: () -> Void
     let onMove: (SchemaList) -> Void
 
-    @Query private var linkingBlocks: [SchemaBlock]
+    /// Scratchpads, to find the one this task was made from.
+    @Query(filter: #Predicate<SchemaList> { $0.linkedTaskIDsRaw != "" }) private var linkingPages: [SchemaList]
 
     init(
         task: SchemaTask,
@@ -41,8 +42,6 @@ struct TaskPagePanel: View {
         self.calendar = calendar
         self.onSaveSchedule = onSaveSchedule
         self.onMove = onMove
-        let id: UUID? = task.id
-        _linkingBlocks = Query(filter: #Predicate<SchemaBlock> { $0.linkedTaskID == id })
     }
 
     var body: some View {
@@ -59,12 +58,12 @@ struct TaskPagePanel: View {
                 )
             }
 
-            let steps = task.blocks.filter { $0.kind == .todo }
-            if !steps.isEmpty {
-                let done = steps.count { $0.isChecked }
-                card(title: "Checklist", trailing: "\(done) of \(steps.count)") {
+            let steps = task.checklistCount
+            if steps > 0 {
+                let done = task.checklistDoneCount
+                card(title: "Checklist", trailing: "\(done) of \(steps)") {
                     SchemaProgressBar(
-                        value: Double(done) / Double(steps.count),
+                        value: Double(done) / Double(steps),
                         accessibilityText: "Checklist"
                     )
                     Text("To-do lines in a task are its steps. They don't show on Today.")
@@ -94,7 +93,7 @@ struct TaskPagePanel: View {
     // MARK: Values
 
     private var madeFrom: String {
-        if let page = linkingBlocks.compactMap(\.page).first {
+        if let page = linkingPages.first(where: { $0.linkedTaskIDsRaw.contains(task.id.uuidString) }) {
             return "\(page.title) (scratchpad)"
         }
         return "Added in \(task.list?.title ?? "a page")"
@@ -108,7 +107,7 @@ struct TaskPagePanel: View {
     }
 
     private var edited: String {
-        guard let latest = task.blocks.map(\.updatedAt).max() else { return "—" }
+        guard let latest = task.documentEditedAt else { return "—" }
         return latest.formatted(.relative(presentation: .named))
     }
 

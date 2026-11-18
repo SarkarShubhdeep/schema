@@ -5,7 +5,9 @@
 //  The Swift half of the editor bridge (#76), kept apart from WKWebView so
 //  it can be tested with a fake. It holds the document until the editor
 //  says it is ready, never sends the same document twice, and does not echo
-//  the editor's own changes back to it.
+//  the editor's own changes back to it. Each document has a key (the page
+//  or task it belongs to); a change comes back with the key it was made
+//  in, so one still pending when the page switches is saved to its page.
 //
 
 import Foundation
@@ -32,7 +34,8 @@ struct EditorFocusRequest: Equatable, Sendable {
 final class TipTapBridge {
     weak var runner: (any EditorScriptRunner)?
 
-    var onChange: ((String) -> Void)?
+    /// The document changed: its JSON text and its key.
+    var onChange: ((_ json: String, _ key: String) -> Void)?
     var onEscape: (() -> Void)?
     var onFocusChange: ((Bool) -> Void)?
     var onError: ((String) -> Void)?
@@ -42,13 +45,16 @@ final class TipTapBridge {
     private(set) var isReady = false
     /// The document the editor shows now, as far as Swift knows.
     private(set) var shownJSON: String?
+    private(set) var shownKey: String?
     private var wantedJSON: String?
+    private var wantedKey: String?
     private var pendingFocus: EditorFocusRequest?
     private var lastFocus: EditorFocusRequest?
 
-    /// Show this document (TipTap JSON text). Sent once the editor is ready.
-    func show(_ json: String) {
+    /// Show this document (TipTap JSON text) for `key`. Sent once the editor is ready.
+    func show(_ json: String, key: String) {
         wantedJSON = json
+        wantedKey = key
         flush()
     }
 
@@ -66,10 +72,12 @@ final class TipTapBridge {
             isReady = true
             flush()
         case "change":
-            guard let json = Self.jsonText(body["json"]) else { return }
-            shownJSON = json
-            wantedJSON = json
-            onChange?(json)
+            guard let json = Self.jsonText(body["json"]), let key = body["key"] as? String else { return }
+            if key == shownKey {
+                shownJSON = json
+                if key == wantedKey { wantedJSON = json }
+            }
+            onChange?(json, key)
         case "loaded":
             onLoaded?((body["ms"] as? Double) ?? 0)
         case "escape":
@@ -87,13 +95,15 @@ final class TipTapBridge {
     func pageDidReset() {
         isReady = false
         shownJSON = nil
+        shownKey = nil
     }
 
     private func flush() {
         guard isReady, let runner else { return }
-        if let wantedJSON, wantedJSON != shownJSON {
+        if let wantedJSON, let wantedKey, wantedJSON != shownJSON || wantedKey != shownKey {
             shownJSON = wantedJSON
-            runner.run("window.schemaEditor.setContent(JSON.parse(json))", arguments: ["json": wantedJSON])
+            shownKey = wantedKey
+            runner.run("window.schemaEditor.setContent(JSON.parse(json), key)", arguments: ["json": wantedJSON, "key": wantedKey])
         }
         if let pendingFocus {
             lastFocus = pendingFocus

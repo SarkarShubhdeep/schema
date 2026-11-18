@@ -10,12 +10,12 @@ import SwiftData
 enum PageKind: String, CaseIterable, Sendable {
     /// Tasks, as lists have always worked.
     case todo
-    /// Free-form notes made of blocks.
+    /// Free-form notes: one TipTap document.
     case scratchpad
 }
 
 @Model
-final class SchemaList {
+final class SchemaList: PageDocumentHolder {
     var id: UUID
     var title: String
     var createdAt: Date
@@ -28,9 +28,18 @@ final class SchemaList {
     @Relationship(deleteRule: .cascade, inverse: \SchemaTask.list)
     var tasks: [SchemaTask]
 
-    /// Content of a scratchpad page, in `sortIndex` order.
+    /// V6 lines; empty since V7 moved them into `documentData`.
     @Relationship(deleteRule: .cascade, inverse: \SchemaBlock.page)
     var blocks: [SchemaBlock] = []
+
+    // The page body as one TipTap document (schema V7, #77), and what is
+    // derived from it on save so lists and search never parse it.
+    @Attribute(.externalStorage) var documentData: Data?
+    var documentText: String = ""
+    var linkedTaskIDsRaw: String = ""
+    var checklistCount: Int = 0
+    var checklistDoneCount: Int = 0
+    var documentEditedAt: Date?
 
     init(
         title: String,
@@ -62,8 +71,6 @@ extension SchemaList {
 
     /// Tasks can be added to or moved into this page: to-do lists only.
     var acceptsTasks: Bool { !isEverythingList && pageKind == .todo }
-
-    var orderedBlocks: [SchemaBlock] { blocks.inDisplayOrder }
 
     var isEverythingList: Bool {
         title == Self.everythingTitle

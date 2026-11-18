@@ -7,7 +7,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class SchemaTask {
+final class SchemaTask: PageDocumentHolder {
     var id: UUID
     var title: String
     var taskDescription: String?
@@ -26,9 +26,18 @@ final class SchemaTask {
 
     var list: SchemaList?
 
-    /// The task's page body (schema V6, used by tasks as pages, #31).
+    /// V6 page-body lines; empty since V7 moved them into `documentData`.
     @Relationship(deleteRule: .cascade, inverse: \SchemaBlock.task)
     var blocks: [SchemaBlock] = []
+
+    // The page body as one TipTap document (schema V7, #77), and what is
+    // derived from it on save so lists and search never parse it.
+    @Attribute(.externalStorage) var documentData: Data?
+    var documentText: String = ""
+    var linkedTaskIDsRaw: String = ""
+    var checklistCount: Int = 0
+    var checklistDoneCount: Int = 0
+    var documentEditedAt: Date?
 
     init(
         title: String,
@@ -69,15 +78,13 @@ extension SchemaTask {
         return calendar.isDate(completedAt, inSameDayAs: date)
     }
 
-    var orderedBlocks: [SchemaBlock] { blocks.inDisplayOrder }
-
     static let allRoutineWeekdays: [Int] = [2, 3, 4, 5, 6, 7, 1]
 
-    /// The second line under a task's title in lists: the first text line
-    /// of its page body, or its older notes field.
+    /// The second line under a task's title in lists: the first line of
+    /// its page body, or its older notes field.
     var displayDescription: String? {
-        if let line = orderedBlocks.first(where: { $0.kind == .text && !$0.text.isEmpty })?.text {
-            return line
+        if let line = documentText.split(separator: "\n").first(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty }) {
+            return String(line)
         }
         guard let taskDescription, !taskDescription.isEmpty else { return nil }
         return taskDescription

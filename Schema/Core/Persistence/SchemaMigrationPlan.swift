@@ -339,9 +339,9 @@ enum SchemaMigrationV5: VersionedSchema {
     }
 }
 
-/// V6 adds page types and blocks (#36): `SchemaList.pageKindRaw`, the
-/// `SchemaBlock` model, and block relationships on pages and tasks.
-/// Uses the live models.
+/// V6 frozen as it shipped (v0.5): page types and blocks (#36), with
+/// `SchemaList.pageKindRaw`, the `SchemaBlock` model and block
+/// relationships on pages and tasks. Class names match the live ones.
 enum SchemaMigrationV6: VersionedSchema {
     static var versionIdentifier: Schema.Version {
         Schema.Version(6, 0, 0)
@@ -350,10 +350,105 @@ enum SchemaMigrationV6: VersionedSchema {
     static var models: [any PersistentModel.Type] {
         [SchemaList.self, SchemaTask.self, SchemaBlock.self]
     }
+
+    @Model
+    final class SchemaList {
+        var id: UUID
+        var title: String
+        var createdAt: Date
+        var order: Int
+        var accentColorName: String?
+        var tagLabel: String?
+        var pageKindRaw: String = "todo"
+
+        @Relationship(deleteRule: .cascade, inverse: \SchemaTask.list)
+        var tasks: [SchemaTask]
+
+        @Relationship(deleteRule: .cascade, inverse: \SchemaBlock.page)
+        var blocks: [SchemaBlock] = []
+
+        init(title: String, order: Int = 0, kindRaw: String = "todo") {
+            self.id = UUID()
+            self.title = title
+            self.createdAt = .now
+            self.order = order
+            self.pageKindRaw = kindRaw
+            self.tasks = []
+            self.blocks = []
+        }
+    }
+
+    @Model
+    final class SchemaTask {
+        var id: UUID
+        var title: String
+        var taskDescription: String?
+        var isCompleted: Bool
+        var createdAt: Date
+        var reminderTime: Date?
+        var tags: [String]
+        var isRoutine: Bool = false
+        var routineDays: [Int] = []
+        var lastRoutineReset: Date?
+        var afterTaskID: UUID?
+        var manualSortIndex: Double = 0
+        var completedAt: Date?
+
+        var list: SchemaList?
+
+        @Relationship(deleteRule: .cascade, inverse: \SchemaBlock.task)
+        var blocks: [SchemaBlock] = []
+
+        init(title: String) {
+            self.id = UUID()
+            self.title = title
+            self.isCompleted = false
+            self.createdAt = .now
+            self.tags = []
+            self.blocks = []
+        }
+    }
+
+    @Model
+    final class SchemaBlock {
+        var id: UUID
+        var kindRaw: String = "text"
+        var text: String = ""
+        var isChecked: Bool = false
+        var sortIndex: Double = 0
+        var createdAt: Date
+        var updatedAt: Date
+        var linkedTaskID: UUID?
+
+        var page: SchemaList?
+        var task: SchemaTask?
+
+        init(kindRaw: String = "text", text: String = "", sortIndex: Double) {
+            self.id = UUID()
+            self.kindRaw = kindRaw
+            self.text = text
+            self.sortIndex = sortIndex
+            self.createdAt = .now
+            self.updatedAt = .now
+        }
+    }
+}
+
+/// V7 stores each page and task body as one TipTap document (#77), with a
+/// plain-text copy for search. Blocks stay in the schema only so the
+/// migration can read them; it empties them. Uses the live models.
+enum SchemaMigrationV7: VersionedSchema {
+    static var versionIdentifier: Schema.Version {
+        Schema.Version(7, 0, 0)
+    }
+
+    static var models: [any PersistentModel.Type] {
+        [SchemaList.self, SchemaTask.self, SchemaBlock.self]
+    }
 }
 
 /// The schema the app opens its store with.
-typealias SchemaCurrentVersion = SchemaMigrationV6
+typealias SchemaCurrentVersion = SchemaMigrationV7
 
 enum SchemaAppMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
@@ -364,11 +459,12 @@ enum SchemaAppMigrationPlan: SchemaMigrationPlan {
             SchemaMigrationV4.self,
             SchemaMigrationV5.self,
             SchemaMigrationV6.self,
+            SchemaMigrationV7.self,
         ]
     }
 
     static var stages: [MigrationStage] {
-        [migrateV1toV2, migrateV2toV3, migrateV3toV4, migrateV4toV5, migrateV5toV6]
+        [migrateV1toV2, migrateV2toV3, migrateV3toV4, migrateV4toV5, migrateV5toV6, migrateV6toV7]
     }
 
     /// Adds the optional `completedAt`. Tasks already done keep it empty:
@@ -384,6 +480,18 @@ enum SchemaAppMigrationPlan: SchemaMigrationPlan {
     static let migrateV5toV6 = MigrationStage.lightweight(
         fromVersion: SchemaMigrationV5.self,
         toVersion: SchemaMigrationV6.self
+    )
+
+    /// Moves every page's and task's lines into one TipTap document,
+    /// keeping each to-do's link to its task, then deletes the lines.
+    static let migrateV6toV7 = MigrationStage.custom(
+        fromVersion: SchemaMigrationV6.self,
+        toVersion: SchemaMigrationV7.self,
+        willMigrate: nil,
+        didMigrate: { context in
+            try PageDocumentMigration.moveBlocksIntoDocuments(in: context)
+            try context.save()
+        }
     )
 
     static let migrateV1toV2 = MigrationStage.lightweight(

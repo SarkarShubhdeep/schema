@@ -3,8 +3,8 @@
 //  Schema
 //
 //  A task opened as its own page (#31): breadcrumb back to its list,
-//  previous and next, a large checkbox and title, then a block body like a
-//  scratchpad. To-do lines here are steps of the task, not new tasks. The
+//  previous and next, a large checkbox and title, then its body in the
+//  TipTap editor (#77). To-do lines here are steps of the task, not new tasks. The
 //  task's properties live in the right panel (TaskPagePanel).
 //
 
@@ -31,32 +31,26 @@ struct TaskPageView: View {
     let actions: TaskPageActions
 
     @Environment(\.modelContext) private var modelContext
-    @State private var editor: BlockEditor?
+    @State private var editorFocus: EditorFocusRequest?
     @State private var title = ""
     @FocusState private var isTitleFocused: Bool
 
     var body: some View {
-        ScrollView {
+        VStack(spacing: 18) {
             VStack(alignment: .leading, spacing: 20) {
                 topBar
                 header
                 Rectangle()
                     .fill(SchemaTheme.line)
                     .frame(height: 1)
-                    .padding(.leading, BlockListView.gutterWidth)
-                if let editor {
-                    BlockListView(
-                        editor: editor,
-                        emptyPrompt: "Add notes, steps or links. Type / for blocks"
-                    )
-                }
+                    .padding(.leading, PageBodyEditor.gutterWidth)
             }
             .frame(maxWidth: 720, alignment: .leading)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 32)
             .padding(.top, 28)
+            PageBodyEditor(holder: task, id: task.id, focusRequest: editorFocus, onEscape: back)
         }
-        .scrollContentBackground(.hidden)
         .background(hiddenShortcuts)
         .onAppear(perform: load)
         .onChange(of: task.id) { _, _ in load() }
@@ -106,7 +100,7 @@ struct TaskPageView: View {
         }
         .font(.satoshi(13, weight: .medium, relativeTo: .callout))
         .foregroundStyle(SchemaTheme.inkMuted)
-        .padding(.leading, BlockListView.gutterWidth)
+        .padding(.leading, PageBodyEditor.gutterWidth)
     }
 
     private var optionsMenu: some View {
@@ -157,14 +151,14 @@ struct TaskPageView: View {
                 .focused($isTitleFocused)
                 .onSubmit {
                     commitTitle()
-                    editor?.focusFirstLine()
+                    editorFocus = EditorFocusRequest(position: .start)
                 }
                 .onChange(of: isTitleFocused) { _, focused in
                     if !focused { commitTitle() }
                 }
                 .accessibilityLabel("Task title")
         }
-        .padding(.leading, BlockListView.gutterWidth)
+        .padding(.leading, PageBodyEditor.gutterWidth)
         .padding(.top, 12)
     }
 
@@ -204,13 +198,9 @@ struct TaskPageView: View {
     private func load() {
         title = task.title
         // Notes written before tasks had pages become the first line of the body.
-        if task.blocks.isEmpty, let notes = task.displayDescription {
-            modelContext.insert(SchemaBlock(kind: .text, text: notes, sortIndex: BlockOrdering.step, task: task))
-            task.taskDescription = nil
+        if !task.hasDocument, task.taskDescription?.isEmpty == false {
+            PageDocumentMigration.moveNotesIntoDocument(of: task)
             try? modelContext.save()
         }
-        let editor = BlockEditor(owner: .task(task), context: modelContext)
-        editor.onEscape = back
-        self.editor = editor
     }
 }

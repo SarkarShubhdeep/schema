@@ -4,7 +4,7 @@
 //
 //  Where Quick note (⌃⌥N, #41) saves. A note goes to the top of one chosen
 //  scratchpad (Ideas by default) under a heading with today's date, newest
-//  first. Each line of the note becomes a block; markdown prefixes such as
+//  first. Each line of the note becomes a line of the page's document (#77); markdown prefixes such as
 //  "- " or "[] " work as they do in the editor. ⌘Return saves the note as
 //  a task instead.
 //
@@ -51,35 +51,13 @@ enum QuickNoteStore {
         guard !lines.isEmpty else { return nil }
 
         let page = targetPage(in: lists, preferredID: preferredPageID) ?? makeDefaultPage(lists: lists, context: context)
-        let blocks = page.orderedBlocks
-        let heading = dateHeading(for: now, calendar: calendar)
-
         // Today's heading stays at the top; new notes go right under it, so
         // the newest note is first.
-        var anchor: SchemaBlock
-        var next: SchemaBlock?
-        if let first = blocks.first, first.kind == .heading, first.text == heading {
-            anchor = first
-            next = blocks.dropFirst().first
-        } else {
-            let index = BlockOrdering.index(between: nil, and: blocks.first?.sortIndex)
-            anchor = SchemaBlock(kind: .heading, text: heading, sortIndex: index, page: page)
-            context.insert(anchor)
-            next = blocks.first
-        }
-
-        for line in lines {
+        let note = lines.map { line -> TipTapDocument.Line in
             let (kind, body) = parse(line)
-            var before = anchor.sortIndex
-            if let next, BlockOrdering.needsRenumbering(between: before, and: next.sortIndex) {
-                renumber(page)
-                before = anchor.sortIndex
-            }
-            let index = BlockOrdering.index(between: before, and: next?.sortIndex)
-            let block = SchemaBlock(kind: kind, text: body, sortIndex: index, page: page)
-            context.insert(block)
-            anchor = block
+            return TipTapDocument.Line(kind: kind, text: body)
         }
+        page.setDocument(PageDocument.prependingNote(note, under: dateHeading(for: now, calendar: calendar), to: page.documentJSON), editedAt: now)
         try? context.save()
         return page
     }
@@ -123,12 +101,5 @@ enum QuickNoteStore {
         let page = SchemaList(title: defaultPageTitle, order: order, kind: .scratchpad)
         context.insert(page)
         return page
-    }
-
-    private static func renumber(_ page: SchemaList) {
-        let ordered = page.orderedBlocks
-        for (block, index) in zip(ordered, BlockOrdering.renumbered(count: ordered.count)) {
-            block.sortIndex = index
-        }
     }
 }

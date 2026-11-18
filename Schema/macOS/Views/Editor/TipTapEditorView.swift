@@ -16,8 +16,12 @@ import WebKit
 struct TipTapEditorView: NSViewRepresentable {
     /// The document to show, as TipTap JSON text.
     let documentJSON: String
+    /// The page or task the document belongs to.
+    let documentKey: String
     var focusRequest: EditorFocusRequest?
-    var onChange: ((String) -> Void)?
+    /// The document changed: its JSON text and the key it belongs to, which
+    /// can be the previous page's for a change made just before switching.
+    var onChange: ((_ json: String, _ key: String) -> Void)?
     var onEscape: (() -> Void)?
 
     static let log = Logger(subsystem: "com.sarkarshubhdeep.schema", category: "Editor")
@@ -77,7 +81,7 @@ struct TipTapEditorView: NSViewRepresentable {
         func update(from view: TipTapEditorView) {
             bridge.onChange = view.onChange
             onEscape = view.onEscape
-            bridge.show(view.documentJSON)
+            bridge.show(view.documentJSON, key: view.documentKey)
             bridge.focus(view.focusRequest)
         }
 

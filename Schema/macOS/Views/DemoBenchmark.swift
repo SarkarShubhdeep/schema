@@ -24,9 +24,6 @@ enum DemoBenchmark {
         guard let backlog = lists.first(where: { $0.title == "Backlog" }),
               let journal = lists.first(where: { $0.title == "Journal" }) else { return }
         let tasks = (try? context.fetch(FetchDescriptor<SchemaTask>()))?.filter { $0.list?.id == backlog.id } ?? []
-        let blocks = (try? context.fetch(FetchDescriptor<SchemaBlock>()))?.filter { $0.page?.id == journal.id }
-            .sorted { $0.sortIndex < $1.sortIndex } ?? []
-        let typed = blocks.count > 250 ? blocks[250] : blocks.last
 
         var steps: [Step] = []
         if CommandLine.arguments.contains("-SchemaDemoBenchmarkSwitch") {
@@ -39,17 +36,6 @@ enum DemoBenchmark {
             perform(steps[...], results: [:], order: [])
             return
         }
-        if CommandLine.arguments.contains("-SchemaDemoBenchmarkTyping") {
-            // Typing only, for profiling one keystroke at a time.
-            steps.append(Step(label: "open Journal for typing") { listViewModel.selectList(journal) })
-            for n in 1...150 {
-                steps.append(Step(label: "type in Journal #\(n)") {
-                    if let typed { typed.text += "x" }
-                })
-            }
-            perform(steps[...], results: [:], order: [])
-            return
-        }
         for n in 1...10 {
             steps.append(Step(label: "nothing (timer floor) #\(n)") {})
         }
@@ -58,12 +44,6 @@ enum DemoBenchmark {
             steps.append(Step(label: "open Journal (500 blocks) #\(round)") { listViewModel.selectList(journal) })
             steps.append(Step(label: "open Everything #\(round)") { listViewModel.selectEverythingList(from: lists) })
             steps.append(Step(label: "open Today #\(round)") { listViewModel.selectSmartView(.today, from: lists) })
-        }
-        steps.append(Step(label: "open Journal for typing") { listViewModel.selectList(journal) })
-        for n in 1...20 {
-            steps.append(Step(label: "type in Journal #\(n)") {
-                if let typed { typed.text += "x" }
-            })
         }
         // Selecting a task scrolls the list to it: step down the long list
         // about a screenful at a time.

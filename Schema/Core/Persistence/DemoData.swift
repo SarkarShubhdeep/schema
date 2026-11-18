@@ -34,12 +34,6 @@ enum DemoData {
     /// `-SchemaDemoScratchpad` opens the Ideas scratchpad.
     static let opensScratchpad = CommandLine.arguments.contains("-SchemaDemoScratchpad")
 
-    /// `-SchemaDemoSlash` also opens the / menu on a new line in Ideas.
-    static let opensSlashMenu = CommandLine.arguments.contains("-SchemaDemoSlash")
-
-    /// `-SchemaDemoMakeTask` puts the caret on an open to-do in Ideas, showing "Make task in …".
-    static let focusesOpenToDo = CommandLine.arguments.contains("-SchemaDemoMakeTask")
-
     /// `-SchemaDemoRoutine` opens an open routine task as a page.
     static let opensRoutineTask = CommandLine.arguments.contains("-SchemaDemoRoutine")
 
@@ -56,12 +50,8 @@ enum DemoData {
     /// scratchpad, for the performance pass (#45).
     static let seedsLargePages = CommandLine.arguments.contains("-SchemaDemoLarge")
     /// `-SchemaDemoBenchmark` (with `-SchemaDemoLarge`) switches between the
-    /// large pages and edits a block, printing how long each step takes.
+    /// large pages, printing how long each step takes.
     static let runsBenchmark = CommandLine.arguments.contains("-SchemaDemoBenchmark")
-    /// `-SchemaEditorFeelCheck` shows a scratchpad in the current editor and
-    /// in TipTap side by side (#76). TipTap's edits are not saved. Works with
-    /// or without the demo data.
-    static let showsEditorFeelCheck = CommandLine.arguments.contains("-SchemaEditorFeelCheck")
     /// Shows the first page mid-drag, two and a half rows down (#42).
     static let dragsPage = CommandLine.arguments.contains("-SchemaDemoDragPage")
 
@@ -243,6 +233,9 @@ enum DemoData {
             seedLargePages(context, startingAt: index + 10)
         }
 
+        // The lines above are written as v0.5 blocks, then moved into
+        // documents exactly as the V7 migration does (#77).
+        try? PageDocumentMigration.moveBlocksIntoDocuments(in: context)
         try? context.save()
         defaults.set(daily.id.uuidString, forKey: "schema.preferences.defaultWritableListID")
     }
