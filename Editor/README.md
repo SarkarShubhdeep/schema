@@ -32,7 +32,10 @@ Swift talks to the page through `window.schemaEditor` (`setContent`,
 `schema` message handler with `ready`, `change`, `loaded`, `escape`, `focus`
 and `error`. See `src/editor.js` and `Schema/Core/Editor/TipTapBridge.swift`.
 
-## Feel check
+## Documents
 
-Debug builds launched with `-SchemaEditorFeelCheck` show a scratchpad in the
-v0.5 editor and in TipTap side by side. TipTap's edits are not saved there.
+Each page and task body is stored as TipTap JSON (schema V7, #77). Every
+document is shown with a key (the page's or task's id); a change comes back
+with the key it was made in, so typing just before switching pages is saved
+to the right page, and a new key starts a fresh undo history. A to-do made
+into a task carries the task's id in its `taskId` attribute.

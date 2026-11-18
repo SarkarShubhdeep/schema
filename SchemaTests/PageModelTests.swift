@@ -81,7 +81,7 @@ struct PageModelTests {
         context.insert(SchemaBlock(kind: .todo, text: "one and a half", sortIndex: between, page: page))
         try context.save()
 
-        #expect(page.orderedBlocks.map(\.text) == ["first", "one and a half", "second", "third"])
+        #expect(page.blocks.inDisplayOrder.map(\.text) == ["first", "one and a half", "second", "third"])
     }
 
     @Test func changingKindClearsWhatTheNewKindCannotHold() {
@@ -117,7 +117,7 @@ struct PageModelTests {
         context.insert(SchemaBlock(kind: .todo, text: "Find the lease", sortIndex: 2, task: task))
         try context.save()
 
-        #expect(task.orderedBlocks.map(\.kind) == [.heading, .todo])
+        #expect(task.blocks.inDisplayOrder.map(\.kind) == [.heading, .todo])
         #expect(page.blocks.isEmpty)
 
         context.delete(task)
@@ -133,8 +133,10 @@ struct PageModelTests {
         context.insert(task)
         #expect(task.displayDescription == "Old notes")
 
-        context.insert(SchemaBlock(kind: .heading, text: "Before calling", sortIndex: 1, task: task))
-        context.insert(SchemaBlock(kind: .text, text: "Radiator is loud", sortIndex: 2, task: task))
+        task.setDocument(TipTapDocument.json(TipTapDocument.document(from: [
+            TipTapDocument.Line(kind: .text, text: "Radiator is loud"),
+            TipTapDocument.Line(kind: .heading, text: "Before calling"),
+        ])))
         try context.save()
         #expect(task.displayDescription == "Radiator is loud")
     }

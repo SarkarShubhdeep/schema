@@ -2,26 +2,28 @@
 //  TipTapDocument.swift
 //  Schema
 //
-//  Turns the v0.5 blocks of a page into a TipTap (ProseMirror) document, so
-//  the same content can open in the new editor (#76). Consecutive bullets
+//  Turns the v0.5 lines of a page into a TipTap (ProseMirror) document: used
+//  by the V7 migration (#77) and Quick note. Consecutive bullets
 //  become one bullet list and consecutive to-dos one task list, the way
 //  TipTap groups them.
 //
 
 import Foundation
 
-enum TipTapDocument {
+nonisolated enum TipTapDocument {
     typealias Node = [String: Any]
 
     struct Line: Equatable {
         var kind: BlockKind
         var text: String
         var isChecked: Bool = false
+        /// The task a to-do was made into ("Make task", #40).
+        var taskID: UUID?
     }
 
-    static func document(from blocks: [SchemaBlock]) -> Node {
-        document(from: blocks.sorted { $0.sortIndex < $1.sortIndex }.map {
-            Line(kind: $0.kind, text: $0.text, isChecked: $0.isChecked)
+    @MainActor static func document(from blocks: [SchemaBlock]) -> Node {
+        document(from: blocks.inDisplayOrder.map {
+            Line(kind: $0.kind, text: $0.text, isChecked: $0.isChecked, taskID: $0.linkedTaskID)
         })
     }
 
@@ -64,7 +66,9 @@ enum TipTapDocument {
 
     private static func listItem(_ line: Line) -> Node {
         if line.kind == .todo {
-            return ["type": "taskItem", "attrs": ["checked": line.isChecked], "content": [paragraph(line.text)]]
+            var attrs: [String: Any] = ["checked": line.isChecked]
+            if let taskID = line.taskID { attrs[PageDocument.taskIDAttribute] = taskID.uuidString }
+            return ["type": "taskItem", "attrs": attrs, "content": [paragraph(line.text)]]
         }
         return ["type": "listItem", "content": [paragraph(line.text)]]
     }

@@ -43,7 +43,10 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-#editor { padding: 0 0 160px; }
+/* The page column: 720 wide at most, centred, with the 32 pt side margins
+   and the gutter the page header uses, so title and text line up. */
+body { padding: 0 32px; }
+#editor { max-width: 720px; margin: 0 auto; padding: 4px 0 160px 32px; min-height: 100vh; box-sizing: border-box; }
 
 .ProseMirror {
   outline: none;

@@ -1,10 +1,13 @@
 // Schema's page editor: TipTap (ProseMirror) inside a WKWebView (#76).
 //
 // Bridge
-//   Swift → JS: window.schemaEditor.setContent(json), .focus(where), .getJSON()
+//   Swift → JS: window.schemaEditor.setContent(json, key), .focus(where), .getJSON()
+//     key names the page or task the document belongs to. A new key gets a
+//     fresh undo history, and every change carries the key it was made in,
+//     so a change still pending when the page switches is saved to its page.
 //   JS → Swift: webkit.messageHandlers.schema.postMessage({ type, ... })
 //     ready   – the editor is mounted and can take content
-//     change  – the document changed (debounced); carries json and plain text
+//     change  – the document changed (debounced); carries key, json and plain text
 //     loaded  – a document from setContent is on screen; carries ms
 //     escape  – Esc pressed with nothing to close, so the app can take focus
 //     focus   – the editor gained or lost focus
@@ -15,6 +18,7 @@ import StarterKit from '@tiptap/starter-kit'
 import { TaskList, TaskItem } from '@tiptap/extension-list'
 import { Placeholder } from '@tiptap/extensions'
 import { Markdown } from '@tiptap/markdown'
+import { EditorState } from '@tiptap/pm/state'
 
 const post = (message) => {
   try {
@@ -28,12 +32,37 @@ const post = (message) => {
 window.addEventListener('error', (event) => post({ type: 'error', message: String(event.message), source: `${event.filename}:${event.lineno}` }))
 window.addEventListener('unhandledrejection', (event) => post({ type: 'error', message: String(event.reason) }))
 
+// A to-do made into a task keeps the task's id (#40, #77), so ticking one
+// can tick the other. Without this attribute TipTap would drop the id.
+const SchemaTaskItem = TaskItem.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      taskId: {
+        default: null,
+        keepOnSplit: false,
+        parseHTML: (element) => element.getAttribute('data-task-id'),
+        renderHTML: (attributes) => (attributes.taskId ? { 'data-task-id': attributes.taskId } : {}),
+      },
+    }
+  },
+})
+
+let currentKey = null
 let changeTimer = null
-const sendChange = (editor) => {
+const postChange = (e) => {
   clearTimeout(changeTimer)
-  changeTimer = setTimeout(() => {
-    post({ type: 'change', json: editor.getJSON(), text: editor.getText({ blockSeparator: '\n' }) })
-  }, 250)
+  changeTimer = null
+  post({ type: 'change', key: currentKey, json: e.getJSON(), text: e.getText({ blockSeparator: '\n' }) })
+}
+const sendChange = (e) => {
+  clearTimeout(changeTimer)
+  changeTimer = setTimeout(() => postChange(e), 250)
+}
+// Sends a change that is still waiting, before the document is replaced or
+// the app takes focus.
+const flushChange = (e) => {
+  if (changeTimer !== null) postChange(e)
 }
 
 const editor = new Editor({
@@ -44,7 +73,7 @@ const editor = new Editor({
       link: { openOnClick: false },
     }),
     TaskList,
-    TaskItem.configure({ nested: true }),
+    SchemaTaskItem.configure({ nested: true }),
     Placeholder.configure({
       placeholder: ({ editor: e }) => (e.isEmpty ? 'Start writing, or type / for blocks' : 'Type / for blocks'),
       showOnlyCurrent: true,
@@ -64,13 +93,24 @@ const editor = new Editor({
   },
   onUpdate: ({ editor: e }) => sendChange(e),
   onFocus: () => post({ type: 'focus', focused: true }),
-  onBlur: () => post({ type: 'focus', focused: false }),
+  onBlur: ({ editor: e }) => {
+    flushChange(e)
+    post({ type: 'focus', focused: false })
+  },
 })
 
 window.schemaEditor = {
-  setContent(json) {
+  setContent(json, key) {
     const started = performance.now()
-    editor.commands.setContent(json, { emitUpdate: false })
+    flushChange(editor)
+    if (key !== currentKey) {
+      // Another page: its own document and its own undo history.
+      currentKey = key
+      const doc = editor.schema.nodeFromJSON(json)
+      editor.view.updateState(EditorState.create({ doc, plugins: editor.state.plugins }))
+    } else {
+      editor.commands.setContent(json, { emitUpdate: false })
+    }
     // Measure until the next frame is drawn, so layout is included.
     requestAnimationFrame(() => post({ type: 'loaded', ms: performance.now() - started }))
   },
@@ -87,5 +127,12 @@ window.schemaEditor = {
     editor.commands.focus(where || 'end')
   },
 }
+
+// Clicking below the last line keeps writing there.
+document.addEventListener('mousedown', (event) => {
+  if (editor.view.dom.contains(event.target)) return
+  event.preventDefault()
+  editor.commands.focus('end')
+})
 
 post({ type: 'ready' })

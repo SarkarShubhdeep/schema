@@ -26,7 +26,7 @@ struct TipTapBridgeTests {
     init() { bridge.runner = page }
 
     @Test func holdsTheDocumentUntilTheEditorIsReady() {
-        bridge.show(#"{"type":"doc"}"#)
+        bridge.show(#"{"type":"doc"}"#, key: "A")
         #expect(page.scripts.isEmpty)
         bridge.receive(["type": "ready"])
         #expect(page.setContentCount == 1)
@@ -35,27 +35,48 @@ struct TipTapBridgeTests {
 
     @Test func sendsEachDocumentOnce() {
         bridge.receive(["type": "ready"])
-        bridge.show("A")
-        bridge.show("A")
+        bridge.show("A", key: "page")
+        bridge.show("A", key: "page")
         #expect(page.setContentCount == 1)
-        bridge.show("B")
+        bridge.show("B", key: "page")
         #expect(page.setContentCount == 2)
     }
 
     @Test func doesNotEchoTheEditorsOwnChanges() {
         var changes: [String] = []
-        bridge.onChange = { changes.append($0) }
+        bridge.onChange = { json, _ in changes.append(json) }
         bridge.receive(["type": "ready"])
-        bridge.show(#"{"type":"doc"}"#)
+        bridge.show(#"{"type":"doc"}"#, key: "A")
 
         let edited: [String: Any] = ["type": "doc", "content": [["type": "paragraph"]]]
-        bridge.receive(["type": "change", "json": edited])
+        bridge.receive(["type": "change", "key": "A", "json": edited])
         let editedText = TipTapBridge.jsonText(edited)!
         #expect(changes == [editedText])
 
         // SwiftUI hands the saved change straight back: nothing is re-sent.
-        bridge.show(editedText)
+        bridge.show(editedText, key: "A")
         #expect(page.setContentCount == 1)
+    }
+
+    @Test func anotherPageWithTheSameDocumentIsStillSent() {
+        bridge.receive(["type": "ready"])
+        bridge.show(#"{"type":"doc"}"#, key: "A")
+        bridge.show(#"{"type":"doc"}"#, key: "B")
+        #expect(page.setContentCount == 2)
+        #expect(page.scripts.last?.1["key"] as? String == "B")
+    }
+
+    @Test func aLateChangeFromThePreviousPageKeepsItsKey() {
+        var saved: [(String, String)] = []
+        bridge.onChange = { saved.append(($0, $1)) }
+        bridge.receive(["type": "ready"])
+        bridge.show(#"{"type":"doc"}"#, key: "A")
+        bridge.show(#"{"type":"doc","x":1}"#, key: "B")
+        bridge.receive(["type": "change", "key": "A", "json": ["type": "doc", "content": []]])
+        #expect(saved.map(\.1) == ["A"])
+        // Page B is still what the editor shows: nothing is re-sent.
+        bridge.show(#"{"type":"doc","x":1}"#, key: "B")
+        #expect(page.setContentCount == 2)
     }
 
     @Test func focusRequestsRunOncePerToken() {
@@ -71,7 +92,7 @@ struct TipTapBridgeTests {
 
     @Test func aReloadedPageGetsTheDocumentAgain() {
         bridge.receive(["type": "ready"])
-        bridge.show("A")
+        bridge.show("A", key: "page")
         bridge.pageDidReset()
         bridge.receive(["type": "ready"])
         #expect(page.setContentCount == 2)
