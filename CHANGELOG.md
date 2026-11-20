@@ -4,6 +4,10 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-11-20
+
+Pomodoro timers with a focus heat map, and the first part of the new TipTap editor (block handle, Turn into, the / menu). Markdown, the Make task badge and @ mentions follow in 0.5.5.
+
 ### Added
 
 - Pomodoro (#89): a page under Views for focus timers. Start several at once with New timer (⌘T), each with its own name, focus length (25, 40, 50 or your own) and break (5, 10, 15 or none), and optionally a page it counts toward. Each card shows the time left, when it ends and today's sessions; pause (Space), skip a break, finish a session early or change lengths from ⋯. Timers keep going while the window is closed, and a notification says when focus or a break ends. Focus history shows a square for every finished session, a row per day, darker for longer sessions, and a GitHub-style year of days. The sidebar shows the time left on the timer ending soonest.
