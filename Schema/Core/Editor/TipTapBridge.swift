@@ -41,6 +41,8 @@ final class TipTapBridge {
     var onError: ((String) -> Void)?
     /// How long the editor took to show a document, in milliseconds.
     var onLoaded: ((Double) -> Void)?
+    /// Copy as Markdown from a block's menu (#79): the block as a TipTap document.
+    var onCopyMarkdown: ((_ json: String) -> Void)?
 
     private(set) var isReady = false
     /// The document the editor shows now, as far as Swift knows.
@@ -84,6 +86,9 @@ final class TipTapBridge {
             onEscape?()
         case "focus":
             onFocusChange?((body["focused"] as? Bool) ?? false)
+        case "copyMarkdown":
+            guard let json = Self.jsonText(body["json"]) else { return }
+            onCopyMarkdown?(json)
         case "error":
             onError?("\(body["message"] ?? "") \(body["source"] ?? "")")
         default:

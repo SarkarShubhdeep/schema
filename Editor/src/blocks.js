@@ -13,6 +13,7 @@ export const KINDS = [
   { id: 'text', title: 'Text', glyph: 'T', hint: '', aliases: ['text', 'paragraph', 'plain'] },
   { id: 'heading', title: 'Heading', glyph: 'H', hint: '#', aliases: ['heading', 'title', 'h1', 'h2', 'h3', '#'] },
   { id: 'bullet', title: 'Bullet list', glyph: '•', hint: '-', aliases: ['bullet list', 'list', 'ul', '-'] },
+  { id: 'numbered', title: 'Numbered list', glyph: '1.', hint: '1.', aliases: ['numbered list', 'number', 'ordered', 'ol', '1.'] },
   { id: 'todo', title: 'To-do', glyph: '○', hint: '[ ]', aliases: ['to-do', 'todo', 'task', 'check', 'checkbox', '[]'] },
   { id: 'quote', title: 'Quote', glyph: '“', hint: '>', aliases: ['quote', 'blockquote', '>'] },
   { id: 'code', title: 'Code', glyph: '{}', hint: '```', aliases: ['code', 'codeblock', 'snippet', '```'] },
@@ -26,11 +27,11 @@ export const kindsMatching = (query, { insert }) => {
 }
 
 // The block around a document position: { node, pos } where pos is just
-// before the node. Inside a list, the innermost list item.
+// before the node. Inside a list, the innermost list item, with its list.
 export function blockAt(doc, pos) {
   const $pos = doc.resolve(Math.max(0, Math.min(pos, doc.content.size)))
   for (let d = $pos.depth; d > 0; d--) {
-    if (LIST_ITEMS.has($pos.node(d).type.name)) return { node: $pos.node(d), pos: $pos.before(d) }
+    if (LIST_ITEMS.has($pos.node(d).type.name)) return { node: $pos.node(d), pos: $pos.before(d), list: $pos.node(d - 1) }
   }
   if ($pos.depth >= 1) return { node: $pos.node(1), pos: $pos.before(1) }
   if ($pos.nodeAfter) return { node: $pos.nodeAfter, pos: $pos.pos }
@@ -42,7 +43,7 @@ export function blockAt(doc, pos) {
 export function kindOf(block) {
   switch (block.node.type.name) {
     case 'heading': return 'heading'
-    case 'listItem': return 'bullet'
+    case 'listItem': return block.list?.type.name === 'orderedList' ? 'numbered' : 'bullet'
     case 'taskItem': return 'todo'
     case 'blockquote': return 'quote'
     case 'codeBlock': return 'code'
@@ -78,6 +79,7 @@ export function turnInto(editor, block, kind) {
   switch (kind) {
     case 'heading': chain.setHeading({ level: 2 }).run(); break
     case 'bullet': chain.toggleBulletList().run(); break
+    case 'numbered': chain.toggleOrderedList().run(); break
     case 'todo': chain.toggleTaskList().run(); break
     case 'quote': chain.setBlockquote().run(); break
     case 'code': chain.setCodeBlock().run(); break
@@ -135,4 +137,12 @@ export function startDrag(editor, block, event, dom) {
   event.dataTransfer.effectAllowed = 'move'
   if (dom) event.dataTransfer.setDragImage(dom, 0, 12)
   view.dragging = { slice: selection.content(), move: true }
+}
+
+// The block as a document of its own, for Copy as Markdown (#79). A list
+// item keeps its list, so it copies as "- text" or "1. text".
+export function blockDocument(block) {
+  const node = block.node.toJSON()
+  if (!block.list) return { type: 'doc', content: [node] }
+  return { type: 'doc', content: [{ type: block.list.type.name, attrs: block.list.attrs, content: [node] }] }
 }
