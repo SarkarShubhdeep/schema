@@ -6,11 +6,15 @@ All notable changes to Schema are documented in this file.
 
 ### Added
 
+- Pomodoro (#89): a page under Views for focus timers. Start several at once with New timer (⌘T), each with its own name, focus length (25, 40, 50 or your own) and break (5, 10, 15 or none), and optionally a page it counts toward. Each card shows the time left, when it ends and today's sessions; pause (Space), skip a break, finish a session early or change lengths from ⋯. Timers keep going while the window is closed, and a notification says when focus or a break ends. Focus history shows a square for every finished session, a row per day, darker for longer sessions, and a GitHub-style year of days. The sidebar shows the time left on the timer ending soonest.
+
 - The new page editor (#76): TipTap, bundled with the app and loaded from it, never from the network, with Schema's fonts and colours and a bridge for loading, saving, focus and Esc. Scratchpads and task pages now open in it (#77).
 
 - Blocks in the new editor (#78): Return starts a new block and Shift+Return breaks the line inside it. Hovering a block shows one handle in the margin instead of a plus on every line: drag it to move the block, or click it for Turn into, Duplicate (⌘D) and Delete (⌫). Each line of a list is its own block. The / menu is back with the same kinds plus Code, and ⌘/ opens Turn into for the block with the caret. Menus use Schema's panel style in light and dark.
 
 ### Changed
+
+- The data store moves to version 8, adding Pomodoro timers and sessions (#89). Nothing else changes.
 
 - Page content is stored as one document per page and per task (#77), with a plain-text copy for search. Updating moves every existing line over: lists, ticks and each to-do's link to the task it was made into are kept, and a task's old notes become the first line of its page. Quick note writes into the same document. Until #80, the "Make task" badge is missing from the new editor; "Make tasks from open to-dos" in the page menu still works.
 

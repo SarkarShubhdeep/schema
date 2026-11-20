@@ -28,6 +28,8 @@ struct ContentView: View {
     @State private var listViewModel: ListViewModel?
     @State private var taskViewModel: TaskViewModel?
     @State private var workspace = WorkspaceState()
+    /// Keeps Pomodoro timers moving while the app runs (#89).
+    @State private var pomodoro: PomodoroRunner?
 
     private let notificationService = NotificationService()
 
@@ -41,6 +43,10 @@ struct ContentView: View {
             }
         }
         .environment(workspace)
+        .environment(pomodoro)
+        .task(id: pomodoro == nil) {
+            await pomodoro?.run()
+        }
         .onAppear(perform: bootstrapIfNeeded)
         .onReceive(NotificationCenter.default.publisher(for: NotificationNames.taskReminderOpened)) { notification in
             if let listID = notification.openedListID {
@@ -177,10 +183,14 @@ struct ContentView: View {
         // store by mistake, or it would add the default pages again.
         listVM.ensureDefaultListsIfNeeded(from: loadedLists.items.sorted { $0.order < $1.order })
         listViewModel = listVM
+        pomodoro = PomodoroRunner(context: modelContext)
         ensureListSelection()
         #if DEBUG
         if DemoData.isEnabled, DemoData.opensToday {
             listVM.selectSmartView(.today, from: lists)
+        }
+        if DemoData.isEnabled, DemoData.opensPomodoro {
+            listVM.selectPomodoro(from: lists)
         }
         if DemoData.isEnabled, DemoData.opensUpcoming {
             listVM.selectSmartView(.upcoming, from: lists)

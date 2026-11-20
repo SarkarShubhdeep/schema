@@ -128,7 +128,7 @@ struct WorkspaceView: View {
     var body: some View {
         @Bindable var workspace = workspace
         // A scratchpad shows no tasks, so skip working out the list (#45).
-        let shown: (sections: [TaskSectionGroup], completed: [SchemaTask]) = scratchpadPage == nil ? shownTasks : ([], [])
+        let shown: (sections: [TaskSectionGroup], completed: [SchemaTask]) = scratchpadPage == nil && !listViewModel.showsPomodoro ? shownTasks : ([], [])
         let sections = shown.sections
         let incomplete = sections.flatMap(\.tasks)
         let completed = shown.completed
@@ -152,6 +152,10 @@ struct WorkspaceView: View {
                     actions: taskPageActions(for: task, in: navigableTaskIDs)
                 )
                 .id(task.id)
+            } else if listViewModel.showsPomodoro {
+                PomodoroPageView(pages: listViewModel.pages(from: lists)) { page in
+                    listViewModel.selectList(page)
+                }
             } else if let scratchpad = scratchpadPage {
                 ScratchpadPageView(page: scratchpad, taskActions: blockTaskActions)
             } else {
@@ -298,6 +302,10 @@ struct WorkspaceView: View {
         .onChange(of: listViewModel.smartView) { _, _ in
             workspace.taskDetailEditor = nil
         }
+        .onChange(of: listViewModel.showsPomodoro) { _, _ in
+            workspace.taskDetailEditor = nil
+            workspace.clearSelection()
+        }
         .onChange(of: listViewModel.sortOption) { _, _ in
             workspace.clearSelection()
         }
@@ -323,7 +331,7 @@ struct WorkspaceView: View {
             isAddTaskFocused: $isAddTaskFocused,
             pageCount: listViewModel.pages(from: lists).count,
             canUndo: taskViewModel.canUndo,
-            allowsSingleKeyShortcuts: scratchpadPage == nil && !workspace.isTaskPageOpen,
+            allowsSingleKeyShortcuts: scratchpadPage == nil && !workspace.isTaskPageOpen && !listViewModel.showsPomodoro,
             onSelectListAtIndex: { index in
                 listViewModel.selectList(at: index, from: listViewModel.pages(from: lists))
             },

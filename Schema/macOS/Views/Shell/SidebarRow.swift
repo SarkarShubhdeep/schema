@@ -20,6 +20,8 @@ enum SidebarMetrics {
 enum SidebarRowTrailing {
     case count(Int)
     case keys(String)
+    /// A short live value, like a timer's time left.
+    case text(String)
     case none
 }
 
@@ -85,6 +87,12 @@ struct SidebarRow<Icon: View>: View {
                 )
                 .opacity(isActive ? 0.75 : 1)
                 .accessibilityHidden(true)
+        case .text(let text):
+            Text(text)
+                .font(.schemaMeta)
+                .lineLimit(1)
+                .fixedSize()
+                .opacity(isActive ? 0.75 : 1)
         case .none:
             EmptyView()
         }

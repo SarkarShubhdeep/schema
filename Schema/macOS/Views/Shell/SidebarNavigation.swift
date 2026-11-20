@@ -53,6 +53,10 @@ struct SidebarNavigation: View {
                 listViewModel.selectEverythingList(from: lists)
             }
 
+            PomodoroSidebarRow(isActive: listViewModel.showsPomodoro) {
+                listViewModel.selectPomodoro(from: lists)
+            }
+
             sectionHeader("Pages", showsNewPage: true)
 
             ForEach(Array(pages.enumerated()), id: \.element.id) { index, page in
@@ -175,7 +179,8 @@ struct SidebarNavigation: View {
     // MARK: State
 
     private var isEverythingActive: Bool {
-        listViewModel.smartView == nil && listViewModel.selectedList(from: lists)?.isEverythingList == true
+        listViewModel.smartView == nil && !listViewModel.showsPomodoro
+            && listViewModel.selectedList(from: lists)?.isEverythingList == true
     }
 
     private func isActive(_ page: SchemaList) -> Bool {
