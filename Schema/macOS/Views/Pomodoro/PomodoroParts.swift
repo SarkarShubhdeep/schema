@@ -103,3 +103,69 @@ struct PomodoroSidebarRow: View {
         return left.map { .text(PomodoroText.clock($0)) } ?? .none
     }
 }
+
+/// A horizontal scroll row with no scrollbar. Where content runs past an
+/// edge, that edge fades out softly, so the heat map dissolves instead of
+/// being cut off; an edge with nothing hidden stays crisp.
+struct FadingHorizontalScroll<Content: View>: View {
+    var fade: CGFloat = 40
+    var startsAtTrailingEdge = false
+    @ViewBuilder let content: Content
+
+    @State private var hidden = FadingHorizontalScrollEdges()
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            content
+        }
+        .defaultScrollAnchor(startsAtTrailingEdge ? .trailing : .leading)
+        .modifier(HiddenEdgesReader(hidden: $hidden))
+        .mask {
+            HStack(spacing: 0) {
+                edge(from: .leading).frame(width: hidden.leading ? fade : 0)
+                Rectangle()
+                edge(from: .trailing).frame(width: hidden.trailing ? fade : 0)
+            }
+        }
+        .animation(SchemaMotion.fast, value: hidden)
+    }
+
+    /// Clear at the outer edge, solid toward the middle, eased so it reads as a soft blur.
+    private func edge(from side: HorizontalEdge) -> some View {
+        LinearGradient(
+            stops: [
+                .init(color: .clear, location: 0),
+                .init(color: .black.opacity(0.35), location: 0.4),
+                .init(color: .black, location: 1),
+            ],
+            startPoint: side == .leading ? .leading : .trailing,
+            endPoint: side == .leading ? .trailing : .leading
+        )
+    }
+}
+
+/// Which edges of a horizontal scroll view have content beyond them.
+private struct HiddenEdgesReader: ViewModifier {
+    @Binding var hidden: FadingHorizontalScrollEdges
+
+    func body(content: Content) -> some View {
+        if #available(macOS 15, *) {
+            content.onScrollGeometryChange(for: FadingHorizontalScrollEdges.self) { geometry in
+                let offset = geometry.contentOffset.x + geometry.contentInsets.leading
+                return FadingHorizontalScrollEdges(
+                    leading: offset > 1,
+                    trailing: offset + geometry.containerSize.width < geometry.contentSize.width - 1
+                )
+            } action: { _, edges in
+                hidden = edges
+            }
+        } else {
+            content
+        }
+    }
+}
+
+struct FadingHorizontalScrollEdges: Equatable {
+    var leading = false
+    var trailing = false
+}

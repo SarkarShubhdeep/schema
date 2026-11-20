@@ -46,7 +46,7 @@ struct PomodoroHistoryView: View {
             }
 
             if !timers.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
+                FadingHorizontalScroll(fade: 32) {
                     HStack(spacing: 6) {
                         Button("All timers") { filter = nil }
                             .buttonStyle(PomodoroChoiceStyle(isOn: filter == nil))
@@ -162,7 +162,7 @@ struct PomodoroHistoryView: View {
                 .foregroundStyle(SchemaTheme.inkMuted)
                 .fixedSize()
 
-                ScrollView(.horizontal, showsIndicators: false) {
+                FadingHorizontalScroll(startsAtTrailingEdge: true) {
                     VStack(alignment: .leading, spacing: gap) {
                         ZStack(alignment: .topLeading) {
                             ForEach(year.months, id: \.column) { month in
@@ -190,7 +190,6 @@ struct PomodoroHistoryView: View {
                         }
                     }
                 }
-                .defaultScrollAnchor(.trailing)
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(PomodoroHistory.duration(year.totalMinutes)) of focus in the last year")
