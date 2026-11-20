@@ -447,8 +447,20 @@ enum SchemaMigrationV7: VersionedSchema {
     }
 }
 
+/// V8 adds Pomodoro timers and their finished focus sessions (#89). Pages
+/// and tasks are unchanged. Uses the live models.
+enum SchemaMigrationV8: VersionedSchema {
+    static var versionIdentifier: Schema.Version {
+        Schema.Version(8, 0, 0)
+    }
+
+    static var models: [any PersistentModel.Type] {
+        [SchemaList.self, SchemaTask.self, SchemaBlock.self, PomodoroTimer.self, PomodoroSession.self]
+    }
+}
+
 /// The schema the app opens its store with.
-typealias SchemaCurrentVersion = SchemaMigrationV7
+typealias SchemaCurrentVersion = SchemaMigrationV8
 
 enum SchemaAppMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
@@ -460,11 +472,12 @@ enum SchemaAppMigrationPlan: SchemaMigrationPlan {
             SchemaMigrationV5.self,
             SchemaMigrationV6.self,
             SchemaMigrationV7.self,
+            SchemaMigrationV8.self,
         ]
     }
 
     static var stages: [MigrationStage] {
-        [migrateV1toV2, migrateV2toV3, migrateV3toV4, migrateV4toV5, migrateV5toV6, migrateV6toV7]
+        [migrateV1toV2, migrateV2toV3, migrateV3toV4, migrateV4toV5, migrateV5toV6, migrateV6toV7, migrateV7toV8]
     }
 
     /// Adds the optional `completedAt`. Tasks already done keep it empty:
@@ -492,6 +505,12 @@ enum SchemaAppMigrationPlan: SchemaMigrationPlan {
             try PageDocumentMigration.moveBlocksIntoDocuments(in: context)
             try context.save()
         }
+    )
+
+    /// Adds the two Pomodoro tables; nothing else changes.
+    static let migrateV7toV8 = MigrationStage.lightweight(
+        fromVersion: SchemaMigrationV7.self,
+        toVersion: SchemaMigrationV8.self
     )
 
     static let migrateV1toV2 = MigrationStage.lightweight(

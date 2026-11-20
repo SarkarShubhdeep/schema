@@ -45,6 +45,13 @@ struct FloatingSidebarBar: View {
                 ) {
                     listViewModel.selectEverythingList(from: lists)
                 }
+                FloatingBarButton(
+                    systemImage: "timer",
+                    label: "Pomodoro",
+                    isActive: listViewModel.showsPomodoro
+                ) {
+                    listViewModel.selectPomodoro(from: lists)
+                }
                 FloatingBarButton(systemImage: "plus", label: "New page", shortcut: "⌘N") {
                     listViewModel.openNewPage()
                 }
@@ -100,7 +107,8 @@ struct FloatingSidebarBar: View {
     }
 
     private var isEverythingActive: Bool {
-        listViewModel.smartView == nil && listViewModel.selectedList(from: lists)?.isEverythingList == true
+        listViewModel.smartView == nil && !listViewModel.showsPomodoro
+            && listViewModel.selectedList(from: lists)?.isEverythingList == true
     }
 }
 

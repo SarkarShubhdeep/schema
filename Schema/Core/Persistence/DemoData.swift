@@ -33,6 +33,12 @@ enum DemoData {
     static let opensNewPage = CommandLine.arguments.contains("-SchemaDemoNewPage")
     /// `-SchemaDemoScratchpad` opens the Ideas scratchpad.
     static let opensScratchpad = CommandLine.arguments.contains("-SchemaDemoScratchpad")
+    /// Opens the Pomodoro page (#89).
+    static let opensPomodoro = CommandLine.arguments.contains("-SchemaDemoPomodoro")
+    /// Scrolls the Pomodoro page to its focus history, for screenshots.
+    static let showsPomodoroHistory = CommandLine.arguments.contains("-SchemaDemoPomodoroHistory")
+    /// Opens the focus history on Year.
+    static let showsPomodoroYear = CommandLine.arguments.contains("-SchemaDemoPomodoroYear")
 
     /// `-SchemaDemoRoutine` opens an open routine task as a page.
     static let opensRoutineTask = CommandLine.arguments.contains("-SchemaDemoRoutine")
@@ -236,8 +242,59 @@ enum DemoData {
         // The lines above are written as v0.5 blocks, then moved into
         // documents exactly as the V7 migration does (#77).
         try? PageDocumentMigration.moveBlocksIntoDocuments(in: context)
+        seedPomodoro(context, readingPageID: reading.id)
         try? context.save()
         defaults.set(daily.id.uuidString, forKey: "schema.preferences.defaultWritableListID")
+    }
+
+    /// Three timers like the canvas (#89): one focusing, one on a break, one
+    /// paused, with today's sessions, the past week and most of a year.
+    private static func seedPomodoro(_ context: ModelContext, readingPageID: UUID) {
+        let now = Date()
+        let calendar = Calendar.current
+        let editor = PomodoroTimer(name: "Schema editor", focusMinutes: 25, breakMinutes: 5, sortIndex: 1)
+        editor.phase = .focus
+        editor.phaseEndsAt = now.addingTimeInterval(18 * 60 + 42)
+        editor.focusStartedAt = now.addingTimeInterval(-(6 * 60 + 18))
+        let doc = PomodoroTimer(name: "Milestone doc", focusMinutes: 40, breakMinutes: 10, sortIndex: 2)
+        doc.phase = .rest
+        doc.phaseEndsAt = now.addingTimeInterval(6 * 60 + 15)
+        let reading = PomodoroTimer(name: "Reading", focusMinutes: 50, breakMinutes: 10, sortIndex: 3)
+        reading.phase = .focus
+        reading.pausedRemaining = 31 * 60 + 8
+        reading.focusStartedAt = now.addingTimeInterval(-(18 * 60 + 52))
+        reading.linkedPageID = readingPageID
+        let timers = [editor, doc, reading]
+        timers.forEach(context.insert)
+
+        func add(_ timer: PomodoroTimer, start: Date) {
+            context.insert(PomodoroSession(
+                timerID: timer.id, timerName: timer.name, startedAt: start,
+                endedAt: start.addingTimeInterval(TimeInterval(timer.focusMinutes * 60)), minutes: timer.focusMinutes
+            ))
+        }
+        // A day of sessions back to back from 9:00, with breaks between.
+        func day(_ offset: Int, _ order: [PomodoroTimer]) {
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: calendar.startOfDay(for: now)),
+                  var start = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: date) else { return }
+            for timer in order {
+                add(timer, start: start)
+                start = start.addingTimeInterval(TimeInterval((timer.focusMinutes + timer.breakMinutes) * 60))
+            }
+        }
+        day(0, [editor, editor, doc, editor, reading, doc, editor])
+
+        var seed: UInt64 = 7
+        func random() -> Double {
+            seed = seed &* 6364136223846793005 &+ 1442695040888963407
+            return Double(seed >> 33) / Double(1 << 31)
+        }
+        for offset in 1..<300 {
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: now) else { continue }
+            let weekend = calendar.isDateInWeekend(date)
+            let count = weekend ? (random() > 0.7 ? Int(random() * 4) : 0) : (random() < 0.1 ? 0 : 3 + Int(random() * 10))
+            day(offset, (0..<count).map { _ in timers[Int(random() * 2.6) % 3] })
+        }
     }
 }
 #endif

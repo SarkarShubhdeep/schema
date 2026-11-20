@@ -49,10 +49,17 @@ final class ListViewModel {
     /// The selected page, or the Everything list while a smart view is shown.
     /// Choosing a page clears `smartView`.
     var selectedListID: UUID? {
-        didSet { smartView = nil }
+        didSet {
+            smartView = nil
+            showsPomodoro = false
+        }
     }
     /// Today or Upcoming, shown over the Everything list. `nil` shows the selected page.
-    var smartView: SmartView?
+    var smartView: SmartView? {
+        didSet { if smartView != nil { showsPomodoro = false } }
+    }
+    /// The Pomodoro page (#89), shown instead of any page or view.
+    var showsPomodoro = false
     var showNewListSheet = false
     var newListTitle = ""
     var newPageKind: PageKind = .todo
@@ -140,6 +147,11 @@ final class ListViewModel {
 
         let previousIndex = currentIndex == 0 ? lists.count - 1 : currentIndex - 1
         selectedListID = lists[previousIndex].id
+    }
+
+    func selectPomodoro(from lists: [SchemaList]) {
+        selectEverythingList(from: lists)
+        showsPomodoro = true
     }
 
     func selectSmartView(_ view: SmartView, from lists: [SchemaList]) {
