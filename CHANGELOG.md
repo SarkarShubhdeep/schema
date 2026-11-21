@@ -4,6 +4,14 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Markdown in the new editor (#79). Typing # , - , 1. , [ ] , > , ``` or --- at the start of a line makes a heading, list, numbered list, to-do, quote, code block or divider, and **bold**, _italic_, `code` and ~~strikethrough~~ format as you type. Pasting Markdown keeps its headings, lists, to-dos, quotes, code and links; ⇧⌘V pastes plain text. Numbered lists are a new block kind in the / menu and Turn into. Copy as Markdown is in each block's handle menu and in the page menu (⇧⌘C), and Export as Markdown… saves the page as a .md file.
+
+### Changed
+
+- The app can now save files you choose (Export as Markdown, #79); before, it could only open them.
+
 ## [0.5.1] — 2026-11-20
 
 Pomodoro timers with a focus heat map, and the first part of the new TipTap editor (block handle, Turn into, the / menu). Markdown, the Make task badge and @ mentions follow in 0.5.5.
@@ -16,15 +24,11 @@ Pomodoro timers with a focus heat map, and the first part of the new TipTap edit
 
 - Blocks in the new editor (#78): Return starts a new block and Shift+Return breaks the line inside it. Hovering a block shows one handle in the margin instead of a plus on every line: drag it to move the block, or click it for Turn into, Duplicate (⌘D) and Delete (⌫). Each line of a list is its own block. The / menu is back with the same kinds plus Code, and ⌘/ opens Turn into for the block with the caret. Menus use Schema's panel style in light and dark.
 
-- Markdown in the new editor (#79). Typing # , - , 1. , [ ] , > , ``` or --- at the start of a line makes a heading, list, numbered list, to-do, quote, code block or divider, and **bold**, _italic_, `code` and ~~strikethrough~~ format as you type. Pasting Markdown keeps its headings, lists, to-dos, quotes, code and links; ⇧⌘V pastes plain text. Numbered lists are a new block kind in the / menu and Turn into. Copy as Markdown is in each block's handle menu and in the page menu (⇧⌘C), and Export as Markdown… saves the page as a .md file.
-
 ### Changed
 
 - The data store moves to version 8, adding Pomodoro timers and sessions (#89). Nothing else changes.
 
 - Page content is stored as one document per page and per task (#77), with a plain-text copy for search. Updating moves every existing line over: lists, ticks and each to-do's link to the task it was made into are kept, and a task's old notes become the first line of its page. Quick note writes into the same document. Until #80, the "Make task" badge is missing from the new editor; "Make tasks from open to-dos" in the page menu still works.
-
-- The app can now save files you choose (Export as Markdown, #79); before, it could only open them.
 
 - The app can now make outgoing network connections. macOS needs this for the editor's web view to start at all, even though the editor itself only loads files from the app; GitHub (v0.6) uses it too.
 
