@@ -112,4 +112,12 @@ struct TipTapBridgeTests {
         #expect(focused == true)
         #expect(error?.contains("boom") == true)
     }
+
+    @Test func copyMarkdownPassesTheBlockAlong() {
+        var copied: String?
+        bridge.onCopyMarkdown = { copied = $0 }
+        let block: [String: Any] = ["type": "doc", "content": [["type": "paragraph", "content": [["type": "text", "text": "Hi"]]]]]
+        bridge.receive(["type": "copyMarkdown", "json": block])
+        #expect(copied.map { PageMarkdown.markdown(fromJSON: $0) } == "Hi\n")
+    }
 }

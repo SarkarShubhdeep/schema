@@ -1,8 +1,8 @@
 // The block handle (#78): hovering a block shows one six-dot handle in the
 // gutter on its left. Drag it to move the block; click it for Turn into,
-// Duplicate and Delete. No plus on every line. It hides while typing.
+// Duplicate, Copy as Markdown and Delete. No plus on every line. It hides while typing.
 
-import { blockAt, kindOf, turnInto, duplicate, remove, startDrag, kindsMatching } from './blocks.js'
+import { blockAt, kindOf, turnInto, duplicate, remove, startDrag, kindsMatching, blockDocument } from './blocks.js'
 import { showMenu, closeMenu, isMenuOpen } from './menu.js'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
@@ -29,6 +29,16 @@ const activePlugin = new Plugin({
 const GUTTER = 28
 const isMac = /Mac/.test(navigator.platform)
 
+// Copy as Markdown hands the block to the app, which writes the Markdown
+// (the same writer as the page's Copy as Markdown) to the clipboard.
+const copyMarkdown = (block) => {
+  try {
+    window.webkit?.messageHandlers?.schema?.postMessage({ type: 'copyMarkdown', json: blockDocument(block) })
+  } catch (_) {
+    // Outside the app there is no clipboard writer.
+  }
+}
+
 export function blockMenuItems(editor, block) {
   const current = kindOf(block)
   return [
@@ -49,6 +59,10 @@ export function blockMenuItems(editor, block) {
       trail: '⌘D',
       key: (e) => (isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === 'd',
       run: () => duplicate(editor, block),
+    },
+    {
+      title: 'Copy as Markdown',
+      run: () => copyMarkdown(block),
     },
     { separator: true },
     {

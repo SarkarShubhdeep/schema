@@ -75,6 +75,11 @@ struct TipTapEditorView: NSViewRepresentable {
                 self?.onEscape?()
             }
             bridge.onError = { TipTapEditorView.log.error("Editor script error: \($0, privacy: .public)") }
+            bridge.onCopyMarkdown = { json in
+                let pasteboard = NSPasteboard.general
+                pasteboard.clearContents()
+                pasteboard.setString(PageMarkdown.markdown(fromJSON: json), forType: .string)
+            }
             bridge.onLoaded = { TipTapEditorView.log.info("Editor showed a document in \($0, format: .fixed(precision: 1), privacy: .public) ms") }
         }
 

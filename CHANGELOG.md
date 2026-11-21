@@ -4,6 +4,14 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Markdown in the new editor (#79). Typing # , - , 1. , [ ] , > , ``` or --- at the start of a line makes a heading, list, numbered list, to-do, quote, code block or divider, and **bold**, _italic_, `code` and ~~strikethrough~~ format as you type. Pasting Markdown keeps its headings, lists, to-dos, quotes, code and links; ⇧⌘V pastes plain text. Numbered lists are a new block kind in the / menu and Turn into. Copy as Markdown is in each block's handle menu and in the page menu (⇧⌘C), and Export as Markdown… saves the page as a .md file.
+
+### Changed
+
+- The app can now save files you choose (Export as Markdown, #79); before, it could only open them.
+
 ## [0.5.1] — 2026-11-20
 
 Pomodoro timers with a focus heat map, and the first part of the new TipTap editor (block handle, Turn into, the / menu). Markdown, the Make task badge and @ mentions follow in 0.5.5.
