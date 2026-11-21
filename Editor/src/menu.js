@@ -4,7 +4,7 @@
 // or → chooses, ← closes a submenu, Esc closes.
 //
 // items: { title, glyph?, trail?, checked?, danger?, key?, run?, submenu? }
-//        | { header } | { separator: true }
+//        | { header } | { separator: true } | { footer }
 
 let open = null // the root menu on screen, if any
 
@@ -70,6 +70,14 @@ class Panel {
     this.rows = []
     for (const item of this.items) {
       if (item.header) { this.el.appendChild(this.headerRow(item.header)); continue }
+      if (item.footer) {
+        const foot = document.createElement('div')
+        foot.className = 'schema-menu-footer'
+        foot.textContent = item.footer
+        foot.setAttribute('aria-hidden', 'true')
+        this.el.appendChild(foot)
+        continue
+      }
       if (item.separator) {
         const sep = document.createElement('div')
         sep.className = 'schema-menu-separator'
@@ -116,7 +124,7 @@ class Panel {
       const empty = document.createElement('div')
       empty.className = 'schema-menu-empty'
       empty.textContent = 'No matches'
-      this.el.appendChild(empty)
+      this.el.insertBefore(empty, this.el.querySelector('.schema-menu-footer'))
     }
     this.highlight()
   }

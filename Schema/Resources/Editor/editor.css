@@ -291,3 +291,37 @@ body { padding: 0 32px; }
 }
 .schema-menu-separator { height: 1px; margin: 4px 6px; background: var(--line); }
 .schema-menu-empty { padding: 6px 8px; font-size: 13px; color: var(--ink-muted); }
+.schema-menu-footer {
+  margin-top: 4px;
+  padding: 8px 8px 4px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--ink-muted);
+}
+
+/* @ mentions (#81): a grey chip with a small icon, opening what it names. */
+.schema-mention {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 6px;
+  margin: 0 1px;
+  box-sizing: border-box;
+  vertical-align: 1px;
+  border-radius: 6px;
+  background: var(--hover);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.schema-mention:hover { background: var(--line); }
+.schema-mention-icon { display: inline-flex; color: var(--ink-muted); }
+.schema-mention.is-missing { color: var(--ink-muted); text-decoration: line-through; cursor: default; }
+.schema-mention.is-missing:hover { background: var(--hover); }

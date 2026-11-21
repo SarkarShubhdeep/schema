@@ -29,6 +29,9 @@ struct TipTapEditorView: NSViewRepresentable {
     var onOpenTask: ((UUID) -> Void)?
     var onMoveTask: ((_ taskID: UUID, _ pageID: UUID) -> Void)?
     var onChangeDefaultPage: (() -> Void)?
+    /// What @ can mention, and opening a clicked chip (#81).
+    var mentionContextJSON: String?
+    var onOpenMention: ((EditorMention) -> Void)?
 
     static let log = Logger(subsystem: "com.sarkarshubhdeep.schema", category: "Editor")
 
@@ -98,6 +101,10 @@ struct TipTapEditorView: NSViewRepresentable {
         /// Screenshots only (#80): the caret in the first open to-do without a
         /// task, and with -SchemaDemoTaskMenu its right-click menu.
         private func runDemo() {
+            if DemoData.isEnabled, DemoData.typesMention {
+                runMentionDemo()
+                return
+            }
             guard DemoData.isEnabled, DemoData.showsMakeTask || DemoData.opensTaskMenu || DemoData.opensLinkedTaskMenu else { return }
             let script = """
             setTimeout(() => {
@@ -117,6 +124,29 @@ struct TipTapEditorView: NSViewRepresentable {
             webView?.window?.makeFirstResponder(webView)
             webView?.callAsyncJavaScript(script, arguments: ["menu": DemoData.opensTaskMenu || DemoData.opensLinkedTaskMenu, "linked": DemoData.opensLinkedTaskMenu], in: nil, in: .page)
         }
+
+        /// Types "Talk it through in @Ideas, then @tod", choosing Ideas from
+        /// the menu and leaving it open for "tod".
+        private func runMentionDemo() {
+            let script = """
+            const wait = (ms) => new Promise((r) => setTimeout(r, ms))
+            const dom = document.querySelector('.ProseMirror')
+            await wait(400)
+            window.schemaEditor.focus('end')
+            await wait(150)
+            const type = async (text) => { for (const ch of text) { document.execCommand('insertText', false, ch); await wait(15) } }
+            const key = (k) => dom.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }))
+            await type(' Talk it through in @ide')
+            await wait(150)
+            key('Enter')
+            await type('on @tom')
+            await wait(150)
+            key('Enter')
+            await type('at @tod')
+            """
+            webView?.window?.makeFirstResponder(webView)
+            webView?.callAsyncJavaScript(script, arguments: [:], in: nil, in: .page)
+        }
         #endif
 
         func update(from view: TipTapEditorView) {
@@ -124,10 +154,12 @@ struct TipTapEditorView: NSViewRepresentable {
             bridge.onMakeTask = view.onMakeTask
             bridge.onOpenTask = view.onOpenTask
             bridge.onMoveTask = view.onMoveTask
+            bridge.onOpenMention = view.onOpenMention
             bridge.onChangeDefaultPage = view.onChangeDefaultPage
             onEscape = view.onEscape
             bridge.show(view.documentJSON, key: view.documentKey)
             bridge.setTaskContext(view.taskContextJSON ?? EditorTaskContext().json)
+            bridge.setMentionContext(view.mentionContextJSON ?? EditorMentionContext().json)
             bridge.focus(view.focusRequest)
         }
 

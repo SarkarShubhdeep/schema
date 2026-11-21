@@ -50,6 +50,8 @@ final class TipTapBridge {
     var onOpenTask: ((UUID) -> Void)?
     /// Move task to … on a linked to-do: the task and the page.
     var onMoveTask: ((_ taskID: UUID, _ pageID: UUID) -> Void)?
+    /// A mention chip was clicked (#81).
+    var onOpenMention: ((EditorMention) -> Void)?
     /// "Change the default page…" in Make task in.
     var onChangeDefaultPage: (() -> Void)?
 
@@ -60,8 +62,10 @@ final class TipTapBridge {
     private var wantedJSON: String?
     private var wantedKey: String?
     private var pendingFocus: EditorFocusRequest?
-    private var wantedTaskContext: String?
-    private var shownTaskContext: String?
+    /// Context sent with a `schemaEditor` method (setTaskContext,
+    /// setMentionContext): what Swift wants shown and what was last sent.
+    private var wantedContexts: [String: String] = [:]
+    private var shownContexts: [String: String] = [:]
     private var lastFocus: EditorFocusRequest?
 
     /// Show this document (TipTap JSON text) for `key`. Sent once the editor is ready.
@@ -74,7 +78,14 @@ final class TipTapBridge {
     /// The to-do pages a line can become a task in and the tasks lines are
     /// linked to, as JSON text (see `EditorTaskContext`). Sent when it changes.
     func setTaskContext(_ json: String) {
-        wantedTaskContext = json
+        wantedContexts["setTaskContext"] = json
+        flush()
+    }
+
+    /// The pages and open tasks @ can mention (#81), as JSON text (see
+    /// `EditorMentionContext`). Sent when it changes.
+    func setMentionContext(_ json: String) {
+        wantedContexts["setMentionContext"] = json
         flush()
     }
 
@@ -121,6 +132,9 @@ final class TipTapBridge {
             guard let taskID = (body["taskId"] as? String).flatMap(UUID.init(uuidString:)),
                   let pageID = (body["pageId"] as? String).flatMap(UUID.init(uuidString:)) else { return }
             onMoveTask?(taskID, pageID)
+        case "openMention":
+            guard let mention = EditorMention(kind: body["kind"] as? String, id: body["id"] as? String) else { return }
+            onOpenMention?(mention)
         case "changeDefaultPage":
             onChangeDefaultPage?()
         case "error":
@@ -135,7 +149,7 @@ final class TipTapBridge {
         isReady = false
         shownJSON = nil
         shownKey = nil
-        shownTaskContext = nil
+        shownContexts = [:]
     }
 
     private func flush() {
@@ -145,9 +159,9 @@ final class TipTapBridge {
             shownKey = wantedKey
             runner.run("window.schemaEditor.setContent(JSON.parse(json), key)", arguments: ["json": wantedJSON, "key": wantedKey])
         }
-        if let wantedTaskContext, wantedTaskContext != shownTaskContext {
-            shownTaskContext = wantedTaskContext
-            runner.run("window.schemaEditor.setTaskContext(JSON.parse(json))", arguments: ["json": wantedTaskContext])
+        for (method, json) in wantedContexts.sorted(by: { $0.key < $1.key }) where shownContexts[method] != json {
+            shownContexts[method] = json
+            runner.run("window.schemaEditor.\(method)(JSON.parse(json))", arguments: ["json": json])
         }
         if let pendingFocus {
             lastFocus = pendingFocus
@@ -183,5 +197,61 @@ struct EditorTaskContext: Encodable, Equatable {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
         return (try? encoder.encode(self)).flatMap { String(data: $0, encoding: .utf8) } ?? #"{"pages":[],"tasks":{}}"#
+    }
+}
+
+/// What @ can mention (#81): every page and the open tasks.
+struct EditorMentionContext: Encodable, Equatable {
+    struct Page: Encodable, Equatable {
+        var id: String
+        var title: String
+        var kind: String
+    }
+
+    struct Task: Encodable, Equatable {
+        var id: String
+        var title: String
+        var page: String
+    }
+
+    var pages: [Page] = []
+    var tasks: [Task] = []
+
+    var json: String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        return (try? encoder.encode(self)).flatMap { String(data: $0, encoding: .utf8) } ?? #"{"pages":[],"tasks":[]}"#
+    }
+}
+
+/// A clicked mention chip (#81): what it points to.
+enum EditorMention: Equatable {
+    case page(UUID)
+    case task(UUID)
+    /// A day (@today, @tomorrow) or a moment (@now), at local midnight or the exact time.
+    case date(Date)
+
+    init?(kind: String?, id: String?, calendar: Calendar = .current) {
+        guard let id else { return nil }
+        switch kind {
+        case "page":
+            guard let uuid = UUID(uuidString: id) else { return nil }
+            self = .page(uuid)
+        case "task":
+            guard let uuid = UUID(uuidString: id) else { return nil }
+            self = .task(uuid)
+        case "date":
+            let parts = id.split(separator: "-").compactMap { Int($0) }
+            guard parts.count == 3,
+                  let day = calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2])) else { return nil }
+            self = .date(day)
+        case "time":
+            let parser = ISO8601DateFormatter()
+            parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            guard let date = parser.date(from: id) ?? ISO8601DateFormatter().date(from: id) else { return nil }
+            self = .date(date)
+        default:
+            return nil
+        }
     }
 }

@@ -24,6 +24,11 @@ struct PageBodyEditor: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openSettings) private var openSettings
+    @Environment(\.editorMentionActions) private var mentionActions
+    // What @ can mention (#81): every page and the open tasks.
+    @Query(sort: \SchemaList.order) private var lists: [SchemaList]
+    @Query(filter: #Predicate<SchemaTask> { !$0.isCompleted }, sort: \SchemaTask.createdAt, order: .reverse)
+    private var openTasks: [SchemaTask]
 
     var body: some View {
         TipTapEditorView(
@@ -42,8 +47,21 @@ struct PageBodyEditor: View {
                       let page = taskActions.taskPages.first(where: { $0.id == pageID }) else { return }
                 taskActions.moveTask(task, page)
             },
-            onChangeDefaultPage: { openSettings() }
+            onChangeDefaultPage: { openSettings() },
+            mentionContextJSON: mentionContext.json,
+            onOpenMention: mentionActions.open
         )
+    }
+
+    private var mentionContext: EditorMentionContext {
+        var context = EditorMentionContext()
+        context.pages = lists.filter { !$0.isEverythingList }.map {
+            .init(id: $0.id.uuidString, title: $0.title, kind: $0.pageKind.rawValue)
+        }
+        context.tasks = openTasks.map {
+            .init(id: $0.id.uuidString, title: $0.title, page: $0.list?.title ?? "")
+        }
+        return context
     }
 
     /// The to-do pages a line can become a task in, and where each linked
@@ -94,4 +112,14 @@ struct PageBodyEditor: View {
         }
         return try? context.fetch(FetchDescriptor<SchemaTask>(predicate: #Predicate { $0.id == id })).first
     }
+}
+
+/// Opens what a mention chip points to (#81): a page, a task, or a day on
+/// Today or Upcoming. WorkspaceView provides it; elsewhere a chip does nothing.
+struct EditorMentionActions {
+    var open: (EditorMention) -> Void = { _ in }
+}
+
+extension EnvironmentValues {
+    @Entry var editorMentionActions = EditorMentionActions()
 }

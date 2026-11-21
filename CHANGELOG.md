@@ -10,6 +10,8 @@ All notable changes to Schema are documented in this file.
 
 - To-dos and tasks in the new editor (#80). Hovering an open to-do, or writing in it, shows "Make task in …" on the right for your default page; right-click the to-do (or use Make task in from its handle) to pick another to-do page, or Change the default page… in Settings. A to-do made into a task shows "Task in …", which opens the task, and ticking either one ticks the other. Right-click a linked to-do to move its task to another to-do page (Move task to), or Unlink from task to keep both but stop them ticking together. "Make tasks from open to-dos" in the page menu works as before.
 
+- @ mentions in the new editor (#81). Type @ for one menu: Today, Now and Tomorrow, then matching pages and open tasks. The choice becomes a grey chip with a small icon; clicking it opens the page, the task, or the day on Today or Upcoming. Renaming a page or task updates its chips, and search and Copy as Markdown read a chip as its name. A chip for something deleted is struck through.
+
 ### Changed
 
 - The app can now save files you choose (Export as Markdown, #79); before, it could only open them.

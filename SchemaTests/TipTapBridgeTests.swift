@@ -174,4 +174,30 @@ struct TipTapBridgeTests {
         bridge.receive(["type": "moveTask", "taskId": id.uuidString, "pageId": page.uuidString])
         #expect(moved?.0 == id && moved?.1 == page)
     }
+
+    @Test func mentionContextIsSentAndChipsOpenWhatTheyPointTo() {
+        bridge.receive(["type": "ready"])
+        var context = EditorMentionContext()
+        context.pages = [.init(id: "P", title: "Ideas", kind: "scratchpad")]
+        bridge.setMentionContext(context.json)
+        bridge.setMentionContext(context.json)
+        #expect(page.scripts.filter { $0.0.contains("setMentionContext") }.count == 1)
+
+        var opened: [EditorMention] = []
+        bridge.onOpenMention = { opened.append($0) }
+        let id = UUID()
+        bridge.receive(["type": "openMention", "kind": "page", "id": id.uuidString])
+        bridge.receive(["type": "openMention", "kind": "task", "id": id.uuidString])
+        bridge.receive(["type": "openMention", "kind": "page", "id": "not an id"])
+        #expect(opened == [.page(id), .task(id)])
+    }
+
+    @Test func dateAndTimeMentionsReadBack() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let day = EditorMention(kind: "date", id: "2026-11-21", calendar: calendar)
+        #expect(day == .date(Date(timeIntervalSince1970: 1_795_219_200)))
+        #expect(EditorMention(kind: "time", id: "2026-11-21T16:12:00.000Z") == .date(Date(timeIntervalSince1970: 1_795_219_200 + 16 * 3600 + 12 * 60)))
+        #expect(EditorMention(kind: "date", id: "21 Nov") == nil)
+    }
 }

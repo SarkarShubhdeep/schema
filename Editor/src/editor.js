@@ -2,7 +2,8 @@
 //
 // Bridge
 //   Swift → JS: window.schemaEditor.setContent(json, key), .focus(where), .getJSON(),
-//     .setTaskContext({ pages, tasks }), .linkTask(ref, taskId) (see tasks.js)
+//     .setTaskContext({ pages, tasks }), .linkTask(ref, taskId) (see tasks.js),
+//     .setMentionContext({ pages, tasks }) (see mention.js)
 //     key names the page or task the document belongs to. A new key gets a
 //     fresh undo history, and every change carries the key it was made in,
 //     so a change still pending when the page switches is saved to its page.
@@ -17,6 +18,7 @@
 //                The app answers with linkTask(ref, taskId), or null if it could not.
 //     openTask – open the task a to-do was made into; carries taskId
 //     changeDefaultPage – "Change the default page…" from Make task in
+//     openMention – a mention chip was clicked (#81); carries kind and id
 //     error   – a script error, for the app's log
 
 import { Editor } from '@tiptap/core'
@@ -31,6 +33,7 @@ import { menuKeyDown, isMenuOpen, closeMenu } from './menu.js'
 import { blockAt, duplicate } from './blocks.js'
 import { markdownPaste } from './paste.js'
 import { installTasks, setTaskContext, linkTask } from './tasks.js'
+import { Mention, setMentionContext, updateMention } from './mention.js'
 
 const post = (message) => {
   try {
@@ -92,6 +95,7 @@ const editor = new Editor({
       placeholder: ({ editor: e }) => (e.isEmpty ? 'Start writing, or type / for blocks' : 'Type / for blocks'),
       showOnlyCurrent: true,
     }),
+    Mention,
     Markdown,
   ],
   autofocus: false,
@@ -120,9 +124,13 @@ const editor = new Editor({
   },
   onUpdate: ({ editor: e }) => {
     sendChange(e)
+    updateMention(e)
     updateSlash(e)
   },
-  onSelectionUpdate: ({ editor: e }) => updateSlash(e),
+  onSelectionUpdate: ({ editor: e }) => {
+    updateMention(e)
+    updateSlash(e)
+  },
   onFocus: () => post({ type: 'focus', focused: true }),
   onBlur: ({ editor: e }) => {
     flushChange(e)
@@ -164,6 +172,9 @@ window.schemaEditor = {
   },
   linkTask(ref, taskId) {
     linkTask(editor, ref, taskId)
+  },
+  setMentionContext(context) {
+    setMentionContext(editor, context)
   },
 }
 
