@@ -174,6 +174,8 @@ struct ContentView: View {
     private func bootstrapIfNeeded() {
         guard listViewModel == nil else { return }
 
+        // Notes 0.5.1 left out of sight on tasks that also had a body (#84).
+        PageDocumentMigration.moveLeftoverNotes(in: modelContext)
         let loadedLists = ModelStore<SchemaList>(context: modelContext)
         listStore = loadedLists
         let loadedTasks = ModelStore<SchemaTask>(context: modelContext)
