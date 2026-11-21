@@ -18,6 +18,13 @@ protocol EditorScriptRunner: AnyObject {
     func run(_ script: String, arguments: [String: Any])
 }
 
+/// Clipboard commands the editor's right-click menu asks the app to run.
+enum EditorEditCommand: String, Sendable {
+    case cut
+    case copy
+    case paste
+}
+
 /// How the editor behaves: a page, or Quick note's note (#82).
 enum EditorMode: String, Sendable {
     case page
@@ -56,6 +63,8 @@ final class TipTapBridge {
     var onOpenTask: ((UUID) -> Void)?
     /// Move task to … on a linked to-do: the task and the page.
     var onMoveTask: ((_ taskID: UUID, _ pageID: UUID) -> Void)?
+    /// Cut, Copy or Paste from the editor's right-click menu (#83).
+    var onEditCommand: ((EditorEditCommand) -> Void)?
     /// Quick note (#82): Return saves the note (its JSON text); asTask for ⌘Return.
     var onSubmit: ((_ json: String, _ asTask: Bool) -> Void)?
     /// A mention chip was clicked (#81).
@@ -146,6 +155,9 @@ final class TipTapBridge {
             guard let taskID = (body["taskId"] as? String).flatMap(UUID.init(uuidString:)),
                   let pageID = (body["pageId"] as? String).flatMap(UUID.init(uuidString:)) else { return }
             onMoveTask?(taskID, pageID)
+        case "editCommand":
+            guard let command = (body["command"] as? String).flatMap(EditorEditCommand.init(rawValue:)) else { return }
+            onEditCommand?(command)
         case "submit":
             guard let json = Self.jsonText(body["json"]) else { return }
             onSubmit?(json, (body["asTask"] as? Bool) ?? false)

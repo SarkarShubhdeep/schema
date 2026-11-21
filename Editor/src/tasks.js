@@ -189,6 +189,7 @@ export function installTasks(editor) {
   }))
 
   // Right-click an open to-do for every to-do page; a linked one opens its task.
+  // Other blocks get the editor's right-click menu (#83).
   editor.view.dom.addEventListener('contextmenu', (event) => {
     const li = event.target.closest?.('ul[data-type="taskList"] > li')
     if (!li) return
@@ -213,5 +214,5 @@ export function installTasks(editor) {
       items,
       anchor: { left: event.clientX, right: event.clientX, top: event.clientY, bottom: event.clientY },
     })
-  })
+  }, true) // Before the editor's own right-click menu (handle.js).
 }

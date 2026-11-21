@@ -61,27 +61,25 @@ struct SettingsView: View {
                     .font(.satoshi(13))
                     .foregroundStyle(SchemaTheme.inkMuted)
 
-                Picker("Default List", selection: defaultListBinding) {
-                    ForEach(writableLists) { list in
-                        Text(list.title).tag(Optional(list.id))
-                    }
-                }
-                .labelsHidden()
+                SchemaMenuPicker(
+                    title: "Default List",
+                    selection: defaultListBinding,
+                    options: writableLists.map { (value: Optional($0.id), label: $0.title) }
+                )
+                .fixedSize()
             }
 
             sectionDivider
 
             settingsSection(title: "Quick note") {
                 settingsRow(title: "Saves to") {
-                    Picker("Saves to", selection: quickNotePageBinding) {
-                        if scratchpads.isEmpty {
-                            Text("Ideas (made on first note)").tag(UUID?.none)
-                        }
-                        ForEach(scratchpads) { page in
-                            Text(page.title).tag(Optional(page.id))
-                        }
-                    }
-                    .labelsHidden()
+                    SchemaMenuPicker(
+                        title: "Saves to",
+                        selection: quickNotePageBinding,
+                        options: scratchpads.isEmpty
+                            ? [(value: UUID?.none, label: "Ideas (made on first note)")]
+                            : scratchpads.map { (value: Optional($0.id), label: $0.title) }
+                    )
                     .fixedSize()
                 }
                 Text("Press ⌃⌥N in any app to write a note. It goes to the top of this scratchpad under today's date.")

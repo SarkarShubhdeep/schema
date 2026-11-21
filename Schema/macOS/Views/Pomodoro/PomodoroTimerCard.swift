@@ -185,22 +185,29 @@ struct PomodoroTimerCard: View {
     }
 
     private var optionsMenu: some View {
-        Menu {
-            Button("Rename\u{2026}") {
+        SchemaMenuButton("Timer options") {
+            SchemaMenuItem.header(timer.name)
+            SchemaMenuItem.action("Rename\u{2026}") {
                 newName = timer.name
                 isRenaming = true
             }
-            Picker("Focus length", selection: Binding(get: { timer.focusMinutes }, set: { runner.setLengths(timer, focus: $0) })) {
-                ForEach(Self.lengthChoices(including: timer.focusMinutes, from: [15, 25, 30, 40, 45, 50, 60, 90]), id: \.self) { Text("\($0) min").tag($0) }
+            SchemaMenuItem.submenu("Focus length") {
+                for minutes in Self.lengthChoices(including: timer.focusMinutes, from: [15, 25, 30, 40, 45, 50, 60, 90]) {
+                    SchemaMenuItem.action("\(minutes) min", isChecked: timer.focusMinutes == minutes) { runner.setLengths(timer, focus: minutes) }
+                }
             }
-            Picker("Break length", selection: Binding(get: { timer.breakMinutes }, set: { runner.setLengths(timer, rest: $0) })) {
-                ForEach(Self.lengthChoices(including: timer.breakMinutes, from: [0, 5, 10, 15, 20]), id: \.self) { Text($0 == 0 ? "No break" : "\($0) min").tag($0) }
+            SchemaMenuItem.submenu("Break length") {
+                for minutes in Self.lengthChoices(including: timer.breakMinutes, from: [0, 5, 10, 15, 20]) {
+                    SchemaMenuItem.action(minutes == 0 ? "No break" : "\(minutes) min", isChecked: timer.breakMinutes == minutes) { runner.setLengths(timer, rest: minutes) }
+                }
             }
-            Toggle("Start breaks and sessions by themselves", isOn: Binding(get: { timer.startsPhasesAutomatically }, set: { runner.setAutomatic(timer, $0) }))
-            Divider()
-            Button("Restart session") { runner.restartFocus(timer) }
-            Divider()
-            Button("Stop and remove\u{2026}", role: .destructive) { isConfirmingRemove = true }
+            SchemaMenuItem.action("Start breaks and sessions by themselves", isChecked: timer.startsPhasesAutomatically) {
+                runner.setAutomatic(timer, !timer.startsPhasesAutomatically)
+            }
+            SchemaMenuItem.divider
+            SchemaMenuItem.action("Restart session") { runner.restartFocus(timer) }
+            SchemaMenuItem.divider
+            SchemaMenuItem.action("Stop and remove\u{2026}", isDestructive: true) { isConfirmingRemove = true }
         } label: {
             Image(systemName: "ellipsis")
                 .font(.system(size: 13, weight: .semibold))
@@ -208,11 +215,8 @@ struct PomodoroTimerCard: View {
                 .frame(width: 32, height: 32)
                 .contentShape(Circle())
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
         .fixedSize()
         .help("Timer options")
-        .accessibilityLabel("Timer options")
     }
 
     private static func lengthChoices(including current: Int, from base: [Int]) -> [Int] {

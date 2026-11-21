@@ -2,6 +2,9 @@
 //  ListPreferencesMenu.swift
 //  Schema
 //
+//  Page options (⋯) on to-do lists and views: Sort, Filter, and for a page
+//  Rename and Delete. A Schema menu (#83).
+//
 
 import SwiftUI
 
@@ -13,44 +16,28 @@ struct ListPreferencesMenu: View {
     var page: SchemaList?
 
     var body: some View {
-        Menu {
-            Menu("Sort") {
-                ForEach(TaskSortOption.allCases) { option in
-                    Button {
-                        withAnimation(SchemaMotion.smooth) {
-                            listViewModel.sortOption = option
-                        }
-                    } label: {
-                        HStack {
-                            Text(option.label)
-                            if listViewModel.sortOption == option {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
-                    .disabled(requiresManualSort && option != .manual)
-                }
-            }
-
-            Menu("Filter") {
-                ForEach(TaskFilterOption.allCases) { option in
-                    Button {
-                        withAnimation(SchemaMotion.smooth) {
-                            listViewModel.filterOption = option
-                        }
-                    } label: {
-                        HStack {
-                            Text(option.label)
-                            if listViewModel.filterOption == option {
-                                Image(systemName: "checkmark")
-                            }
-                        }
+        SchemaMenuButton("Page options") {
+            if let page { SchemaMenuItem.header(page.title) }
+            SchemaMenuItem.submenu("Sort") {
+                for option in TaskSortOption.allCases {
+                    SchemaMenuItem.action(
+                        option.label,
+                        isChecked: listViewModel.sortOption == option,
+                        isDisabled: requiresManualSort && option != .manual
+                    ) {
+                        withAnimation(SchemaMotion.smooth) { listViewModel.sortOption = option }
                     }
                 }
             }
-
+            SchemaMenuItem.submenu("Filter") {
+                for option in TaskFilterOption.allCases {
+                    SchemaMenuItem.action(option.label, isChecked: listViewModel.filterOption == option) {
+                        withAnimation(SchemaMotion.smooth) { listViewModel.filterOption = option }
+                    }
+                }
+            }
             if let page {
-                PageManageMenuItems(page: page)
+                PageManageMenu.items(for: page, workspace: workspace)
             }
         } label: {
             Image(systemName: "ellipsis")
@@ -61,22 +48,19 @@ struct ListPreferencesMenu: View {
                 .overlay(Circle().strokeBorder(SchemaTheme.line, lineWidth: 1))
                 .contentShape(Circle())
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
         .fixedSize()
         .help("Page options")
-        .accessibilityLabel("Page options")
     }
 }
 
 /// Rename and Delete for a page; in the page menus and the sidebar (#42).
-struct PageManageMenuItems: View {
-    @Environment(WorkspaceState.self) private var workspace
-    let page: SchemaList
-
-    var body: some View {
-        Divider()
-        Button("Rename") { workspace.requestPageRename(page.id) }
-        Button("Delete page\u{2026}", role: .destructive) { workspace.requestPageDelete(page.id) }
+enum PageManageMenu {
+    @MainActor
+    @SchemaMenuBuilder
+    static func items(for page: SchemaList, workspace: WorkspaceState) -> [SchemaMenuItem] {
+        SchemaMenuItem.divider
+        SchemaMenuItem.action("Rename") { workspace.requestPageRename(page.id) }
+        SchemaMenuItem.divider
+        SchemaMenuItem.action("Delete page\u{2026}", isDestructive: true) { workspace.requestPageDelete(page.id) }
     }
 }

@@ -170,17 +170,16 @@ private struct TaskPropertiesList: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             row("Page", systemImage: "checklist") {
-                Menu {
-                    ForEach(taskPages) { page in
-                        Button(page.title) { onMove(page) }
-                            .disabled(page.id == task.list?.id)
+                SchemaMenuButton("Page") {
+                    SchemaMenuItem.header("Move to")
+                    for page in taskPages {
+                        SchemaMenuItem.action(page.title, isChecked: page.id == task.list?.id) {
+                            if page.id != task.list?.id { onMove(page) }
+                        }
                     }
                 } label: {
                     valueText(task.list?.title ?? "None", isSet: task.list != nil)
                 }
-                .menuStyle(.button)
-                .buttonStyle(.plain)
-                .menuIndicator(.hidden)
                 .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -237,13 +236,14 @@ private struct TaskPropertiesList: View {
                 .padding(.vertical, 6)
 
                 row("After", systemImage: "arrow.turn.down.right") {
-                    Menu {
-                        Button("None") {
+                    SchemaMenuButton("After") {
+                        SchemaMenuItem.action("None", isChecked: editor.draft.afterTaskID == nil) {
                             editor.draft.afterTaskID = nil
                             onSaveSchedule()
                         }
-                        ForEach(afterCandidates, id: \.id) { candidate in
-                            Button(candidate.title) {
+                        SchemaMenuItem.divider
+                        for candidate in afterCandidates {
+                            SchemaMenuItem.action(candidate.title, isChecked: editor.draft.afterTaskID == candidate.id) {
                                 editor.draft.afterTaskID = candidate.id
                                 onSaveSchedule()
                             }
@@ -251,9 +251,6 @@ private struct TaskPropertiesList: View {
                     } label: {
                         valueText(afterTitle ?? "None", isSet: afterTitle != nil)
                     }
-                    .menuStyle(.button)
-                    .buttonStyle(.plain)
-                    .menuIndicator(.hidden)
                     .fixedSize(horizontal: false, vertical: true)
                 }
             }

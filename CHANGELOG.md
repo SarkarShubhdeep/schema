@@ -14,6 +14,8 @@ All notable changes to Schema are documented in this file.
 
 - Quick note (⌃⌥N) uses the new editor (#82): markdown as you type, lists, to-dos and @ mentions, the same as on a page. Return still saves, ⇧Return starts a new line or list item, ⌘Return saves as a task and Esc closes. The note goes into the scratchpad with its formatting kept.
 
+- Schema's own menus (#83). Every dropdown, ⋯ menu and right-click menu now has Schema's look, the same as the editor's: a surface panel with a hairline border and soft shadow, checks on the left, shortcuts and › on the right, and Delete in red at the end. That covers page options with Sort and Filter, the sidebar, tasks, the selection bar, the task page and its panel, Pomodoro, Quick note and Settings. ↑ ↓, Return, Esc, ← → for submenus and typing a name all work, and VoiceOver can open a right-click menu with its Show menu action. Right-clicking text in the editor shows Cut, Copy, Paste and the block's options; ⌥ right-click keeps the system menu for spelling.
+
 ### Changed
 
 - The app can now save files you choose (Export as Markdown, #79); before, it could only open them.

@@ -25,15 +25,16 @@ struct QuickNoteView: View {
                     .font(.satoshi(13, weight: .bold, relativeTo: .callout))
                     .foregroundStyle(SchemaTheme.ink)
                 Spacer(minLength: 8)
-                Menu {
-                    ForEach(model.scratchpads) { page in
-                        Button(page.title) {
+                SchemaMenuButton("Scratchpad the note goes to") {
+                    SchemaMenuItem.header("Save into")
+                    for page in model.scratchpads {
+                        SchemaMenuItem.action(page.title, isChecked: page.id == model.targetID) {
                             model.targetID = page.id
                             SchemaPreferences.quickNotePageID = page.id
                         }
                     }
                     if model.scratchpads.isEmpty {
-                        Text("A new Ideas scratchpad will be made")
+                        SchemaMenuItem.action("A new Ideas scratchpad will be made", isDisabled: true) {}
                     }
                 } label: {
                     HStack(spacing: 4) {
@@ -48,9 +49,6 @@ struct QuickNoteView: View {
                     .overlay(Capsule(style: .continuous).strokeBorder(SchemaTheme.line, lineWidth: 1))
                     .contentShape(Capsule())
                 }
-                .menuStyle(.button)
-                .buttonStyle(.plain)
-                .menuIndicator(.hidden)
                 .fixedSize()
                 .help("Scratchpad the note goes to")
             }

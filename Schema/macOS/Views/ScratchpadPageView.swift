@@ -92,23 +92,24 @@ struct ScratchpadPageView: View {
     /// Page options: make tasks from every open to-do line at once, rename,
     /// copy or export as Markdown (#79), delete.
     private var pageMenu: some View {
-        Menu {
+        SchemaMenuButton("Page options") {
+            SchemaMenuItem.header(page.title)
             if let actions = taskActions {
                 let open = PageDocument.openToDosWithoutTasks(in: page.documentJSON).count
-                Section(open == 0 ? "No open to-dos without a task" : "Make tasks from \(open) open to-do\(open == 1 ? "" : "s")") {
-                    ForEach(actions.taskPages) { target in
-                        Button("In \(target.title)") { makeTasksFromOpenToDos(in: target, actions: actions) }
-                            .disabled(open == 0)
+                SchemaMenuItem.submenu(
+                    open == 0 ? "No open to-dos without a task" : "Make tasks from \(open) open to-do\(open == 1 ? "" : "s")",
+                    isDisabled: open == 0
+                ) {
+                    for target in actions.taskPages {
+                        SchemaMenuItem.action(target.title) { makeTasksFromOpenToDos(in: target, actions: actions) }
                     }
                 }
             }
-            Divider()
-            Button("Rename") { workspace.requestPageRename(page.id) }
-            Button("Copy as Markdown", action: copyMarkdown)
-                .keyboardShortcut("c", modifiers: [.command, .shift])
-            Button("Export as Markdown\u{2026}", action: exportMarkdown)
-            Divider()
-            Button("Delete page\u{2026}", role: .destructive) { workspace.requestPageDelete(page.id) }
+            SchemaMenuItem.action("Rename") { workspace.requestPageRename(page.id) }
+            SchemaMenuItem.action("Copy as Markdown", shortcut: "\u{21E7}\u{2318}C", copyMarkdown)
+            SchemaMenuItem.action("Export as Markdown\u{2026}", exportMarkdown)
+            SchemaMenuItem.divider
+            SchemaMenuItem.action("Delete page\u{2026}", isDestructive: true) { workspace.requestPageDelete(page.id) }
         } label: {
             Image(systemName: "ellipsis")
                 .font(.system(size: 13, weight: .semibold))
@@ -116,11 +117,8 @@ struct ScratchpadPageView: View {
                 .frame(width: 32, height: 32)
                 .contentShape(Circle())
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
         .fixedSize()
         .help("Page options")
-        .accessibilityLabel("Page options")
     }
 
     /// ⇧⌘C copies the page as Markdown, even while the editor has focus.

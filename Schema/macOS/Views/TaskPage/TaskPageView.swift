@@ -104,16 +104,15 @@ struct TaskPageView: View {
     }
 
     private var optionsMenu: some View {
-        Menu {
-            Menu("Move to") {
-                ForEach(actions.movePages) { page in
-                    Button(page.title) { actions.onMove(page) }
-                        .disabled(page.id == task.list?.id)
+        SchemaMenuButton("Task options") {
+            SchemaMenuItem.submenu("Move to") {
+                for page in actions.movePages {
+                    SchemaMenuItem.action(page.title, isChecked: page.id == task.list?.id, isDisabled: page.id == task.list?.id) { actions.onMove(page) }
                 }
             }
-            Button("Duplicate", action: actions.onDuplicate)
-            Divider()
-            Button("Delete task…", role: .destructive, action: actions.onDelete)
+            SchemaMenuItem.action("Duplicate", shortcut: "\u{2318}D", actions.onDuplicate)
+            SchemaMenuItem.divider
+            SchemaMenuItem.action("Delete task\u{2026}", isDestructive: true, actions.onDelete)
         } label: {
             Image(systemName: "ellipsis")
                 .font(.system(size: 13, weight: .semibold))
@@ -121,11 +120,8 @@ struct TaskPageView: View {
                 .frame(width: 32, height: 32)
                 .contentShape(Circle())
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
         .fixedSize()
         .help("Task options")
-        .accessibilityLabel("Task options")
     }
 
     // MARK: Header

@@ -269,6 +269,7 @@ body { padding: 0 32px; }
 }
 .schema-menu-item.is-selected { background: var(--hover); }
 .schema-menu-item.is-danger, .schema-menu-item.is-danger .schema-menu-trail { color: var(--danger); }
+.schema-menu-check { flex: none; width: 14px; margin-right: -4px; font-size: 12px; color: inherit; }
 .schema-menu-glyph {
   flex: none;
   width: 22px;

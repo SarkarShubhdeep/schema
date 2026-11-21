@@ -71,12 +71,14 @@ struct SidebarNavigation: View {
                 } action: {
                     listViewModel.selectList(page)
                 }
-                .contextMenu {
-                    Button("Rename") {
+                .schemaContextMenu(page.title) {
+                    SchemaMenuItem.action("Open") { listViewModel.selectList(page) }
+                    SchemaMenuItem.action("Rename") {
                         listViewModel.selectList(page)
                         workspace.requestPageRename(page.id)
                     }
-                    Button("Delete page\u{2026}", role: .destructive) {
+                    SchemaMenuItem.divider
+                    SchemaMenuItem.action("Delete page\u{2026}", isDestructive: true) {
                         workspace.requestPageDelete(page.id)
                     }
                 }

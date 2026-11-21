@@ -66,6 +66,8 @@ class Panel {
 
   render() {
     this.el.textContent = ''
+    // Checks sit on the left (#83), in a column only menus with checks have.
+    const hasChecks = this.items.some((i) => i.checked)
     if (this.header) this.el.appendChild(this.headerRow(this.header))
     this.rows = []
     for (const item of this.items) {
@@ -91,6 +93,13 @@ class Panel {
       row.setAttribute('role', 'menuitem')
       row.id = `schema-menu-${Math.random().toString(36).slice(2)}`
       if (item.submenu) row.setAttribute('aria-haspopup', 'menu')
+      if (hasChecks) {
+        const check = document.createElement('span')
+        check.className = 'schema-menu-check'
+        check.textContent = item.checked ? '\u2713' : ''
+        check.setAttribute('aria-hidden', 'true')
+        row.appendChild(check)
+      }
       if (item.glyph) {
         const glyph = document.createElement('span')
         glyph.className = 'schema-menu-glyph'
@@ -102,12 +111,12 @@ class Panel {
       title.className = 'schema-menu-title'
       title.textContent = item.title
       row.appendChild(title)
-      const trail = item.checked ? '✓' : (item.submenu ? '›' : (item.trail || ''))
+      const trail = item.submenu ? '›' : (item.trail || '')
       if (trail) {
         const t = document.createElement('span')
         t.className = 'schema-menu-trail'
         t.textContent = trail
-        t.setAttribute('aria-hidden', item.checked ? 'false' : 'true')
+        t.setAttribute('aria-hidden', 'true')
         row.appendChild(t)
       }
       if (item.checked) row.setAttribute('aria-checked', 'true')

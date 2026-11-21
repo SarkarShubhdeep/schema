@@ -22,6 +22,8 @@
 //     openTask – open the task a to-do was made into; carries taskId
 //     changeDefaultPage – "Change the default page…" from Make task in
 //     openMention – a mention chip was clicked (#81); carries kind and id
+//     editCommand – Cut, Copy or Paste from the right-click menu (#83); carries
+//                command, which the app runs on the web view as ⌘X, ⌘C or ⌘V would
 //     submit   – Quick note (mode "note", #82): Return saves; carries asTask (⌘Return) and json
 //     error   – a script error, for the app's log
 

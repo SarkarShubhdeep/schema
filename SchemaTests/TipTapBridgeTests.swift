@@ -216,4 +216,13 @@ struct TipTapBridgeTests {
         #expect(saved.map { PageDocument.summary(of: $0.0).text } == "Hi")
         #expect(saved?.1 == true)
     }
+
+    @Test func rightClickEditCommandsPassAlong() {
+        var commands: [EditorEditCommand] = []
+        bridge.onEditCommand = { commands.append($0) }
+        for command in ["cut", "copy", "paste", "selectAll"] {
+            bridge.receive(["type": "editCommand", "command": command])
+        }
+        #expect(commands == [.cut, .copy, .paste])
+    }
 }
