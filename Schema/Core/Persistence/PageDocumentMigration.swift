@@ -28,14 +28,28 @@ enum PageDocumentMigration {
         }
     }
 
-    /// A task's notes from before tasks had pages become its first line.
+    /// A task's notes from before tasks had pages become its first line,
+    /// above any body it already has. (v0.5 only moved them into an empty
+    /// body, so a task could have both; #84.)
     static func moveNotesIntoDocument(of task: SchemaTask) {
-        guard !task.hasDocument,
-              let notes = task.taskDescription?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !notes.isEmpty else { return }
-        task.setDocument(TipTapDocument.json(TipTapDocument.document(from: [TipTapDocument.Line(kind: .text, text: notes)])),
-                         editedAt: task.createdAt)
-        task.taskDescription = nil
+        guard let notes = task.taskDescription?.trimmingCharacters(in: .whitespacesAndNewlines) else { return }
+        defer { task.taskDescription = nil }
+        guard !notes.isEmpty else { return }
+        let line = TipTapDocument.Line(kind: .text, text: notes)
+        if task.hasDocument {
+            task.setDocument(PageDocument.prepending([line], to: task.documentJSON), editedAt: task.documentEditedAt ?? task.createdAt)
+        } else {
+            task.setDocument(TipTapDocument.json(TipTapDocument.document(from: [line])), editedAt: task.createdAt)
+        }
+    }
+
+    /// Notes still in the old field after updating to 0.5.1, where tasks
+    /// with a body kept them out of sight (#84): moved in once at launch.
+    static func moveLeftoverNotes(in context: ModelContext) {
+        let leftover = (try? context.fetch(FetchDescriptor<SchemaTask>(predicate: #Predicate { $0.taskDescription != nil }))) ?? []
+        guard !leftover.isEmpty else { return }
+        for task in leftover { moveNotesIntoDocument(of: task) }
+        try? context.save()
     }
 
     private static func moveBlocks(_ blocks: [SchemaBlock], into holder: some PageDocumentHolder, context: ModelContext) {

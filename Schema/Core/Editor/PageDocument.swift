@@ -169,6 +169,18 @@ nonisolated enum PageDocument {
         return prependingNote(blocks: blocks, under: heading, to: json)
     }
 
+    /// `lines` at the very top of the document, before what is there.
+    static func prepending(_ lines: [TipTapDocument.Line], to json: String) -> String {
+        var node = parse(json) ?? TipTapDocument.document(from: [TipTapDocument.Line]())
+        var content = children(of: node)
+        if content.count == 1, content[0]["type"] as? String == "paragraph", children(of: content[0]).isEmpty {
+            content = []
+        }
+        content.insert(contentsOf: children(of: TipTapDocument.document(from: lines)), at: 0)
+        node["content"] = content
+        return TipTapDocument.json(node)
+    }
+
     private static func prependingNote(blocks note: [Node], under heading: String, to json: String) -> String {
         var node = parse(json) ?? TipTapDocument.document(from: [TipTapDocument.Line]())
         var content = children(of: node)

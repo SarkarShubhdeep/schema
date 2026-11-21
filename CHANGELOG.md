@@ -4,6 +4,10 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+## [0.5.5] — 2026-11-21
+
+The new editor everywhere, with Markdown, @ mentions, to-dos that become tasks, and Schema's own menus. Pages, task pages and Quick note all use it, and the old block editor is gone.
+
 ### Added
 
 - Markdown in the new editor (#79). Typing # , - , 1. , [ ] , > , ``` or --- at the start of a line makes a heading, list, numbered list, to-do, quote, code block or divider, and **bold**, _italic_, `code` and ~~strikethrough~~ format as you type. Pasting Markdown keeps its headings, lists, to-dos, quotes, code and links; ⇧⌘V pastes plain text. Numbered lists are a new block kind in the / menu and Turn into. Copy as Markdown is in each block's handle menu and in the page menu (⇧⌘C), and Export as Markdown… saves the page as a .md file.
@@ -19,6 +23,10 @@ All notable changes to Schema are documented in this file.
 ### Changed
 
 - The app can now save files you choose (Export as Markdown, #79); before, it could only open them.
+
+### Fixed
+
+- Updating from v0.5 (#84): a task that had both notes from before tasks had pages and a page body kept the notes out of sight after updating. The notes now become the first line of the body, and 0.5.1 testers get theirs back the next time the app opens.
 
 ### Removed
 

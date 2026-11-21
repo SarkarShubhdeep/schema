@@ -194,7 +194,7 @@ struct TaskPageView: View {
     private func load() {
         title = task.title
         // Notes written before tasks had pages become the first line of the body.
-        if !task.hasDocument, task.taskDescription?.isEmpty == false {
+        if task.taskDescription != nil {
             PageDocumentMigration.moveNotesIntoDocument(of: task)
             try? modelContext.save()
         }
