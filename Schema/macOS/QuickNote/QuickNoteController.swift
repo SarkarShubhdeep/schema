@@ -29,7 +29,9 @@ final class QuickNoteController {
         if DemoData.isEnabled, DemoData.opensQuickNote {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
                 self?.show()
-                self?.model.text = "Friday weekly review as a page template: wins, misses, next week’s top three"
+                self?.model.setNote(TipTapDocument.json(TipTapDocument.document(from: [
+                    TipTapDocument.Line(kind: .text, text: "Friday weekly review as a page template: wins, misses, next week’s top three"),
+                ])))
             }
         }
         #endif
@@ -49,8 +51,11 @@ final class QuickNoteController {
         let lists = (try? context.fetch(FetchDescriptor<SchemaList>(sortBy: [SortDescriptor(\.order)]))) ?? []
         model.scratchpads = lists.filter(\.isScratchpad)
         model.targetID = QuickNoteStore.targetPage(in: lists, preferredID: SchemaPreferences.quickNotePageID)?.id
-        model.text = ""
-        model.focusToken = BlockFocusRequest(blockID: QuickNoteModel.fieldID, caret: .end)
+        model.mentionContextJSON = Self.mentionContext(lists: lists, context: context).json
+        // A fresh note, with its own undo history.
+        model.documentKey = UUID().uuidString
+        model.setNote(PageDocument.emptyJSON)
+        model.focusRequest = EditorFocusRequest(position: .end)
 
         let panel = self.panel ?? makePanel()
         self.panel = panel
@@ -62,15 +67,30 @@ final class QuickNoteController {
         panel?.orderOut(nil)
     }
 
-    private func save(asTask: Bool) {
-        guard let container else { return }
+    /// Pages and open tasks the note can @ mention (#81).
+    private static func mentionContext(lists: [SchemaList], context: ModelContext) -> EditorMentionContext {
+        let open = (try? context.fetch(FetchDescriptor<SchemaTask>(
+            predicate: #Predicate { !$0.isCompleted },
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        ))) ?? []
+        var mentions = EditorMentionContext()
+        mentions.pages = lists.filter { !$0.isEverythingList }.map {
+            .init(id: $0.id.uuidString, title: $0.title, kind: $0.pageKind.rawValue)
+        }
+        mentions.tasks = open.map { .init(id: $0.id.uuidString, title: $0.title, page: $0.list?.title ?? "") }
+        return mentions
+    }
+
+    private func save(asTask: Bool, json: String? = nil) {
+        if let json { model.setNote(json) }
+        guard let container, !model.isEmpty else { return }
         let context = container.mainContext
         let lists = (try? context.fetch(FetchDescriptor<SchemaList>())) ?? []
         if asTask {
             let tasks = (try? context.fetch(FetchDescriptor<SchemaTask>())) ?? []
             QuickNoteStore.saveTask(model.text, lists: lists, allTasks: tasks, defaultPageID: SchemaPreferences.defaultWritableListID, context: context)
         } else {
-            QuickNoteStore.saveNote(model.text, lists: lists, preferredPageID: model.targetID, context: context)
+            QuickNoteStore.saveNote(documentJSON: model.documentJSON, lists: lists, preferredPageID: model.targetID, context: context)
         }
         close()
     }
@@ -92,7 +112,7 @@ final class QuickNoteController {
         panel.onResignKey = { [weak self] in self?.close() }
         let view = QuickNoteView(
             model: model,
-            onSave: { [weak self] asTask in self?.save(asTask: asTask) },
+            onSave: { [weak self] asTask, json in self?.save(asTask: asTask, json: json) },
             onClose: { [weak self] in self?.close() }
         )
         let host = NSHostingView(rootView: view)
@@ -127,11 +147,21 @@ final class QuickNotePanel: NSPanel {
 @MainActor
 @Observable
 final class QuickNoteModel {
-    static let fieldID = UUID()
-    var text = ""
+    /// The note as TipTap JSON text (#82), and as plain text for Save as task.
+    private(set) var documentJSON = PageDocument.emptyJSON
+    private(set) var text = ""
+    var documentKey = UUID().uuidString
+    var mentionContextJSON = EditorMentionContext().json
     var scratchpads: [SchemaList] = []
     var targetID: UUID?
-    var focusToken: BlockFocusRequest?
+    var focusRequest: EditorFocusRequest?
+
+    var isEmpty: Bool { text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+    func setNote(_ json: String) {
+        documentJSON = json
+        text = PageDocument.summary(of: json).text
+    }
 
     var targetTitle: String {
         scratchpads.first { $0.id == targetID }?.title ?? QuickNoteStore.defaultPageTitle

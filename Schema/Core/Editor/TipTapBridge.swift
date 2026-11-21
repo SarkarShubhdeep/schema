@@ -18,6 +18,12 @@ protocol EditorScriptRunner: AnyObject {
     func run(_ script: String, arguments: [String: Any])
 }
 
+/// How the editor behaves: a page, or Quick note's note (#82).
+enum EditorMode: String, Sendable {
+    case page
+    case note
+}
+
 /// Where the caret goes when Swift moves focus into the editor.
 enum EditorFocusPosition: String, Sendable {
     case start
@@ -50,6 +56,8 @@ final class TipTapBridge {
     var onOpenTask: ((UUID) -> Void)?
     /// Move task to … on a linked to-do: the task and the page.
     var onMoveTask: ((_ taskID: UUID, _ pageID: UUID) -> Void)?
+    /// Quick note (#82): Return saves the note (its JSON text); asTask for ⌘Return.
+    var onSubmit: ((_ json: String, _ asTask: Bool) -> Void)?
     /// A mention chip was clicked (#81).
     var onOpenMention: ((EditorMention) -> Void)?
     /// "Change the default page…" in Make task in.
@@ -86,6 +94,12 @@ final class TipTapBridge {
     /// `EditorMentionContext`). Sent when it changes.
     func setMentionContext(_ json: String) {
         wantedContexts["setMentionContext"] = json
+        flush()
+    }
+
+    /// A page, or Quick note's small note where Return saves (#82).
+    func setMode(_ mode: EditorMode) {
+        wantedContexts["setMode"] = "\"\(mode.rawValue)\""
         flush()
     }
 
@@ -132,6 +146,9 @@ final class TipTapBridge {
             guard let taskID = (body["taskId"] as? String).flatMap(UUID.init(uuidString:)),
                   let pageID = (body["pageId"] as? String).flatMap(UUID.init(uuidString:)) else { return }
             onMoveTask?(taskID, pageID)
+        case "submit":
+            guard let json = Self.jsonText(body["json"]) else { return }
+            onSubmit?(json, (body["asTask"] as? Bool) ?? false)
         case "openMention":
             guard let mention = EditorMention(kind: body["kind"] as? String, id: body["id"] as? String) else { return }
             onOpenMention?(mention)

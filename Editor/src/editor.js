@@ -3,7 +3,10 @@
 // Bridge
 //   Swift → JS: window.schemaEditor.setContent(json, key), .focus(where), .getJSON(),
 //     .setTaskContext({ pages, tasks }), .linkTask(ref, taskId) (see tasks.js),
-//     .setMentionContext({ pages, tasks }) (see mention.js)
+//     .setMentionContext({ pages, tasks }) (see mention.js),
+//     .setMode("page" | "note"): Quick note (#82) is a small note, not a page:
+//     Return saves, ⇧Return starts a new line, ⌘Return saves as a task, and
+//     there is no block handle.
 //     key names the page or task the document belongs to. A new key gets a
 //     fresh undo history, and every change carries the key it was made in,
 //     so a change still pending when the page switches is saved to its page.
@@ -19,6 +22,7 @@
 //     openTask – open the task a to-do was made into; carries taskId
 //     changeDefaultPage – "Change the default page…" from Make task in
 //     openMention – a mention chip was clicked (#81); carries kind and id
+//     submit   – Quick note (mode "note", #82): Return saves; carries asTask (⌘Return) and json
 //     error   – a script error, for the app's log
 
 import { Editor } from '@tiptap/core'
@@ -81,6 +85,14 @@ const flushChange = (e) => {
 }
 
 const isMac = /Mac/.test(navigator.platform)
+let mode = 'page'
+
+// ⇧Return in a note: what Return does on a page (a new list item or block).
+const newLine = (e) => e.commands.first(({ commands }) => [
+  () => commands.splitListItem('taskItem'),
+  () => commands.splitListItem('listItem'),
+  () => commands.splitBlock(),
+])
 
 const editor = new Editor({
   element: document.querySelector('#editor'),
@@ -92,7 +104,10 @@ const editor = new Editor({
     TaskList,
     SchemaTaskItem.configure({ nested: true }),
     Placeholder.configure({
-      placeholder: ({ editor: e }) => (e.isEmpty ? 'Start writing, or type / for blocks' : 'Type / for blocks'),
+      placeholder: ({ editor: e }) => {
+        if (mode === 'note') return e.isEmpty ? 'Write a note…' : ''
+        return e.isEmpty ? 'Start writing, or type / for blocks' : 'Type / for blocks'
+      },
       showOnlyCurrent: true,
     }),
     Mention,
@@ -105,6 +120,14 @@ const editor = new Editor({
     handleKeyDown: (_view, event) => {
       // An open menu takes ↑ ↓ Return Esc first.
       if (isMenuOpen() && menuKeyDown(event)) return true
+      if (mode === 'note' && event.key === 'Enter' && !event.isComposing && !event.altKey) {
+        // The note goes with it: the last change may still be waiting.
+        const submit = (asTask) => post({ type: 'submit', asTask, json: editor.getJSON() })
+        if (isMac ? event.metaKey : event.ctrlKey) submit(true)
+        else if (event.shiftKey) newLine(editor)
+        else submit(false)
+        return true
+      }
       if (event.key === 'Escape') {
         post({ type: 'escape' })
         return true
@@ -175,6 +198,12 @@ window.schemaEditor = {
   },
   setMentionContext(context) {
     setMentionContext(editor, context)
+  },
+  setMode(next) {
+    mode = next === 'note' ? 'note' : 'page'
+    document.body.classList.toggle('is-note', mode === 'note')
+    handle.reset()
+    editor.view.dispatch(editor.state.tr.setMeta('addToHistory', false))
   },
 }
 

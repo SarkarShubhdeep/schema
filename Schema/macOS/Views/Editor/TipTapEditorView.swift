@@ -29,6 +29,9 @@ struct TipTapEditorView: NSViewRepresentable {
     var onOpenTask: ((UUID) -> Void)?
     var onMoveTask: ((_ taskID: UUID, _ pageID: UUID) -> Void)?
     var onChangeDefaultPage: (() -> Void)?
+    /// Quick note's note, where Return saves (#82).
+    var mode: EditorMode = .page
+    var onSubmit: ((_ json: String, _ asTask: Bool) -> Void)?
     /// What @ can mention, and opening a clicked chip (#81).
     var mentionContextJSON: String?
     var onOpenMention: ((EditorMention) -> Void)?
@@ -155,6 +158,8 @@ struct TipTapEditorView: NSViewRepresentable {
             bridge.onOpenTask = view.onOpenTask
             bridge.onMoveTask = view.onMoveTask
             bridge.onOpenMention = view.onOpenMention
+            bridge.onSubmit = view.onSubmit
+            bridge.setMode(view.mode)
             bridge.onChangeDefaultPage = view.onChangeDefaultPage
             onEscape = view.onEscape
             bridge.show(view.documentJSON, key: view.documentKey)

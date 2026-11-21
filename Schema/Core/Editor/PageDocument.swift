@@ -156,13 +156,26 @@ nonisolated enum PageDocument {
     /// Quick note: `lines` go under `heading` at the top of the document,
     /// newest first. Today's heading is reused when it is already on top.
     static func prependingNote(_ lines: [TipTapDocument.Line], under heading: String, to json: String) -> String {
+        prependingNote(blocks: children(of: TipTapDocument.document(from: lines)), under: heading, to: json)
+    }
+
+    /// Quick note in the editor (#82): the note's own blocks go under
+    /// `heading`, without empty lines at its start or end.
+    static func prependingNote(json noteJSON: String, under heading: String, to json: String) -> String {
+        var blocks = parse(noteJSON).map(children(of:)) ?? []
+        let isEmptyLine = { (node: Node) in node["type"] as? String == "paragraph" && inlineText(node).trimmingCharacters(in: .whitespaces).isEmpty }
+        while let first = blocks.first, isEmptyLine(first) { blocks.removeFirst() }
+        while let last = blocks.last, isEmptyLine(last) { blocks.removeLast() }
+        return prependingNote(blocks: blocks, under: heading, to: json)
+    }
+
+    private static func prependingNote(blocks note: [Node], under heading: String, to json: String) -> String {
         var node = parse(json) ?? TipTapDocument.document(from: [TipTapDocument.Line]())
         var content = children(of: node)
         // An untouched page holds one empty paragraph: replace it.
         if content.count == 1, content[0]["type"] as? String == "paragraph", children(of: content[0]).isEmpty {
             content = []
         }
-        let note = children(of: TipTapDocument.document(from: lines))
         if let first = content.first, first["type"] as? String == "heading", inlineText(first) == heading {
             content.insert(contentsOf: note, at: 1)
         } else {
