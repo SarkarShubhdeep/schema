@@ -43,6 +43,8 @@ enum DemoData {
     /// Make task badge shows (#80); `-SchemaDemoTaskMenu` also right-clicks it.
     static let showsMakeTask = CommandLine.arguments.contains("-SchemaDemoMakeTask")
     static let opensTaskMenu = CommandLine.arguments.contains("-SchemaDemoTaskMenu")
+    /// `-SchemaDemoLinkedMenu` right-clicks the first to-do already made into a task.
+    static let opensLinkedTaskMenu = CommandLine.arguments.contains("-SchemaDemoLinkedMenu")
 
     /// `-SchemaDemoRoutine` opens an open routine task as a page.
     static let opensRoutineTask = CommandLine.arguments.contains("-SchemaDemoRoutine")

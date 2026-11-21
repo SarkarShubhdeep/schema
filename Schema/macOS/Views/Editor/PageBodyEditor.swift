@@ -37,6 +37,11 @@ struct PageBodyEditor: View {
             onOpenTask: { id in
                 if let taskActions, let task = taskActions.task(id) { taskActions.openTask(task) }
             },
+            onMoveTask: { taskID, pageID in
+                guard let taskActions, let task = taskActions.task(taskID),
+                      let page = taskActions.taskPages.first(where: { $0.id == pageID }) else { return }
+                taskActions.moveTask(task, page)
+            },
             onChangeDefaultPage: { openSettings() }
         )
     }
@@ -52,7 +57,7 @@ struct PageBodyEditor: View {
         }
         for id in holder.linkedTaskIDs {
             if let task = taskActions.task(id) {
-                context.tasks[id.uuidString] = .init(page: task.list?.title ?? "a page")
+                context.tasks[id.uuidString] = .init(page: task.list?.title ?? "a page", pageId: task.list?.id.uuidString ?? "")
             }
         }
         return context

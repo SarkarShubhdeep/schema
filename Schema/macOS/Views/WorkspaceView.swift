@@ -46,6 +46,9 @@ struct WorkspaceView: View {
                     listViewModel.selectList(task.list)
                 }
                 workspace.highlightedTaskID = task.id
+            },
+            moveTask: { task, page in
+                taskViewModel.moveTask(task, to: page, allTasks: allTasks)
             }
         )
     }

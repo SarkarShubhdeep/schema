@@ -48,6 +48,8 @@ final class TipTapBridge {
     var onMakeTask: ((_ text: String, _ pageID: UUID) -> UUID?)?
     /// "Task in …" on a linked to-do.
     var onOpenTask: ((UUID) -> Void)?
+    /// Move task to … on a linked to-do: the task and the page.
+    var onMoveTask: ((_ taskID: UUID, _ pageID: UUID) -> Void)?
     /// "Change the default page…" in Make task in.
     var onChangeDefaultPage: (() -> Void)?
 
@@ -115,6 +117,10 @@ final class TipTapBridge {
         case "openTask":
             guard let id = (body["taskId"] as? String).flatMap(UUID.init(uuidString:)) else { return }
             onOpenTask?(id)
+        case "moveTask":
+            guard let taskID = (body["taskId"] as? String).flatMap(UUID.init(uuidString:)),
+                  let pageID = (body["pageId"] as? String).flatMap(UUID.init(uuidString:)) else { return }
+            onMoveTask?(taskID, pageID)
         case "changeDefaultPage":
             onChangeDefaultPage?()
         case "error":
@@ -167,6 +173,7 @@ struct EditorTaskContext: Encodable, Equatable {
 
     struct Task: Encodable, Equatable {
         var page: String
+        var pageId: String
     }
 
     var pages: [Page] = []

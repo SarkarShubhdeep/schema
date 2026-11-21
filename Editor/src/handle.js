@@ -45,7 +45,7 @@ export function blockMenuItems(editor, block) {
   // A to-do can become a task (#80), or open the task it already is.
   const task = taskState(block.node)
   const taskItems = task?.linked
-    ? taskMenuItems(editor, block.pos)
+    ? [...taskMenuItems(editor, block.pos), { separator: true }]
     : (task?.canMake ? [{ title: 'Make task in', submenu: () => taskMenuItems(editor, block.pos) }] : [])
   return [
     {

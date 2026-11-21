@@ -27,6 +27,7 @@ struct TipTapEditorView: NSViewRepresentable {
     var taskContextJSON: String?
     var onMakeTask: ((_ text: String, _ pageID: UUID) -> UUID?)?
     var onOpenTask: ((UUID) -> Void)?
+    var onMoveTask: ((_ taskID: UUID, _ pageID: UUID) -> Void)?
     var onChangeDefaultPage: (() -> Void)?
 
     static let log = Logger(subsystem: "com.sarkarshubhdeep.schema", category: "Editor")
@@ -97,11 +98,11 @@ struct TipTapEditorView: NSViewRepresentable {
         /// Screenshots only (#80): the caret in the first open to-do without a
         /// task, and with -SchemaDemoTaskMenu its right-click menu.
         private func runDemo() {
-            guard DemoData.isEnabled, DemoData.showsMakeTask || DemoData.opensTaskMenu else { return }
+            guard DemoData.isEnabled, DemoData.showsMakeTask || DemoData.opensTaskMenu || DemoData.opensLinkedTaskMenu else { return }
             let script = """
             setTimeout(() => {
               const li = [...document.querySelectorAll('ul[data-type="taskList"] > li')]
-                .find((el) => el.dataset.checked !== 'true' && el.querySelector(':scope > div > .schema-make-task'))
+                .find((el) => el.querySelector(linked ? ':scope > div > .schema-task-link' : ':scope > div > .schema-make-task'))
               if (!li) return
               const p = li.querySelector('p')
               const range = document.createRange(); range.selectNodeContents(p); range.collapse(false)
@@ -114,7 +115,7 @@ struct TipTapEditorView: NSViewRepresentable {
             }, 300)
             """
             webView?.window?.makeFirstResponder(webView)
-            webView?.callAsyncJavaScript(script, arguments: ["menu": DemoData.opensTaskMenu], in: nil, in: .page)
+            webView?.callAsyncJavaScript(script, arguments: ["menu": DemoData.opensTaskMenu || DemoData.opensLinkedTaskMenu, "linked": DemoData.opensLinkedTaskMenu], in: nil, in: .page)
         }
         #endif
 
@@ -122,6 +123,7 @@ struct TipTapEditorView: NSViewRepresentable {
             bridge.onChange = view.onChange
             bridge.onMakeTask = view.onMakeTask
             bridge.onOpenTask = view.onOpenTask
+            bridge.onMoveTask = view.onMoveTask
             bridge.onChangeDefaultPage = view.onChangeDefaultPage
             onEscape = view.onEscape
             bridge.show(view.documentJSON, key: view.documentKey)

@@ -20,6 +20,8 @@ struct BlockTaskActions {
     var makeTask: (_ title: String, _ page: SchemaList) -> SchemaTask?
     var toggleTask: (SchemaTask) -> Void
     var openTask: (SchemaTask) -> Void
+    /// Move task to … on a linked to-do (#80).
+    var moveTask: (SchemaTask, SchemaList) -> Void = { _, _ in }
 }
 
 extension BlockEditor {

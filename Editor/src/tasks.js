@@ -5,7 +5,7 @@
 // either ticks both: the app does that when it saves.
 //
 // The app sends what the editor needs to know with setTaskContext:
-//   { pages: [{ id, title, isDefault }], tasks: { [taskId]: { page } } }
+//   { pages: [{ id, title, isDefault }], tasks: { [taskId]: { page, pageId } } }
 // Pages is empty where lines cannot become tasks (a task's own page).
 
 import { Plugin, PluginKey } from '@tiptap/pm/state'
@@ -41,7 +41,7 @@ export function taskState(node) {
   if (node?.type.name !== 'taskItem') return null
   const id = node.attrs.taskId
   const task = id ? context.tasks[id] : null
-  if (task) return { linked: true, id, page: task.page }
+  if (task) return { linked: true, id, page: task.page, pageId: task.pageId }
   if (id && pending.has(id)) return { pending: true }
   if (node.attrs.checked || !textOf(node) || context.pages.length === 0) return null
   return { canMake: true }
@@ -57,6 +57,13 @@ export function makeTask(editor, pos, page) {
 }
 
 export const openTask = (id) => post({ type: 'openTask', taskId: id })
+
+// The line stays, the task stays; they just stop ticking together.
+export function unlinkTask(editor, pos) {
+  const node = editor.state.doc.nodeAt(pos)
+  if (!taskState(node)?.linked) return
+  editor.view.dispatch(editor.state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, taskId: null }))
+}
 
 // The app made the task (or could not: id is null).
 export function linkTask(editor, ref, id) {
@@ -83,7 +90,19 @@ const redraw = (editor) => editor.view.dispatch(editor.state.tr.setMeta(key, tru
 export function taskMenuItems(editor, pos) {
   const state = taskState(editor.state.doc.nodeAt(pos))
   if (state?.linked) {
-    return [{ title: `Open task in ${state.page}`, run: () => openTask(state.id) }]
+    const others = context.pages.filter((page) => page.id !== state.pageId)
+    return [
+      { title: `Open task in ${state.page}`, run: () => openTask(state.id) },
+      ...(others.length ? [{
+        title: 'Move task to',
+        submenu: () => others.map((page) => ({
+          title: page.title,
+          run: () => post({ type: 'moveTask', taskId: state.id, pageId: page.id }),
+        })),
+      }] : []),
+      { separator: true },
+      { title: 'Unlink from task', run: () => unlinkTask(editor, pos) },
+    ]
   }
   if (!state?.canMake) return []
   return context.pages.map((page) => ({

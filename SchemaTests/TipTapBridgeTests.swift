@@ -153,10 +153,10 @@ struct TipTapBridgeTests {
         bridge.receive(["type": "ready"])
         bridge.setTaskContext(context.json)
         #expect(page.scripts.filter { $0.0.contains("setTaskContext") }.count == 1)
-        context.tasks["T"] = .init(page: "Work")
+        context.tasks["T"] = .init(page: "Work", pageId: "A")
         bridge.setTaskContext(context.json)
         #expect(page.scripts.filter { $0.0.contains("setTaskContext") }.count == 2)
-        #expect((page.scripts.last?.1["json"] as? String)?.contains(#""T":{"page":"Work"}"#) == true)
+        #expect((page.scripts.last?.1["json"] as? String)?.contains(#""T":{"page":"Work","pageId":"A"}"#) == true)
     }
 
     @Test func openTaskAndChangeDefaultPagePassAlong() {
@@ -168,5 +168,10 @@ struct TipTapBridgeTests {
         bridge.receive(["type": "openTask", "taskId": id.uuidString])
         bridge.receive(["type": "changeDefaultPage"])
         #expect(opened == id && changed)
+        let page = UUID()
+        var moved: (UUID, UUID)?
+        bridge.onMoveTask = { moved = ($0, $1) }
+        bridge.receive(["type": "moveTask", "taskId": id.uuidString, "pageId": page.uuidString])
+        #expect(moved?.0 == id && moved?.1 == page)
     }
 }
