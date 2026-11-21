@@ -178,6 +178,27 @@ extension WorkspaceView {
         workspace.requestFocus(.none)
     }
 
+    /// A mention chip (#81): the page, the task as a page, or the day on
+    /// Today (for today) or Upcoming.
+    func openMention(_ mention: EditorMention) {
+        withAnimation(SchemaMotion.smooth) {
+            switch mention {
+            case .page(let id):
+                guard let page = lists.first(where: { $0.id == id }) else { return }
+                listViewModel.selectList(page)
+            case .task(let id):
+                guard let task = allTasks.first(where: { $0.id == id }) else { return }
+                if listViewModel.smartView != nil || listViewModel.selectedListID != task.list?.id {
+                    listViewModel.selectList(task.list)
+                }
+                openTaskDetail(task.id)
+            case .date(let date):
+                let view: SmartView = Calendar.schema().isDateInToday(date) ? .today : .upcoming
+                listViewModel.selectSmartView(view, from: lists)
+            }
+        }
+    }
+
     /// Back to the list, with the task still selected.
     func closeTaskDetail() {
         workspace.taskDetailEditor = nil

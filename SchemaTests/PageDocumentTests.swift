@@ -33,6 +33,13 @@ struct PageDocumentTests {
         #expect(summary.checklistDoneCount == 1)
     }
 
+    /// A mention (#81) reads as its name, in search and in Markdown.
+    @Test func mentionsReadAsTheirNames() {
+        let doc = #"{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"See "},{"type":"mention","attrs":{"kind":"page","id":"\#(taskID.uuidString)","label":"Ideas"}},{"type":"text","text":" on "},{"type":"mention","attrs":{"kind":"date","id":"2026-11-21","label":"Sat 21 Nov"}}]}]}"#
+        #expect(PageDocument.summary(of: doc).text == "See Ideas on Sat 21 Nov")
+        #expect(PageMarkdown.markdown(fromJSON: doc) == "See Ideas on Sat 21 Nov\n")
+    }
+
     /// The editor sends `taskId: null` on to-dos without a task.
     @Test func readsTheEditorsOwnJSON() {
         let fromEditor = #"{"type":"doc","content":[{"type":"taskList","content":[{"type":"taskItem","attrs":{"checked":false,"taskId":null},"content":[{"type":"paragraph","content":[{"type":"text","text":"Plain"}]}]},{"type":"taskItem","attrs":{"checked":true,"taskId":"\#(taskID.uuidString)"},"content":[{"type":"paragraph","content":[{"type":"text","text":"Made"}]}]}]}]}"#

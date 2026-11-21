@@ -78,6 +78,7 @@ nonisolated enum PageDocument {
             switch child["type"] as? String {
             case "text": child["text"] as? String ?? ""
             case "hardBreak": "\n"
+            case "mention": (child["attrs"] as? [String: Any])?["label"] as? String ?? ""
             default: inlineText(child)
             }
         }.joined()

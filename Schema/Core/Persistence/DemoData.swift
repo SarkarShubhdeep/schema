@@ -43,6 +43,9 @@ enum DemoData {
     /// Make task badge shows (#80); `-SchemaDemoTaskMenu` also right-clicks it.
     static let showsMakeTask = CommandLine.arguments.contains("-SchemaDemoMakeTask")
     static let opensTaskMenu = CommandLine.arguments.contains("-SchemaDemoTaskMenu")
+    /// `-SchemaDemoMention` types two @ mentions at the end of the page and
+    /// leaves the @ menu open on the second (#81).
+    static let typesMention = CommandLine.arguments.contains("-SchemaDemoMention")
     /// `-SchemaDemoLinkedMenu` right-clicks the first to-do already made into a task.
     static let opensLinkedTaskMenu = CommandLine.arguments.contains("-SchemaDemoLinkedMenu")
 

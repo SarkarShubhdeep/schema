@@ -262,6 +262,7 @@ struct WorkspaceView: View {
             }
         }
         .animation(SchemaMotion.smooth, value: workspace.isTaskPageOpen)
+        .environment(\.editorMentionActions, EditorMentionActions(open: openMention))
         .background(SchemaTheme.canvas)
         .clickOutsideDismiss(isActive: workspace.hasDismissibleState) {
             dismissActiveEditing()
@@ -291,8 +292,14 @@ struct WorkspaceView: View {
                 workspace.requestFocus(.taskList)
             }
         }
-        .onChange(of: listViewModel.selectedListID) { _, _ in
-            // Choosing another page in the sidebar leaves an open task page.
+        .onChange(of: listViewModel.selectedListID) { _, newID in
+            // Choosing another page in the sidebar leaves an open task page,
+            // unless that task was just opened in the page (a mention, #81).
+            if let editor = workspace.taskDetailEditor,
+               allTasks.first(where: { $0.id == editor.taskID })?.list?.id == newID {
+                enforceManualSortIfNeeded()
+                return
+            }
             workspace.taskDetailEditor = nil
             workspace.clearSelection()
             enforceManualSortIfNeeded()
@@ -302,7 +309,12 @@ struct WorkspaceView: View {
                 enforceManualSortIfNeeded()
             }
         }
-        .onChange(of: listViewModel.smartView) { _, _ in
+        .onChange(of: listViewModel.smartView) { _, newView in
+            // Leaving Today or Upcoming for the page of a task just opened from a mention keeps it open.
+            if newView == nil, let editor = workspace.taskDetailEditor,
+               allTasks.first(where: { $0.id == editor.taskID })?.list?.id == listViewModel.selectedListID {
+                return
+            }
             workspace.taskDetailEditor = nil
         }
         .onChange(of: listViewModel.showsPomodoro) { _, _ in

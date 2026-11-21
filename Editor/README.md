@@ -28,10 +28,12 @@ Xcode builds never run npm.
 ## Bridge
 
 Swift talks to the page through `window.schemaEditor` (`setContent`,
-`setMarkdown`, `getJSON`, `getMarkdown`, `focus`, `setTaskContext`, `linkTask`).
+`setMarkdown`, `getJSON`, `getMarkdown`, `focus`, `setTaskContext`, `linkTask`,
+`setMentionContext`).
 The page answers through the `schema` message handler with `ready`, `change`,
 `loaded`, `escape`, `focus`, `copyMarkdown`, `makeTask`, `openTask`,
-`changeDefaultPage` and `error`. To-dos and tasks (#80) live in `src/tasks.js`. See `src/editor.js` and `Schema/Core/Editor/TipTapBridge.swift`.
+`changeDefaultPage`, `openMention` and `error`. To-dos and tasks (#80) live in
+`src/tasks.js`, @ mentions (#81) in `src/mention.js`. See `src/editor.js` and `Schema/Core/Editor/TipTapBridge.swift`.
 
 ## Documents
 
