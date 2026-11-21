@@ -72,34 +72,28 @@ struct SelectionToolbar: View {
                 .fixedSize()
                 .padding(.trailing, 8)
 
-            Menu {
-                ForEach(RescheduleOption.allCases) { option in
-                    Button(option.title, systemImage: option.systemImage) { onReschedule(option) }
+            SchemaMenuButton("Reschedule") {
+                SchemaMenuItem.header("Reschedule")
+                for option in RescheduleOption.allCases {
+                    SchemaMenuItem.action(option.title) { onReschedule(option) }
                 }
             } label: {
                 toolbarIcon("calendar")
             }
-            .menuStyle(.button)
-            .buttonStyle(.plain)
-            .menuIndicator(.hidden)
             .fixedSize()
             .help("Reschedule")
-            .accessibilityLabel("Reschedule")
 
-            Menu {
-                ForEach(pages) { page in
-                    Button(page.title) { onMove(page) }
+            SchemaMenuButton("Move to page") {
+                SchemaMenuItem.header("Move to")
+                for page in pages {
+                    SchemaMenuItem.action(page.title) { onMove(page) }
                 }
             } label: {
                 toolbarIcon("arrow.right")
             }
-            .menuStyle(.button)
-            .buttonStyle(.plain)
-            .menuIndicator(.hidden)
             .fixedSize()
             .disabled(pages.isEmpty)
             .help("Move to page")
-            .accessibilityLabel("Move to page")
 
             Button(action: onDelete) {
                 toolbarIcon("trash")

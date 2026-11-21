@@ -5,7 +5,7 @@
 import { blockAt, kindOf, turnInto, duplicate, remove, startDrag, kindsMatching, blockDocument } from './blocks.js'
 import { showMenu, closeMenu, isMenuOpen } from './menu.js'
 import { taskMenuItems, taskState } from './tasks.js'
-import { Plugin, PluginKey } from '@tiptap/pm/state'
+import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 
 // Shades the block whose menu is open. A decoration, because ProseMirror
@@ -177,6 +177,52 @@ export function installHandle(editor) {
     startDrag(editor, block, event, hovered.dom)
   })
   handle.addEventListener('dragend', hide)
+
+  // Right-click (#83): Cut, Copy and Paste, then the block's own options,
+  // in Schema's menu. To-dos have theirs (tasks.js); ⌥ right-click keeps
+  // the system menu, with spelling suggestions.
+  editor.view.dom.addEventListener('contextmenu', (event) => {
+    if (event.defaultPrevented || event.altKey) return
+    const at = editor.view.posAtCoords({ left: event.clientX, top: event.clientY })
+    if (!at) return
+    const { state } = editor
+    const { from, to } = state.selection
+    // Keep a selection the click is inside; otherwise the caret goes where the click is.
+    if (from === to || at.pos < from || at.pos > to) {
+      editor.view.dispatch(state.tr.setSelection(TextSelection.near(state.doc.resolve(at.pos))))
+    }
+    const block = blockAt(editor.state.doc, at.inside >= 0 ? at.inside : at.pos)
+    event.preventDefault()
+    const hasSelection = !editor.state.selection.empty
+    const edit = (command) => () => {
+      try {
+        window.webkit?.messageHandlers?.schema?.postMessage({ type: 'editCommand', command })
+      } catch (_) {
+        // Outside the app there is no clipboard to use.
+      }
+    }
+    const items = [
+      { title: 'Cut', trail: '\u2318X', disabled: !hasSelection, run: edit('cut') },
+      { title: 'Copy', trail: '\u2318C', disabled: !hasSelection, run: edit('copy') },
+      { title: 'Paste', trail: '\u2318V', run: edit('paste') },
+    ]
+    if (block) {
+      active = block
+      shade(block)
+      items.push({ separator: true }, ...blockMenuItems(editor, block))
+    }
+    showMenu({
+      label: 'Edit',
+      items: items.filter((i) => !i.disabled),
+      anchor: { left: event.clientX, right: event.clientX, top: event.clientY, bottom: event.clientY },
+      below: false,
+      onClose: () => {
+        active = null
+        shade(null)
+        hide()
+      },
+    })
+  })
 
   // A new document (another page) moves everything: start over.
   return { reset: () => { closeMenu(); hide() } }

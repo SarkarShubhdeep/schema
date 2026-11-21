@@ -195,6 +195,12 @@ struct ContentView: View {
         if DemoData.isEnabled, DemoData.opensUpcoming {
             listVM.selectSmartView(.upcoming, from: lists)
         }
+        if DemoData.isEnabled, let spot = DemoData.rightClickSpot {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                SchemaMenuPresenter.rightClickForDemo(atFraction: spot)
+                Task { await SchemaMenuPresenter.shared.runDemo() }
+            }
+        }
         if DemoData.isEnabled, DemoData.runsBenchmark {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [lists, modelContext] in
                 DemoBenchmark.run(lists: lists, listViewModel: listVM, workspace: workspace, context: modelContext)

@@ -80,11 +80,11 @@ struct NewTimerForm: View {
             }
 
             field("Count toward") {
-                Menu {
-                    Button("Nothing") { pageID = nil }
-                    Divider()
-                    ForEach(pages) { page in
-                        Button(page.title) { pageID = page.id }
+                SchemaMenuButton("Count toward", matchesWidth: true) {
+                    SchemaMenuItem.action("Nothing", isChecked: pageID == nil) { pageID = nil }
+                    SchemaMenuItem.divider
+                    for page in pages {
+                        SchemaMenuItem.action(page.title, isChecked: pageID == page.id) { pageID = page.id }
                     }
                 } label: {
                     HStack(spacing: 8) {
@@ -101,8 +101,6 @@ struct NewTimerForm: View {
                     .overlay(Capsule(style: .continuous).strokeBorder(SchemaTheme.line, lineWidth: 1))
                     .contentShape(Capsule())
                 }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
             }
 
             Toggle(isOn: $automatic) {

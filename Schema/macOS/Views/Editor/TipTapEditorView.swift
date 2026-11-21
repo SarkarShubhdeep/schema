@@ -92,6 +92,16 @@ struct TipTapEditorView: NSViewRepresentable {
                 pasteboard.clearContents()
                 pasteboard.setString(PageMarkdown.markdown(fromJSON: json), forType: .string)
             }
+            // Run as ⌘X, ⌘C and ⌘V do, so paste goes through the editor's own paste handling.
+            bridge.onEditCommand = { [weak self] command in
+                guard let webView = self?.webView else { return }
+                let action: Selector = switch command {
+                case .cut: #selector(NSText.cut(_:))
+                case .copy: #selector(NSText.copy(_:))
+                case .paste: #selector(NSText.paste(_:))
+                }
+                NSApp.sendAction(action, to: webView, from: nil)
+            }
             bridge.onLoaded = { [weak self] in
                 TipTapEditorView.log.info("Editor showed a document in \($0, format: .fixed(precision: 1), privacy: .public) ms")
                 #if DEBUG

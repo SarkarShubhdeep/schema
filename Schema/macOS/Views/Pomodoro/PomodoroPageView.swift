@@ -57,6 +57,13 @@ struct PomodoroPageView: View {
         #endif
         }
         .background(hiddenShortcuts)
+        #if DEBUG
+        .task {
+            guard DemoData.isEnabled, DemoData.opensNewTimer else { return }
+            try? await Task.sleep(for: .milliseconds(600))
+            isAdding = true
+        }
+        #endif
     }
 
     // MARK: Header

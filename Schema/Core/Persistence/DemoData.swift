@@ -43,6 +43,26 @@ enum DemoData {
     /// Make task badge shows (#80); `-SchemaDemoTaskMenu` also right-clicks it.
     static let showsMakeTask = CommandLine.arguments.contains("-SchemaDemoMakeTask")
     static let opensTaskMenu = CommandLine.arguments.contains("-SchemaDemoTaskMenu")
+    /// `-SchemaDemoMenu <label>` opens the Schema menu (#83) with that
+    /// accessibility label; `-SchemaDemoMenuKeys down,down,right` then
+    /// presses keys in it, and `-SchemaDemoMenuClick <row>` clicks a row.
+    static let opensMenu = value(after: "-SchemaDemoMenu")
+    static let menuKeys = value(after: "-SchemaDemoMenuKeys")?.split(separator: ",").map(String.init) ?? []
+    static let menuClick = value(after: "-SchemaDemoMenuClick").flatMap { Int($0) }
+    /// `-SchemaDemoRightClick 0.1,0.4` right-clicks at that spot of the
+    /// window (fractions of its width and height from the top left).
+    static let rightClickSpot: CGPoint? = value(after: "-SchemaDemoRightClick").flatMap { text in
+        let parts = text.split(separator: ",").compactMap { Double($0) }
+        return parts.count == 2 ? CGPoint(x: parts[0], y: parts[1]) : nil
+    }
+    /// `-SchemaDemoNewTimer` opens New timer on the Pomodoro page.
+    static let opensNewTimer = CommandLine.arguments.contains("-SchemaDemoNewTimer")
+
+    private static func value(after flag: String) -> String? {
+        guard let index = CommandLine.arguments.firstIndex(of: flag), CommandLine.arguments.indices.contains(index + 1) else { return nil }
+        return CommandLine.arguments[index + 1]
+    }
+
     /// `-SchemaDemoMention` types two @ mentions at the end of the page and
     /// leaves the @ menu open on the second (#81).
     static let typesMention = CommandLine.arguments.contains("-SchemaDemoMention")

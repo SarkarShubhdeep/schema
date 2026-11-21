@@ -64,24 +64,14 @@ struct TaskRowView: View {
         .animation(SchemaMotion.fast, value: isHighlighted)
         .animation(SchemaMotion.fast, value: isKeyboardSelected)
         .onHover { isHovered = $0 }
-        .contextMenu {
-            Button("Open Details") {
-                onOpenDetail()
-            }
-
-            Button("Set Reminder") {
-                openReminderPicker()
-            }
-
+        .schemaContextMenu(task.title) {
+            SchemaMenuItem.action("Open as page", shortcut: "\u{21A9}", onOpenDetail)
+            SchemaMenuItem.action("Set reminder\u{2026}", openReminderPicker)
             if task.reminderTime != nil {
-                Button("Remove Reminder") {
-                    onSetReminder(nil)
-                }
+                SchemaMenuItem.action("Remove reminder") { onSetReminder(nil) }
             }
-
-            Divider()
-
-            Button("Delete Task", role: .destructive, action: onDelete)
+            SchemaMenuItem.divider
+            SchemaMenuItem.action("Delete task", shortcut: "\u{232B}", isDestructive: true, onDelete)
         }
         .popover(isPresented: $showReminderPicker) {
             reminderPickerContent
