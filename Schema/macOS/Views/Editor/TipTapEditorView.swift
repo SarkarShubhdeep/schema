@@ -23,6 +23,11 @@ struct TipTapEditorView: NSViewRepresentable {
     /// can be the previous page's for a change made just before switching.
     var onChange: ((_ json: String, _ key: String) -> Void)?
     var onEscape: (() -> Void)?
+    /// Make task in … and Task in … on to-dos (#80); nil where lines cannot become tasks.
+    var taskContextJSON: String?
+    var onMakeTask: ((_ text: String, _ pageID: UUID) -> UUID?)?
+    var onOpenTask: ((UUID) -> Void)?
+    var onChangeDefaultPage: (() -> Void)?
 
     static let log = Logger(subsystem: "com.sarkarshubhdeep.schema", category: "Editor")
 
@@ -80,13 +85,47 @@ struct TipTapEditorView: NSViewRepresentable {
                 pasteboard.clearContents()
                 pasteboard.setString(PageMarkdown.markdown(fromJSON: json), forType: .string)
             }
-            bridge.onLoaded = { TipTapEditorView.log.info("Editor showed a document in \($0, format: .fixed(precision: 1), privacy: .public) ms") }
+            bridge.onLoaded = { [weak self] in
+                TipTapEditorView.log.info("Editor showed a document in \($0, format: .fixed(precision: 1), privacy: .public) ms")
+                #if DEBUG
+                self?.runDemo()
+                #endif
+            }
         }
+
+        #if DEBUG
+        /// Screenshots only (#80): the caret in the first open to-do without a
+        /// task, and with -SchemaDemoTaskMenu its right-click menu.
+        private func runDemo() {
+            guard DemoData.isEnabled, DemoData.showsMakeTask || DemoData.opensTaskMenu else { return }
+            let script = """
+            setTimeout(() => {
+              const li = [...document.querySelectorAll('ul[data-type="taskList"] > li')]
+                .find((el) => el.dataset.checked !== 'true' && el.querySelector(':scope > div > .schema-make-task'))
+              if (!li) return
+              const p = li.querySelector('p')
+              const range = document.createRange(); range.selectNodeContents(p); range.collapse(false)
+              const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range)
+              document.querySelector('.ProseMirror').focus()
+              if (menu) {
+                const r = p.getBoundingClientRect()
+                p.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: r.left + 120, clientY: r.top + 12 }))
+              }
+            }, 300)
+            """
+            webView?.window?.makeFirstResponder(webView)
+            webView?.callAsyncJavaScript(script, arguments: ["menu": DemoData.opensTaskMenu], in: nil, in: .page)
+        }
+        #endif
 
         func update(from view: TipTapEditorView) {
             bridge.onChange = view.onChange
+            bridge.onMakeTask = view.onMakeTask
+            bridge.onOpenTask = view.onOpenTask
+            bridge.onChangeDefaultPage = view.onChangeDefaultPage
             onEscape = view.onEscape
             bridge.show(view.documentJSON, key: view.documentKey)
+            bridge.setTaskContext(view.taskContextJSON ?? EditorTaskContext().json)
             bridge.focus(view.focusRequest)
         }
 

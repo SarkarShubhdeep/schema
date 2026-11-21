@@ -8,6 +8,8 @@ All notable changes to Schema are documented in this file.
 
 - Markdown in the new editor (#79). Typing # , - , 1. , [ ] , > , ``` or --- at the start of a line makes a heading, list, numbered list, to-do, quote, code block or divider, and **bold**, _italic_, `code` and ~~strikethrough~~ format as you type. Pasting Markdown keeps its headings, lists, to-dos, quotes, code and links; ⇧⌘V pastes plain text. Numbered lists are a new block kind in the / menu and Turn into. Copy as Markdown is in each block's handle menu and in the page menu (⇧⌘C), and Export as Markdown… saves the page as a .md file.
 
+- To-dos and tasks in the new editor (#80). Hovering an open to-do, or writing in it, shows "Make task in …" on the right for your default page; right-click the to-do (or use Make task in from its handle) to pick another to-do page, or Change the default page… in Settings. A to-do made into a task shows "Task in …", which opens the task, and ticking either one ticks the other. "Make tasks from open to-dos" in the page menu works as before.
+
 ### Changed
 
 - The app can now save files you choose (Export as Markdown, #79); before, it could only open them.

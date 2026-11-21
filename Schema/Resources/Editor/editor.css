@@ -135,7 +135,56 @@ body { padding: 0 32px; }
   border-width: 0 1.5px 1.5px 0;
   transform: rotate(45deg);
 }
-.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div { color: var(--ink-faint); text-decoration: line-through; }
+.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div > p { color: var(--ink-faint); text-decoration: line-through; }
+
+/* To-dos and tasks (#80): "Make task in …" on the right of an open to-do
+   while it is hovered or has the caret; "Task in …" on one made into a task. */
+.ProseMirror ul[data-type="taskList"] li > div { display: flex; flex-wrap: wrap; align-items: flex-start; column-gap: 8px; }
+.ProseMirror ul[data-type="taskList"] li > div > p { flex: 1 1 0; min-width: 0; }
+.ProseMirror ul[data-type="taskList"] li > div > ul,
+.ProseMirror ul[data-type="taskList"] li > div > ol { flex-basis: 100%; }
+.schema-make-task,
+.schema-task-link {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  margin: 0;
+  padding: 0 10px;
+  border-radius: 999px;
+  font: 500 12px/16px Satoshi, -apple-system, system-ui, sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.schema-make-task {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease, background-color 120ms ease;
+}
+.ProseMirror ul[data-type="taskList"] > li:hover:not(:has(li:hover)) > div > .schema-make-task,
+.ProseMirror ul[data-type="taskList"] > li.is-current > div > .schema-make-task {
+  opacity: 1;
+  pointer-events: auto;
+}
+.schema-make-task:hover { background: var(--hover); }
+.schema-task-link {
+  height: 22px;
+  padding: 0 8px;
+  border: none;
+  background: var(--hover);
+  color: var(--ink-muted);
+  margin-top: 1px;
+}
+.schema-task-link:hover { color: var(--ink); }
+.schema-task-link-arrow { font-size: 10px; }
+.schema-make-task:focus-visible,
+.schema-task-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 .ProseMirror a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
 

@@ -1,7 +1,8 @@
 // Schema's page editor: TipTap (ProseMirror) inside a WKWebView (#76).
 //
 // Bridge
-//   Swift → JS: window.schemaEditor.setContent(json, key), .focus(where), .getJSON()
+//   Swift → JS: window.schemaEditor.setContent(json, key), .focus(where), .getJSON(),
+//     .setTaskContext({ pages, tasks }), .linkTask(ref, taskId) (see tasks.js)
 //     key names the page or task the document belongs to. A new key gets a
 //     fresh undo history, and every change carries the key it was made in,
 //     so a change still pending when the page switches is saved to its page.
@@ -12,6 +13,10 @@
 //     escape  – Esc pressed with nothing to close, so the app can take focus
 //     focus   – the editor gained or lost focus
 //     copyMarkdown – Copy as Markdown on a block; carries the block as a document
+//     makeTask – make a task from a to-do (#80); carries ref, text and pageId.
+//                The app answers with linkTask(ref, taskId), or null if it could not.
+//     openTask – open the task a to-do was made into; carries taskId
+//     changeDefaultPage – "Change the default page…" from Make task in
 //     error   – a script error, for the app's log
 
 import { Editor } from '@tiptap/core'
@@ -25,6 +30,7 @@ import { updateSlash, openTurnInto } from './slash.js'
 import { menuKeyDown, isMenuOpen, closeMenu } from './menu.js'
 import { blockAt, duplicate } from './blocks.js'
 import { markdownPaste } from './paste.js'
+import { installTasks, setTaskContext, linkTask } from './tasks.js'
 
 const post = (message) => {
   try {
@@ -153,9 +159,16 @@ window.schemaEditor = {
   focus(where) {
     editor.commands.focus(where || 'end')
   },
+  setTaskContext(context) {
+    setTaskContext(editor, context)
+  },
+  linkTask(ref, taskId) {
+    linkTask(editor, ref, taskId)
+  },
 }
 
 const handle = installHandle(editor)
+installTasks(editor)
 
 // Menus opened from the handle take keys even when the text has no focus.
 document.addEventListener('keydown', (event) => {

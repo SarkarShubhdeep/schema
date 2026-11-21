@@ -23,6 +23,7 @@ struct PageBodyEditor: View {
     var onEscape: (() -> Void)?
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         TipTapEditorView(
@@ -30,8 +31,36 @@ struct PageBodyEditor: View {
             documentKey: id.uuidString,
             focusRequest: focusRequest,
             onChange: save,
-            onEscape: onEscape
+            onEscape: onEscape,
+            taskContextJSON: taskContext.json,
+            onMakeTask: makeTask,
+            onOpenTask: { id in
+                if let taskActions, let task = taskActions.task(id) { taskActions.openTask(task) }
+            },
+            onChangeDefaultPage: { openSettings() }
         )
+    }
+
+    /// The to-do pages a line can become a task in, and where each linked
+    /// line's task lives (#80).
+    private var taskContext: EditorTaskContext {
+        guard let taskActions else { return EditorTaskContext() }
+        let defaultID = (taskActions.defaultPage ?? taskActions.taskPages.first)?.id
+        var context = EditorTaskContext()
+        context.pages = taskActions.taskPages.map {
+            .init(id: $0.id.uuidString, title: $0.title, isDefault: $0.id == defaultID)
+        }
+        for id in holder.linkedTaskIDs {
+            if let task = taskActions.task(id) {
+                context.tasks[id.uuidString] = .init(page: task.list?.title ?? "a page")
+            }
+        }
+        return context
+    }
+
+    private func makeTask(text: String, pageID: UUID) -> UUID? {
+        guard let taskActions, let page = taskActions.taskPages.first(where: { $0.id == pageID }) else { return nil }
+        return taskActions.makeTask(text, page)?.id
     }
 
     /// The stored document, with linked to-dos ticked as their tasks are.

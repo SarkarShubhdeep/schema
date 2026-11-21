@@ -39,6 +39,10 @@ enum DemoData {
     static let showsPomodoroHistory = CommandLine.arguments.contains("-SchemaDemoPomodoroHistory")
     /// Opens the focus history on Year.
     static let showsPomodoroYear = CommandLine.arguments.contains("-SchemaDemoPomodoroYear")
+    /// `-SchemaDemoMakeTask` puts the caret in the first open to-do, so its
+    /// Make task badge shows (#80); `-SchemaDemoTaskMenu` also right-clicks it.
+    static let showsMakeTask = CommandLine.arguments.contains("-SchemaDemoMakeTask")
+    static let opensTaskMenu = CommandLine.arguments.contains("-SchemaDemoTaskMenu")
 
     /// `-SchemaDemoRoutine` opens an open routine task as a page.
     static let opensRoutineTask = CommandLine.arguments.contains("-SchemaDemoRoutine")
