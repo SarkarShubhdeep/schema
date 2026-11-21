@@ -4,6 +4,7 @@
 
 import { blockAt, kindOf, turnInto, duplicate, remove, startDrag, kindsMatching, blockDocument } from './blocks.js'
 import { showMenu, closeMenu, isMenuOpen } from './menu.js'
+import { taskMenuItems, taskState } from './tasks.js'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 
@@ -41,6 +42,11 @@ const copyMarkdown = (block) => {
 
 export function blockMenuItems(editor, block) {
   const current = kindOf(block)
+  // A to-do can become a task (#80), or open the task it already is.
+  const task = taskState(block.node)
+  const taskItems = task?.linked
+    ? [...taskMenuItems(editor, block.pos), { separator: true }]
+    : (task?.canMake ? [{ title: 'Make task in', submenu: () => taskMenuItems(editor, block.pos) }] : [])
   return [
     {
       title: 'Turn into',
@@ -54,6 +60,7 @@ export function blockMenuItems(editor, block) {
         run: () => turnInto(editor, block, k.id),
       })),
     },
+    ...taskItems,
     {
       title: 'Duplicate',
       trail: '⌘D',

@@ -120,4 +120,58 @@ struct TipTapBridgeTests {
         bridge.receive(["type": "copyMarkdown", "json": block])
         #expect(copied.map { PageMarkdown.markdown(fromJSON: $0) } == "Hi\n")
     }
+
+    @Test func makeTaskLinksTheLineToTheNewTask() {
+        bridge.receive(["type": "ready"])
+        let page = UUID()
+        let task = UUID()
+        var asked: (String, UUID)?
+        bridge.onMakeTask = { text, pageID in
+            asked = (text, pageID)
+            return task
+        }
+        bridge.receive(["type": "makeTask", "ref": "REF", "text": "Call the bank", "pageId": page.uuidString])
+        #expect(asked?.0 == "Call the bank" && asked?.1 == page)
+        let link = self.page.scripts.last
+        #expect(link?.0.contains("linkTask") == true)
+        #expect(link?.1["ref"] as? String == "REF")
+        #expect(link?.1["taskId"] as? String == task.uuidString)
+    }
+
+    @Test func makeTaskThatFailsUnlinksTheLine() {
+        bridge.receive(["type": "ready"])
+        bridge.onMakeTask = { _, _ in nil }
+        bridge.receive(["type": "makeTask", "ref": "REF", "text": "x", "pageId": UUID().uuidString])
+        #expect(page.scripts.last?.1["taskId"] is NSNull)
+    }
+
+    @Test func taskContextIsSentOnceReadyAndOnlyWhenItChanges() {
+        var context = EditorTaskContext()
+        context.pages = [.init(id: "A", title: "Work", isDefault: true)]
+        bridge.setTaskContext(context.json)
+        #expect(page.scripts.isEmpty)
+        bridge.receive(["type": "ready"])
+        bridge.setTaskContext(context.json)
+        #expect(page.scripts.filter { $0.0.contains("setTaskContext") }.count == 1)
+        context.tasks["T"] = .init(page: "Work", pageId: "A")
+        bridge.setTaskContext(context.json)
+        #expect(page.scripts.filter { $0.0.contains("setTaskContext") }.count == 2)
+        #expect((page.scripts.last?.1["json"] as? String)?.contains(#""T":{"page":"Work","pageId":"A"}"#) == true)
+    }
+
+    @Test func openTaskAndChangeDefaultPagePassAlong() {
+        let id = UUID()
+        var opened: UUID?
+        var changed = false
+        bridge.onOpenTask = { opened = $0 }
+        bridge.onChangeDefaultPage = { changed = true }
+        bridge.receive(["type": "openTask", "taskId": id.uuidString])
+        bridge.receive(["type": "changeDefaultPage"])
+        #expect(opened == id && changed)
+        let page = UUID()
+        var moved: (UUID, UUID)?
+        bridge.onMoveTask = { moved = ($0, $1) }
+        bridge.receive(["type": "moveTask", "taskId": id.uuidString, "pageId": page.uuidString])
+        #expect(moved?.0 == id && moved?.1 == page)
+    }
 }

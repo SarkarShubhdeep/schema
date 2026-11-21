@@ -43,6 +43,15 @@ final class TipTapBridge {
     var onLoaded: ((Double) -> Void)?
     /// Copy as Markdown from a block's menu (#79): the block as a TipTap document.
     var onCopyMarkdown: ((_ json: String) -> Void)?
+    /// Make task in … on a to-do (#80): the line's text and the page. Returns
+    /// the new task's id, which the line is then linked to; nil if none was made.
+    var onMakeTask: ((_ text: String, _ pageID: UUID) -> UUID?)?
+    /// "Task in …" on a linked to-do.
+    var onOpenTask: ((UUID) -> Void)?
+    /// Move task to … on a linked to-do: the task and the page.
+    var onMoveTask: ((_ taskID: UUID, _ pageID: UUID) -> Void)?
+    /// "Change the default page…" in Make task in.
+    var onChangeDefaultPage: (() -> Void)?
 
     private(set) var isReady = false
     /// The document the editor shows now, as far as Swift knows.
@@ -51,12 +60,21 @@ final class TipTapBridge {
     private var wantedJSON: String?
     private var wantedKey: String?
     private var pendingFocus: EditorFocusRequest?
+    private var wantedTaskContext: String?
+    private var shownTaskContext: String?
     private var lastFocus: EditorFocusRequest?
 
     /// Show this document (TipTap JSON text) for `key`. Sent once the editor is ready.
     func show(_ json: String, key: String) {
         wantedJSON = json
         wantedKey = key
+        flush()
+    }
+
+    /// The to-do pages a line can become a task in and the tasks lines are
+    /// linked to, as JSON text (see `EditorTaskContext`). Sent when it changes.
+    func setTaskContext(_ json: String) {
+        wantedTaskContext = json
         flush()
     }
 
@@ -89,6 +107,22 @@ final class TipTapBridge {
         case "copyMarkdown":
             guard let json = Self.jsonText(body["json"]) else { return }
             onCopyMarkdown?(json)
+        case "makeTask":
+            guard let ref = body["ref"] as? String,
+                  let text = body["text"] as? String,
+                  let pageID = (body["pageId"] as? String).flatMap(UUID.init(uuidString:)) else { return }
+            let taskID = onMakeTask?(text, pageID)
+            guard isReady, let runner else { return }
+            runner.run("window.schemaEditor.linkTask(ref, taskId)", arguments: ["ref": ref, "taskId": taskID?.uuidString ?? NSNull()])
+        case "openTask":
+            guard let id = (body["taskId"] as? String).flatMap(UUID.init(uuidString:)) else { return }
+            onOpenTask?(id)
+        case "moveTask":
+            guard let taskID = (body["taskId"] as? String).flatMap(UUID.init(uuidString:)),
+                  let pageID = (body["pageId"] as? String).flatMap(UUID.init(uuidString:)) else { return }
+            onMoveTask?(taskID, pageID)
+        case "changeDefaultPage":
+            onChangeDefaultPage?()
         case "error":
             onError?("\(body["message"] ?? "") \(body["source"] ?? "")")
         default:
@@ -101,6 +135,7 @@ final class TipTapBridge {
         isReady = false
         shownJSON = nil
         shownKey = nil
+        shownTaskContext = nil
     }
 
     private func flush() {
@@ -109,6 +144,10 @@ final class TipTapBridge {
             shownJSON = wantedJSON
             shownKey = wantedKey
             runner.run("window.schemaEditor.setContent(JSON.parse(json), key)", arguments: ["json": wantedJSON, "key": wantedKey])
+        }
+        if let wantedTaskContext, wantedTaskContext != shownTaskContext {
+            shownTaskContext = wantedTaskContext
+            runner.run("window.schemaEditor.setTaskContext(JSON.parse(json))", arguments: ["json": wantedTaskContext])
         }
         if let pendingFocus {
             lastFocus = pendingFocus
@@ -121,5 +160,28 @@ final class TipTapBridge {
         guard let object, JSONSerialization.isValidJSONObject(object),
               let data = try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys]) else { return nil }
         return String(data: data, encoding: .utf8)
+    }
+}
+
+/// What the editor needs to offer Make task in … and show Task in … (#80).
+struct EditorTaskContext: Encodable, Equatable {
+    struct Page: Encodable, Equatable {
+        var id: String
+        var title: String
+        var isDefault: Bool
+    }
+
+    struct Task: Encodable, Equatable {
+        var page: String
+        var pageId: String
+    }
+
+    var pages: [Page] = []
+    var tasks: [String: Task] = [:]
+
+    var json: String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        return (try? encoder.encode(self)).flatMap { String(data: $0, encoding: .utf8) } ?? #"{"pages":[],"tasks":{}}"#
     }
 }
