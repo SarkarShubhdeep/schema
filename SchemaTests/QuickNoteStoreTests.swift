@@ -47,6 +47,21 @@ struct QuickNoteStoreTests {
         #expect(lines(page).last == "Call Sam")
     }
 
+    /// A note written in the editor (#82) keeps its blocks as they are, without empty lines around it.
+    @Test func editorNotesKeepTheirBlocks() throws {
+        let ideas = SchemaList(title: "Ideas", kind: .scratchpad)
+        context.insert(ideas)
+        let note = #"{"type":"doc","content":[{"type":"paragraph"},{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Milk"}]}]}]},{"type":"paragraph","content":[{"type":"text","text":"See "},{"type":"mention","attrs":{"kind":"page","id":"X","label":"Groceries"}}]},{"type":"paragraph"}]}"#
+        try #require(QuickNoteStore.saveNote(documentJSON: note, lists: try lists(), preferredPageID: nil, context: context, now: monday, calendar: calendar))
+        #expect(types(ideas) == ["heading", "bulletList", "paragraph"])
+        #expect(lines(ideas).dropFirst() == ["Milk", "See Groceries"])
+    }
+
+    @Test func anEmptyEditorNoteSavesNothing() throws {
+        context.insert(SchemaList(title: "Ideas", kind: .scratchpad))
+        #expect(QuickNoteStore.saveNote(documentJSON: PageDocument.emptyJSON, lists: try lists(), preferredPageID: nil, context: context) == nil)
+    }
+
     @Test func notesGoUnderTodaysHeadingNewestFirst() throws {
         let ideas = SchemaList(title: "Ideas", kind: .scratchpad)
         context.insert(ideas)

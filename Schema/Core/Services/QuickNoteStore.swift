@@ -4,9 +4,9 @@
 //
 //  Where Quick note (⌃⌥N, #41) saves. A note goes to the top of one chosen
 //  scratchpad (Ideas by default) under a heading with today's date, newest
-//  first. Each line of the note becomes a line of the page's document (#77); markdown prefixes such as
-//  "- " or "[] " work as they do in the editor. ⌘Return saves the note as
-//  a task instead.
+//  first. The note is written in the same editor as pages (#82), so its
+//  blocks go into the page's document as they are. ⌘Return saves the note
+//  as a task instead.
 //
 
 import Foundation
@@ -33,8 +33,27 @@ enum QuickNoteStore {
         return date.formatted(style)
     }
 
-    /// Saves `text` at the top of the target page. Returns the page, or nil
-    /// when the note is empty.
+    /// Saves the note (TipTap JSON text) at the top of the target page.
+    /// Returns the page, or nil when the note is empty.
+    @discardableResult
+    static func saveNote(
+        documentJSON note: String,
+        lists: [SchemaList],
+        preferredPageID: UUID?,
+        context: ModelContext,
+        now: Date = .now,
+        calendar: Calendar = .current
+    ) -> SchemaList? {
+        guard !PageDocument.summary(of: note).text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        let page = targetPage(in: lists, preferredID: preferredPageID) ?? makeDefaultPage(lists: lists, context: context)
+        page.setDocument(PageDocument.prependingNote(json: note, under: dateHeading(for: now, calendar: calendar), to: page.documentJSON), editedAt: now)
+        try? context.save()
+        return page
+    }
+
+    /// Saves plain `text` at the top of the target page, one line per line;
+    /// markdown prefixes such as "- " or "[] " set a line's kind. Returns the
+    /// page, or nil when the note is empty.
     @discardableResult
     static func saveNote(
         _ text: String,
@@ -88,9 +107,16 @@ enum QuickNoteStore {
 
     // MARK: Helpers
 
+    static let markdownPrefixes: [(prefix: String, kind: BlockKind)] = [
+        ("### ", .heading), ("## ", .heading), ("# ", .heading),
+        ("- ", .bullet), ("* ", .bullet),
+        ("[ ] ", .todo), ("[] ", .todo),
+        ("> ", .quote),
+    ]
+
     private static func parse(_ line: String) -> (BlockKind, String) {
         if line == "---" { return (.divider, "") }
-        for (prefix, kind) in BlockEditor.markdownPrefixes where line.hasPrefix(prefix) {
+        for (prefix, kind) in markdownPrefixes where line.hasPrefix(prefix) {
             return (kind, String(line.dropFirst(prefix.count)))
         }
         return (.text, line)

@@ -12,9 +12,15 @@ All notable changes to Schema are documented in this file.
 
 - @ mentions in the new editor (#81). Type @ for one menu: Today, Now and Tomorrow, then matching pages and open tasks. The choice becomes a grey chip with a small icon; clicking it opens the page, the task, or the day on Today or Upcoming. Renaming a page or task updates its chips, and search and Copy as Markdown read a chip as its name. A chip for something deleted is struck through.
 
+- Quick note (⌃⌥N) uses the new editor (#82): markdown as you type, lists, to-dos and @ mentions, the same as on a page. Return still saves, ⇧Return starts a new line or list item, ⌘Return saves as a task and Esc closes. The note goes into the scratchpad with its formatting kept.
+
 ### Changed
 
 - The app can now save files you choose (Export as Markdown, #79); before, it could only open them.
+
+### Removed
+
+- The old hand-built block editor (#82). Pages, task pages and Quick note all use the TipTap editor, which brings selection, copy and paste, and undo across lines (closes #51).
 
 ## [0.5.1] — 2026-11-20
 

@@ -2,14 +2,52 @@
 //  BlockTextView.swift
 //  Schema
 //
-//  The editable text of one block: an NSTextView, so the editor knows where
-//  the caret is. It reports Return, Backspace at the start and arrows that
-//  leave the block, grows with its text, and takes the caret when the
-//  editor asks for it.
+//  One native line of editable text: an NSTextView that reports Return,
+//  Backspace at the start and arrows that leave it, grows with its text, and
+//  takes the caret when asked. Page titles use it. It began as a block of
+//  the old block editor (#38), which TipTap replaced (#82).
 //
 
 import AppKit
 import SwiftUI
+
+/// Where the caret goes.
+enum CaretPlacement: Equatable {
+    case start
+    case end
+    /// UTF-16 offset, as NSTextView counts.
+    case offset(Int)
+    /// Select all the text, e.g. to rename a page title.
+    case all
+}
+
+/// A request to move the caret. `token` changes on every request, so asking
+/// for the same field twice still moves the caret.
+struct BlockFocusRequest: Equatable {
+    let blockID: UUID
+    let caret: CaretPlacement
+    let token = UUID()
+}
+
+extension NSFont {
+    /// Satoshi, the text face.
+    static func schemaText(_ size: CGFloat, weight: NSFont.Weight = .regular) -> NSFont {
+        schemaFont(family: SchemaFont.textFamily, size: size, weight: weight)
+    }
+
+    /// Space Grotesk, the display face.
+    static func schemaDisplay(_ size: CGFloat, weight: NSFont.Weight = .regular) -> NSFont {
+        schemaFont(family: SchemaFont.displayFamily, size: size, weight: weight)
+    }
+
+    private static func schemaFont(family: String, size: CGFloat, weight: NSFont.Weight) -> NSFont {
+        let descriptor = NSFontDescriptor(fontAttributes: [
+            .family: family,
+            .traits: [NSFontDescriptor.TraitKey.weight: weight],
+        ])
+        return NSFont(descriptor: descriptor, size: size) ?? .systemFont(ofSize: size, weight: weight)
+    }
+}
 
 struct BlockTextStyle: Equatable {
     var font: NSFont

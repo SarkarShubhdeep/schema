@@ -11,12 +11,12 @@ import SwiftUI
 
 struct QuickNoteView: View {
     @Bindable var model: QuickNoteModel
-    let onSave: (_ asTask: Bool) -> Void
+    /// Save the note; asTask for ⌘Return. The editor sends the note with
+    /// Return, which may be newer than the last change it reported.
+    let onSave: (_ asTask: Bool, _ json: String?) -> Void
     let onClose: () -> Void
 
-    private var isEmpty: Bool {
-        model.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
+    private var isEmpty: Bool { model.isEmpty }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -58,21 +58,21 @@ struct QuickNoteView: View {
             .padding(.trailing, 14)
             .padding(.top, 12)
 
-            BlockTextView(
-                text: model.text,
-                style: BlockTextStyle(font: .schemaText(17), color: NSColor(SchemaTheme.ink), lineHeight: 26),
-                placeholder: "Write a note…",
-                focusRequest: model.focusToken,
-                blockID: QuickNoteModel.fieldID,
-                onTextChange: { model.text = $0 },
-                onReturn: { _ in if !isEmpty { onSave(false) } },
-                onBackspaceAtStart: {},
-                onArrowOut: { _ in },
-                onFocusChange: { _ in },
-                onEscape: onClose
+            // The page editor (#82): markdown, @ mentions and lists as on a
+            // page; Return saves, ⇧Return starts a new line.
+            TipTapEditorView(
+                documentJSON: model.documentJSON,
+                documentKey: model.documentKey,
+                focusRequest: model.focusRequest,
+                onChange: { json, key in
+                    if key == model.documentKey { model.setNote(json) }
+                },
+                onEscape: onClose,
+                mode: .note,
+                onSubmit: { json, asTask in onSave(asTask, json) },
+                mentionContextJSON: model.mentionContextJSON
             )
-            .frame(minHeight: 78, alignment: .top)
-            .frame(maxHeight: 182)
+            .frame(height: 104)
             .padding(.horizontal, 18)
             .padding(.top, 10)
             .padding(.bottom, 8)
@@ -87,13 +87,13 @@ struct QuickNoteView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                Button("Save as task") { onSave(true) }
+                Button("Save as task") { onSave(true, nil) }
                     .keyboardShortcut(.return, modifiers: .command)
                     .disabled(isEmpty)
                     .hidden()
                     .frame(width: 0)
                     .accessibilityHidden(true)
-                Button("Save note") { onSave(false) }
+                Button("Save note") { onSave(false, nil) }
                     .buttonStyle(.schema(.primary))
                     .disabled(isEmpty)
             }

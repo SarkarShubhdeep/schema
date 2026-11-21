@@ -77,11 +77,17 @@ struct PageModelTests {
         for (text, index) in [("third", 3.0), ("first", 1.0), ("second", 2.0)] {
             context.insert(SchemaBlock(text: text, sortIndex: index, page: page))
         }
-        let between = BlockOrdering.index(between: 1, and: 2)
-        context.insert(SchemaBlock(kind: .todo, text: "one and a half", sortIndex: between, page: page))
+        context.insert(SchemaBlock(kind: .todo, text: "one and a half", sortIndex: 1.5, page: page))
         try context.save()
 
         #expect(page.blocks.inDisplayOrder.map(\.text) == ["first", "one and a half", "second", "third"])
+    }
+
+    @Test func onlyToDosAreCheckableAndDividersHoldNoText() {
+        #expect(BlockKind.todo.isCheckable)
+        #expect(!BlockKind.text.isCheckable)
+        #expect(!BlockKind.divider.holdsText)
+        #expect(BlockKind.heading.holdsText)
     }
 
     @Test func changingKindClearsWhatTheNewKindCannotHold() {

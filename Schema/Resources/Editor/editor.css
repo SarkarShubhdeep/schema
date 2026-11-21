@@ -325,3 +325,10 @@ body { padding: 0 32px; }
 .schema-mention-icon { display: inline-flex; color: var(--ink-muted); }
 .schema-mention.is-missing { color: var(--ink-muted); text-decoration: line-through; cursor: default; }
 .schema-mention.is-missing:hover { background: var(--hover); }
+
+/* Quick note (#82): the editor fills the note card, on the card's own
+   surface, a little larger, with no block handle. */
+body.is-note { padding: 0; background: transparent; font-size: 17px; line-height: 26px; }
+html:has(body.is-note) { background: transparent; }
+body.is-note #editor { max-width: none; margin: 0; padding: 0 0 8px; min-height: 0; }
+body.is-note .schema-handle { display: none; }

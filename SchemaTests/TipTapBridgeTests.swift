@@ -200,4 +200,20 @@ struct TipTapBridgeTests {
         #expect(EditorMention(kind: "time", id: "2026-11-21T16:12:00.000Z") == .date(Date(timeIntervalSince1970: 1_795_219_200 + 16 * 3600 + 12 * 60)))
         #expect(EditorMention(kind: "date", id: "21 Nov") == nil)
     }
+
+    @Test func quickNoteModeIsSentAndReturnSubmitsTheNote() {
+        bridge.receive(["type": "ready"])
+        bridge.setMode(.note)
+        bridge.setMode(.note)
+        let modes = page.scripts.filter { $0.0.contains("setMode") }
+        #expect(modes.count == 1)
+        #expect(modes.first?.1["json"] as? String == #""note""#)
+
+        var saved: (String, Bool)?
+        bridge.onSubmit = { saved = ($0, $1) }
+        let note: [String: Any] = ["type": "doc", "content": [["type": "paragraph", "content": [["type": "text", "text": "Hi"]]]]]
+        bridge.receive(["type": "submit", "asTask": true, "json": note])
+        #expect(saved.map { PageDocument.summary(of: $0.0).text } == "Hi")
+        #expect(saved?.1 == true)
+    }
 }
