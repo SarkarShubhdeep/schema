@@ -12,6 +12,9 @@ enum PageKind: String, CaseIterable, Sendable {
     case todo
     /// Free-form notes: one TipTap document.
     case scratchpad
+    /// A #tag's page (#102): free-form like a scratchpad, and it also shows
+    /// every line tagged with it on other pages. Made by the first #tag.
+    case tag
 }
 
 @Model
@@ -68,6 +71,11 @@ extension SchemaList {
     }
 
     var isScratchpad: Bool { pageKind == .scratchpad }
+
+    var isTagPage: Bool { pageKind == .tag }
+
+    /// Shown as a document in the editor: scratchpads and tag pages.
+    var hasPageBody: Bool { pageKind == .scratchpad || pageKind == .tag }
 
     /// Tasks can be added to or moved into this page: to-do lists only.
     var acceptsTasks: Bool { !isEverythingList && pageKind == .todo }

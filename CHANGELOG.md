@@ -4,9 +4,9 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
-
 ### Added
 
+- #tags and tag pages (#102). Write #chores anywhere in a line, on a page, a task page or in Quick note: "#name" and a space becomes a tag chip (Backspace right after undoes it), and typing # opens a menu of your tags. The first #chores makes a #chores tag page, listed under Tags in the sidebar. A tag page is a page you can write on, and below that it shows every line tagged #chores on other pages, live, grouped by page: tick to-dos right there (their page and task follow), click a line to open it where it lives, or Hide done. Tasks with #chores in their title show up too. Renaming a tag page renames the tag everywhere; deleting it turns the tags back into plain words. Clicking a tag chip opens its page.
 - Snippets (#101). In Settings › Editor, make your own snippets: a trigger like ;email and the text it turns into. Typing the trigger in a page, task page or Quick note replaces it as soon as it's complete; Backspace or ⌘Z right after brings the trigger back. Text can span lines and use markdown (a heading and to-dos, say), with {date}, {time} and {cursor} filled in when used. Plain-word triggers only fire on their own; ones starting with a symbol fire anywhere. Never inside code.
 - Settings is its own page (#108). ⌘, or the gear opens Settings in the main window instead of a sheet, with its own sidebar: Back to Schema (Esc), a search field (⌘F), and sections for General, Editor, Quick note, Tasks & routines, Notifications and About (GitHub arrives in v0.6). Search looks through every setting's name and description and lists matches by section. Every setting works as before.
 - Replace as you type (#99). In pages, task pages and Quick note, -> becomes →, <- ←, <-> ↔, => ⇒, <=> ⇔, != ≠, >= ≥, <= ≤, ... …, a--b a—b, +/- ±, (c) ©, (tm) ™, and quotes and apostrophes curl. Never inside code blocks or code, and --- at the start of a line still makes a divider. Backspace or ⌘Z right after keeps what you typed, and Settings › Editor › Replace as you type turns it off.

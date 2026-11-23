@@ -9,10 +9,15 @@
 // seen, kept for search, Markdown and items that no longer exist.
 //
 // The app sends what can be mentioned with setMentionContext:
-//   { pages: [{ id, title, kind }], tasks: [{ id, title, page }] }
+//   { pages: [{ id, title, kind }], tasks: [{ id, title, page }], tags: [{ id, title }] }
 // kind is "todo" or "scratchpad"; tasks are the open ones.
+//
+// #tags (#102) are mentions too, of kind "tag": the id is the tag page's,
+// the label its name. Typing # and a letter opens the tag menu; "#name"
+// followed by a space becomes a chip by itself. A new name gets a new id,
+// and the app makes its tag page when the document is saved.
 
-import { Node, mergeAttributes } from '@tiptap/core'
+import { Node, mergeAttributes, Extension, InputRule } from '@tiptap/core'
 import { showMenu, updateMenu, closeMenu } from './menu.js'
 
 const post = (message) => {
@@ -23,7 +28,7 @@ const post = (message) => {
   }
 }
 
-let context = { pages: [], tasks: [] }
+let context = { pages: [], tasks: [], tags: [] }
 let names = new Map() // id → current name, pages and tasks
 const views = new Set() // chips on screen, to rename in place
 
@@ -44,6 +49,8 @@ export function mentionLabel(attrs) {
     case 'page':
     case 'task':
       return names.get(attrs.id) || attrs.label || 'Untitled'
+    case 'tag':
+      return names.get(attrs.id) || attrs.label || ''
     case 'date': {
       const d = parseDay(attrs.id)
       return d ? dayText(d) : attrs.label
@@ -65,6 +72,8 @@ const ICONS = {
 }
 
 const exists = (attrs) => (attrs.kind !== 'page' && attrs.kind !== 'task') || names.has(attrs.id)
+// What a chip reads as: a tag with its #.
+const chipText = (attrs) => (attrs.kind === 'tag' ? '#' : '') + mentionLabel(attrs)
 
 export const Mention = Node.create({
   name: 'mention',
@@ -86,15 +95,15 @@ export const Mention = Node.create({
   },
 
   renderHTML({ node, HTMLAttributes }) {
-    return ['span', mergeAttributes({ 'data-mention': '' }, HTMLAttributes), mentionLabel(node.attrs)]
+    return ['span', mergeAttributes({ 'data-mention': '' }, HTMLAttributes), chipText(node.attrs)]
   },
 
   renderText({ node }) {
-    return mentionLabel(node.attrs)
+    return chipText(node.attrs)
   },
 
   renderMarkdown(node) {
-    return mentionLabel(node.attrs || {})
+    return chipText(node.attrs || {})
   },
 
   addNodeView() {
@@ -111,9 +120,11 @@ export const Mention = Node.create({
       let attrs = node.attrs
       const draw = () => {
         icon.innerHTML = ICONS[attrs.kind] || ''
-        text.textContent = mentionLabel(attrs)
+        icon.hidden = !ICONS[attrs.kind]
+        text.textContent = chipText(attrs)
+        dom.classList.toggle('is-tag', attrs.kind === 'tag')
         dom.classList.toggle('is-missing', !exists(attrs))
-        dom.title = !exists(attrs) ? `${mentionLabel(attrs)} no longer exists` : `Open ${mentionLabel(attrs)}`
+        dom.title = !exists(attrs) ? `${chipText(attrs)} no longer exists` : `Open ${chipText(attrs)}`
       }
       draw()
       dom.addEventListener('mousedown', (e) => e.preventDefault())
@@ -141,22 +152,23 @@ export const Mention = Node.create({
 // The app's pages and tasks. Chips redraw, and stored labels catch up with
 // renames so search and Markdown say the new name too.
 export function setMentionContext(editor, next) {
-  context = { pages: next?.pages || [], tasks: next?.tasks || [] }
+  context = { pages: next?.pages || [], tasks: next?.tasks || [], tags: next?.tags || [] }
   names = new Map()
   for (const p of context.pages) names.set(p.id, p.title)
   for (const t of context.tasks) names.set(t.id, t.title)
+  for (const t of context.tags) names.set(t.id, t.title)
   views.forEach((v) => v.draw())
   const { state } = editor
   let tr = state.tr
   state.doc.descendants((node, pos) => {
     if (node.type.name !== 'mention') return
     const { kind, id, label } = node.attrs
-    if ((kind === 'page' || kind === 'task') && names.has(id) && names.get(id) !== label) {
+    if ((kind === 'page' || kind === 'task' || kind === 'tag') && names.has(id) && names.get(id) !== label) {
       tr = tr.setNodeMarkup(pos, undefined, { ...node.attrs, label: names.get(id) })
     }
   })
   if (tr.docChanged) editor.view.dispatch(tr.setMeta('addToHistory', false))
-  if (at) updateMenu(atItems(editor))
+  if (at) updateMenu(menuItems(editor))
 }
 
 // MARK: The @ menu
@@ -164,7 +176,8 @@ export function setMentionContext(editor, next) {
 let at = null // { from, to, query } while the menu is open
 let dismissed = null
 
-// "@query" right before the caret, at the start of a line or after a space.
+// "@query" or "#tag" right before the caret, at the start of a line or
+// after a space.
 function atBeforeCaret(state) {
   const { selection } = state
   if (!selection.empty) return null
@@ -173,12 +186,72 @@ function atBeforeCaret(state) {
   if (!parent.isTextblock || parent.type.name === 'codeBlock') return null
   if ($from.marks().some((m) => m.type.name === 'code')) return null
   const text = parent.textBetween(0, $from.parentOffset, undefined, '￼')
+  const hash = TAG_BEFORE_CARET.exec(text)
+  if (hash) {
+    const query = hash[1]
+    return { char: '#', from: $from.pos - query.length - 1, to: $from.pos, query, key: `#${$from.start()}:${text.length - query.length}` }
+  }
   const match = /(?:^|[\s(])@([^@\n￼]{0,40})$/.exec(text)
   if (!match) return null
   const query = match[1]
   if (/^\s/.test(query) || /\s\s/.test(query)) return null
-  return { from: $from.pos - query.length - 1, to: $from.pos, query, key: `${$from.start()}:${text.length - query.length}` }
+  return { char: '@', from: $from.pos - query.length - 1, to: $from.pos, query, key: `${$from.start()}:${text.length - query.length}` }
 }
+
+// "#name": a letter first, then letters, digits, - _ or /.
+const TAG_NAME = '[\\p{L}][\\p{L}\\p{N}_\\-/]{0,40}'
+const TAG_BEFORE_CARET = new RegExp(`(?:^|[\\s(])#(${TAG_NAME})$`, 'u')
+const TAG_THEN_SPACE = new RegExp(`(?:^|[\\s(])(#(${TAG_NAME}))\\s$`, 'u')
+
+const newID = () => {
+  const b = crypto.getRandomValues(new Uint8Array(16))
+  b[6] = (b[6] & 0x0f) | 0x40
+  b[8] = (b[8] & 0x3f) | 0x80
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('').toUpperCase()
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`
+}
+
+// The tag called `name`, or a new one: its page is made when the app saves.
+const tagNamed = (name) => {
+  const found = context.tags.find((t) => t.title.toLowerCase() === name.toLowerCase())
+  return found ? { kind: 'tag', id: found.id, label: found.title } : { kind: 'tag', id: newID(), label: name }
+}
+
+function tagItems(editor, query) {
+  const q = query.toLowerCase()
+  const found = context.tags.filter((t) => matches(t.title, q)).slice(0, 8)
+  const items = [{ header: 'Tags' }]
+  found.forEach((t, i) => items.push({ title: `#${t.title}`, selected: i === 0, run: () => insert(editor, { kind: 'tag', id: t.id, label: t.title }) }))
+  if (!found.some((t) => t.title.toLowerCase() === q)) {
+    if (found.length) items.push({ separator: true })
+    items.push({ title: `Create tag #${query}`, selected: found.length === 0, run: () => insert(editor, tagNamed(query)) })
+  }
+  items.push({ footer: '↑↓ to move · ↩ to tag · esc to close' })
+  return items
+}
+
+// "#name" and a space become a tag chip, without the menu. Backspace or ⌘Z
+// right after puts the text back (it is an input rule).
+export const TagChips = Extension.create({
+  name: 'schemaTagChips',
+  addInputRules() {
+    return [
+      new InputRule({
+        find: (text) => {
+          const m = TAG_THEN_SPACE.exec(text)
+          if (!m) return null
+          return { index: m.index + m[0].indexOf(m[1]), text: m[1] + text.slice(-1), data: { name: m[2] } }
+        },
+        handler: ({ state, range, match }) => {
+          const name = match.data?.name
+          if (!name) return null
+          const { tr, schema } = state
+          tr.replaceWith(range.from, range.to, [schema.nodes.mention.create(tagNamed(name)), schema.text(' ')])
+        },
+      }),
+    ]
+  },
+})
 
 const matches = (title, q) => {
   const t = title.toLowerCase()
@@ -205,6 +278,10 @@ function choices(query) {
     attrs: { kind: 'task', id: t.id, label: t.title },
   })) : []
   return { dates, pages, tasks }
+}
+
+function menuItems(editor) {
+  return at.char === '#' ? tagItems(editor, at.query) : atItems(editor)
 }
 
 function atItems(editor) {
@@ -247,7 +324,7 @@ export function updateMention(editor) {
   const found = atBeforeCaret(editor.state)
   if (found && dismissed === found.key) return false
   // A space with nothing matching ends it: "@ " or "email me @ 5".
-  const hasChoices = found && (() => { const c = choices(found.query); return c.dates.length + c.pages.length + c.tasks.length > 0 })()
+  const hasChoices = found && (found.char === '#' || (() => { const c = choices(found.query); return c.dates.length + c.pages.length + c.tasks.length > 0 })())
   if (!found || (!hasChoices && /\s$/.test(found.query))) {
     if (!found) dismissed = null
     if (at) { at = null; closeMenu() }
@@ -257,8 +334,8 @@ export function updateMention(editor) {
   at = found
   if (opening) {
     showMenu({
-      label: 'Mention',
-      items: atItems(editor),
+      label: found.char === '#' ? 'Tag' : 'Mention',
+      items: menuItems(editor),
       anchor: caretRect(editor),
       onClose: () => {
         const still = atBeforeCaret(editor.state)
@@ -267,7 +344,7 @@ export function updateMention(editor) {
       },
     })
   } else {
-    updateMenu(atItems(editor))
+    updateMenu(menuItems(editor))
   }
   return true
 }

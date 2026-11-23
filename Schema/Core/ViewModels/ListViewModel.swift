@@ -165,8 +165,15 @@ final class ListViewModel {
         lists.filter(\.acceptsTasks)
     }
 
+    /// Pages in sidebar order: every list except Everything and tag pages,
+    /// which have their own section (#102).
     func pages(from lists: [SchemaList]) -> [SchemaList] {
-        lists.filter { !$0.isEverythingList }
+        lists.filter { !$0.isEverythingList && !$0.isTagPage }
+    }
+
+    /// Tag pages (#102), by name.
+    func tagPages(from lists: [SchemaList]) -> [SchemaList] {
+        lists.filter(\.isTagPage).sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
     }
 
     func selectEverythingList(from lists: [SchemaList]) {

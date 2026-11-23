@@ -57,6 +57,8 @@ final class WorkspaceState {
         didSet { if !showSettings { settingsQuery = "" } }
     }
     var settingsSection: SettingsSection = .general
+    /// Go to line from a tag page (#102): the editor for `key` takes it.
+    var revealRequest: EditorRevealRequest?
     /// Typed in the Settings search field; empty shows `settingsSection`.
     var settingsQuery = ""
 
