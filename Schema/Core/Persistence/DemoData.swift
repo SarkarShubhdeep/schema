@@ -326,6 +326,19 @@ enum DemoData {
             paragraph([text("Kitchen on Mondays, bathroom on Thursdays. Bins go out Wednesday night.")]),
         ]]))
         if tagPageIsFlat { defaults.set([chores.id.uuidString], forKey: "schema.preferences.ungroupedTagPages") }
+        if seedsLargePages, let journal = try? context.fetch(FetchDescriptor<SchemaList>()).first(where: { $0.title == "Journal" }),
+           var doc = PageDocument.parse(journal.documentJSON) {
+            // #review on 100 to-dos at the end of Journal, for the long tag
+            // page in the performance pass (#103).
+            let review = SchemaList(title: "review", order: order + 2, kind: .tag)
+            context.insert(review)
+            var content = doc["content"] as? [[String: Any]] ?? []
+            content.append(["type": "taskList", "content": (1...100).map { n in
+                todo([text("Review point \(n): what to keep and what to drop "), chip(review)], done: n % 5 == 0)
+            }])
+            doc["content"] = content
+            journal.setDocument(TipTapDocument.json(doc))
+        }
         let bins = SchemaTask(title: "Take the bins out #chores", list: daily)
         bins.manualSortIndex = index
         context.insert(bins)
