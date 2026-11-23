@@ -40,6 +40,7 @@ import { blockAt, duplicate } from './blocks.js'
 import { markdownPaste } from './paste.js'
 import { installTasks, setTaskContext, linkTask, toggleToDos } from './tasks.js'
 import { Mention, setMentionContext, updateMention } from './mention.js'
+import { RevealMarkdown, restoreRevealed } from './reveal.js'
 
 const post = (message) => {
   try {
@@ -114,6 +115,7 @@ const editor = new Editor({
     }),
     Mention,
     Markdown,
+    RevealMarkdown,
   ],
   autofocus: false,
   editorProps: {
@@ -157,11 +159,13 @@ const editor = new Editor({
     updateSlash(e)
   },
   onSelectionUpdate: ({ editor: e }) => {
+    restoreRevealed(e)
     updateMention(e)
     updateSlash(e)
   },
   onFocus: () => post({ type: 'focus', focused: true }),
   onBlur: ({ editor: e }) => {
+    restoreRevealed(e, true)
     flushChange(e)
     post({ type: 'focus', focused: false })
   },
