@@ -43,6 +43,14 @@ struct EditorFocusRequest: Equatable, Sendable {
     var token = UUID()
 }
 
+/// Go to line from a tag page (#102): put the caret on the block at `path`
+/// in the document `key` and scroll to it. A new token asks again.
+struct EditorRevealRequest: Equatable, Sendable {
+    var key: String
+    var path: [Int]
+    var token = UUID()
+}
+
 @MainActor
 final class TipTapBridge {
     weak var runner: (any EditorScriptRunner)?
@@ -71,6 +79,12 @@ final class TipTapBridge {
     var onOpenMention: ((EditorMention) -> Void)?
     /// "Change the default page…" in Make task in.
     var onChangeDefaultPage: (() -> Void)?
+    /// A tag page's line from another page was ticked (#102): the page or
+    /// task holding it, the path to the to-do, or a whole task (`isTask`).
+    var onToggleTagged: ((_ holderID: UUID, _ path: [Int], _ isTask: Bool, _ checked: Bool) -> Void)?
+    /// A tag page's line was clicked: open it where it lives. `path` is nil
+    /// for a page's Open button.
+    var onOpenTagged: ((_ holderID: UUID, _ path: [Int]?, _ isTask: Bool) -> Void)?
 
     private(set) var isReady = false
     /// The document the editor shows now, as far as Swift knows.
@@ -84,6 +98,8 @@ final class TipTapBridge {
     private var wantedContexts: [String: String] = [:]
     private var shownContexts: [String: String] = [:]
     private var lastFocus: EditorFocusRequest?
+    private var pendingReveal: EditorRevealRequest?
+    private var lastReveal: EditorRevealRequest?
 
     /// Show this document (TipTap JSON text) for `key`. Sent once the editor is ready.
     func show(_ json: String, key: String) {
@@ -115,6 +131,19 @@ final class TipTapBridge {
     /// Your snippets (#101), as the JSON Settings stores. Sent when they change.
     func setSnippets(_ json: String) {
         wantedContexts["setSnippets"] = json
+        flush()
+    }
+
+    /// A tag page's lines from other pages (#102), as JSON text; "null" on
+    /// every other page. Sent when it changes.
+    func setTaggedLines(_ json: String) {
+        wantedContexts["setTaggedLines"] = json
+        flush()
+    }
+
+    func reveal(_ request: EditorRevealRequest?) {
+        guard let request, request != lastReveal else { return }
+        pendingReveal = request
         flush()
     }
 
@@ -178,6 +207,12 @@ final class TipTapBridge {
             onOpenMention?(mention)
         case "changeDefaultPage":
             onChangeDefaultPage?()
+        case "toggleTagged":
+            guard let id = (body["holderId"] as? String).flatMap(UUID.init(uuidString:)) else { return }
+            onToggleTagged?(id, Self.path(body["path"]) ?? [], (body["isTask"] as? Bool) ?? false, (body["checked"] as? Bool) ?? false)
+        case "openTagged":
+            guard let id = (body["holderId"] as? String).flatMap(UUID.init(uuidString:)) else { return }
+            onOpenTagged?(id, Self.path(body["path"]), (body["isTask"] as? Bool) ?? false)
         case "error":
             onError?("\(body["message"] ?? "") \(body["source"] ?? "")")
         default:
@@ -209,6 +244,19 @@ final class TipTapBridge {
             self.pendingFocus = nil
             runner.run("window.schemaEditor.focus(position)", arguments: ["position": pendingFocus.position.rawValue])
         }
+        // Only once its document is the one on screen.
+        if let pendingReveal, pendingReveal.key == shownKey {
+            lastReveal = pendingReveal
+            self.pendingReveal = nil
+            runner.run("window.schemaEditor.revealPath(path)", arguments: ["path": pendingReveal.path])
+        }
+    }
+
+    /// A block path from the page: an array of indexes.
+    static func path(_ object: Any?) -> [Int]? {
+        guard let items = object as? [Any] else { return nil }
+        let path = items.compactMap { ($0 as? NSNumber)?.intValue }
+        return path.count == items.count ? path : nil
     }
 
     static func jsonText(_ object: Any?) -> String? {
@@ -255,8 +303,15 @@ struct EditorMentionContext: Encodable, Equatable {
         var page: String
     }
 
+    struct Tag: Encodable, Equatable {
+        var id: String
+        var title: String
+    }
+
     var pages: [Page] = []
     var tasks: [Task] = []
+    /// Tag pages (#102): the # menu offers them and their chips follow renames.
+    var tags: [Tag] = []
 
     var json: String {
         let encoder = JSONEncoder()
@@ -269,6 +324,8 @@ struct EditorMentionContext: Encodable, Equatable {
 enum EditorMention: Equatable {
     case page(UUID)
     case task(UUID)
+    /// A #tag (#102): its tag page.
+    case tag(UUID)
     /// A day (@today, @tomorrow) or a moment (@now), at local midnight or the exact time.
     case date(Date)
 
@@ -281,6 +338,9 @@ enum EditorMention: Equatable {
         case "task":
             guard let uuid = UUID(uuidString: id) else { return nil }
             self = .task(uuid)
+        case "tag":
+            guard let uuid = UUID(uuidString: id) else { return nil }
+            self = .tag(uuid)
         case "date":
             let parts = id.split(separator: "-").compactMap { Int($0) }
             guard parts.count == 3,

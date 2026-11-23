@@ -105,6 +105,8 @@ extension WorkspaceView {
             closeTaskDetail()
         }
         workspace.clearSelection()
+        // A tag page's #tags become plain words where they were used (#102).
+        if page.isTagPage { TagPages.removeEverywhere(page, in: modelContext) }
         withAnimation(SchemaMotion.smooth) {
             taskViewModel.deleteTasks(onPage: page)
             listViewModel.deleteList(page, from: listViewModel.pages(from: lists))
@@ -183,7 +185,7 @@ extension WorkspaceView {
     func openMention(_ mention: EditorMention) {
         withAnimation(SchemaMotion.smooth) {
             switch mention {
-            case .page(let id):
+            case .page(let id), .tag(let id):
                 guard let page = lists.first(where: { $0.id == id }) else { return }
                 listViewModel.selectList(page)
             case .task(let id):
@@ -196,6 +198,27 @@ extension WorkspaceView {
                 let view: SmartView = Calendar.schema().isDateInToday(date) ? .today : .upcoming
                 listViewModel.selectSmartView(view, from: lists)
             }
+        }
+    }
+
+    /// A line on a tag page (#102): opens where it lives, a page or a task,
+    /// with the caret on the line. A task tagged in its title opens as a page.
+    func openTaggedLine(_ holderID: UUID, path: [Int]?, isTask: Bool) {
+        withAnimation(SchemaMotion.smooth) {
+            if let page = lists.first(where: { $0.id == holderID }) {
+                workspace.taskDetailEditor = nil
+                listViewModel.selectList(page)
+            } else if let task = allTasks.first(where: { $0.id == holderID }) {
+                if listViewModel.smartView != nil || listViewModel.selectedListID != task.list?.id {
+                    listViewModel.selectList(task.list)
+                }
+                openTaskDetail(task.id)
+            } else {
+                return
+            }
+        }
+        if let path, !path.isEmpty {
+            workspace.revealRequest = EditorRevealRequest(key: holderID.uuidString, path: path)
         }
     }
 

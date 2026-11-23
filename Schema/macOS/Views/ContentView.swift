@@ -227,6 +227,9 @@ struct ContentView: View {
             let scratchpads = listVM.pages(from: lists).filter(\.isScratchpad)
             listVM.selectList(DemoData.seedsLargePages ? scratchpads.first { $0.title == "Journal" } : scratchpads.first)
         }
+        if DemoData.isEnabled, DemoData.opensTagPage {
+            listVM.selectList(listVM.tagPages(from: lists).first)
+        }
         if DemoData.isEnabled, DemoData.opensFirstPage {
             listVM.selectList(listVM.pages(from: lists).first)
         }

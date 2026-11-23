@@ -21,10 +21,14 @@ struct PageBodyEditor: View {
     var taskActions: BlockTaskActions?
     var focusRequest: EditorFocusRequest?
     var onEscape: (() -> Void)?
+    /// On a tag page (#102): its lines from other pages, and ticking one.
+    var taggedLinesJSON: String?
+    var onToggleTagged: ((_ holderID: UUID, _ path: [Int], _ isTask: Bool, _ checked: Bool) -> Void)?
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openSettings) private var openSettings
     @Environment(\.editorMentionActions) private var mentionActions
+    @Environment(WorkspaceState.self) private var workspace
     // What @ can mention (#81): every page and the open tasks.
     @Query(sort: \SchemaList.order) private var lists: [SchemaList]
     @Query(filter: #Predicate<SchemaTask> { !$0.isCompleted }, sort: \SchemaTask.createdAt, order: .reverse)
@@ -49,15 +53,20 @@ struct PageBodyEditor: View {
             },
             onChangeDefaultPage: { openSettings() },
             mentionContextJSON: mentionContext.json,
-            onOpenMention: mentionActions.open
+            onOpenMention: mentionActions.open,
+            taggedLinesJSON: taggedLinesJSON,
+            onToggleTagged: onToggleTagged,
+            onOpenTagged: mentionActions.openLine,
+            revealRequest: workspace.revealRequest?.key == id.uuidString ? workspace.revealRequest : nil
         )
     }
 
     private var mentionContext: EditorMentionContext {
         var context = EditorMentionContext()
-        context.pages = lists.filter { !$0.isEverythingList }.map {
+        context.pages = lists.filter { !$0.isEverythingList && !$0.isTagPage }.map {
             .init(id: $0.id.uuidString, title: $0.title, kind: $0.pageKind.rawValue)
         }
+        context.tags = lists.filter(\.isTagPage).map { .init(id: $0.id.uuidString, title: $0.title) }
         context.tasks = openTasks.map {
             .init(id: $0.id.uuidString, title: $0.title, page: $0.list?.title ?? "")
         }
@@ -101,7 +110,10 @@ struct PageBodyEditor: View {
                 if let task = taskActions.task(taskID) { taskActions.toggleTask(task) }
             }
         }
+        // The first #tag of a name makes its tag page (#102).
+        TagPages.ensurePages(for: json, in: modelContext)
         try? modelContext.save()
+        NotificationCenter.default.post(name: TagPages.documentSaved, object: nil)
     }
 
     /// The page or task a change from before a switch belongs to.
@@ -118,6 +130,8 @@ struct PageBodyEditor: View {
 /// Today or Upcoming. WorkspaceView provides it; elsewhere a chip does nothing.
 struct EditorMentionActions {
     var open: (EditorMention) -> Void = { _ in }
+    /// A tag page's line (#102): the page or task holding it, and where.
+    var openLine: (_ holderID: UUID, _ path: [Int]?, _ isTask: Bool) -> Void = { _, _, _ in }
 }
 
 extension EnvironmentValues {

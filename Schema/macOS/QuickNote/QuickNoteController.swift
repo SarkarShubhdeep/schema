@@ -74,9 +74,10 @@ final class QuickNoteController {
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         ))) ?? []
         var mentions = EditorMentionContext()
-        mentions.pages = lists.filter { !$0.isEverythingList }.map {
+        mentions.pages = lists.filter { !$0.isEverythingList && !$0.isTagPage }.map {
             .init(id: $0.id.uuidString, title: $0.title, kind: $0.pageKind.rawValue)
         }
+        mentions.tags = lists.filter(\.isTagPage).map { .init(id: $0.id.uuidString, title: $0.title) }
         mentions.tasks = open.map { .init(id: $0.id.uuidString, title: $0.title, page: $0.list?.title ?? "") }
         return mentions
     }
@@ -91,6 +92,8 @@ final class QuickNoteController {
             QuickNoteStore.saveTask(model.text, lists: lists, allTasks: tasks, defaultPageID: SchemaPreferences.defaultWritableListID, context: context)
         } else {
             QuickNoteStore.saveNote(documentJSON: model.documentJSON, lists: lists, preferredPageID: model.targetID, context: context)
+            // A new #tag in the note makes its tag page (#102).
+            if TagPages.ensurePages(for: model.documentJSON, in: context) { try? context.save() }
         }
         close()
     }

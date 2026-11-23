@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import SwiftData
 import SwiftUI
 
 /// The main window content: context bar, list tabs, quick entry, task list,
@@ -11,6 +12,7 @@ import SwiftUI
 /// `WorkspaceView+Actions.swift`; transient UI state lives in `WorkspaceState`.
 struct WorkspaceView: View {
     @Environment(WorkspaceState.self) var workspace
+    @Environment(\.modelContext) var modelContext
 
     let lists: [SchemaList]
     let allTasks: [SchemaTask]
@@ -55,7 +57,7 @@ struct WorkspaceView: View {
 
     /// The selected page when it is a scratchpad (and no smart view is shown).
     var scratchpadPage: SchemaList? {
-        guard listViewModel.smartView == nil, let selectedList, selectedList.isScratchpad else { return nil }
+        guard listViewModel.smartView == nil, let selectedList, selectedList.hasPageBody else { return nil }
         return selectedList
     }
 
@@ -262,7 +264,7 @@ struct WorkspaceView: View {
             }
         }
         .animation(SchemaMotion.smooth, value: workspace.isTaskPageOpen)
-        .environment(\.editorMentionActions, EditorMentionActions(open: openMention))
+        .environment(\.editorMentionActions, EditorMentionActions(open: openMention, openLine: openTaggedLine))
         .background(SchemaTheme.canvas)
         .clickOutsideDismiss(isActive: workspace.hasDismissibleState) {
             dismissActiveEditing()

@@ -2,7 +2,7 @@
 //  SidebarNavigation.swift
 //  Schema
 //
-//  The sidebar's Views (Today, Upcoming, Everything) and Pages.
+//  The sidebar's Views (Today, Upcoming, Everything), Pages, and Tags (#102).
 //
 
 import SwiftUI
@@ -15,6 +15,7 @@ struct SidebarNavigation: View {
     let listViewModel: ListViewModel
 
     private var pages: [SchemaList] { listViewModel.pages(from: lists) }
+    private var tagPages: [SchemaList] { listViewModel.tagPages(from: lists) }
 
     /// The page being dragged to a new place (#42). Nothing is saved until
     /// the drag ends: while it moves, the row follows the pointer and the
@@ -113,6 +114,33 @@ struct SidebarNavigation: View {
                 Image(systemName: "plus")
             } action: {
                 listViewModel.openNewPage()
+            }
+
+            if !tagPages.isEmpty {
+                sectionHeader("Tags")
+                ForEach(tagPages, id: \.id) { tag in
+                    SidebarRow(
+                        title: tag.title,
+                        isActive: isActive(tag),
+                        trailing: .none,
+                        tooltip: "Tag page: lines tagged #\(tag.title)"
+                    ) {
+                        Image(systemName: PageKind.tag.systemImage)
+                    } action: {
+                        listViewModel.selectList(tag)
+                    }
+                    .schemaContextMenu("#\(tag.title)") {
+                        SchemaMenuItem.action("Open") { listViewModel.selectList(tag) }
+                        SchemaMenuItem.action("Rename") {
+                            listViewModel.selectList(tag)
+                            workspace.requestPageRename(tag.id)
+                        }
+                        SchemaMenuItem.divider
+                        SchemaMenuItem.action("Delete tag\u{2026}", isDestructive: true) {
+                            workspace.requestPageDelete(tag.id)
+                        }
+                    }
+                }
             }
         }
         #if DEBUG

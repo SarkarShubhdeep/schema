@@ -33,6 +33,10 @@ enum DemoData {
     static let opensNewPage = CommandLine.arguments.contains("-SchemaDemoNewPage")
     /// `-SchemaDemoScratchpad` opens the Ideas scratchpad.
     static let opensScratchpad = CommandLine.arguments.contains("-SchemaDemoScratchpad")
+    /// `-SchemaDemoTagPage` opens the #chores tag page (#102).
+    static let opensTagPage = CommandLine.arguments.contains("-SchemaDemoTagPage")
+    /// `-SchemaDemoTagFlat`: #chores with Group by page off.
+    static let tagPageIsFlat = CommandLine.arguments.contains("-SchemaDemoTagFlat")
     /// Opens the Pomodoro page (#89).
     static let opensPomodoro = CommandLine.arguments.contains("-SchemaDemoPomodoro")
     /// Scrolls the Pomodoro page to its focus history, for screenshots.
@@ -282,9 +286,49 @@ enum DemoData {
         // The lines above are written as v0.5 blocks, then moved into
         // documents exactly as the V7 migration does (#77).
         try? PageDocumentMigration.moveBlocksIntoDocuments(in: context)
+        seedTags(context, ideas: ideas, daily: daily, order: 6, index: index + 20)
         seedPomodoro(context, readingPageID: reading.id)
         try? context.save()
         defaults.set(daily.id.uuidString, forKey: "schema.preferences.defaultWritableListID")
+    }
+
+    /// #chores and #weekend (#102), as on the Tag page board: a few tagged
+    /// lines at the end of Ideas, a task tagged in its title, and the
+    /// #chores page with a line of its own.
+    private static func seedTags(_ context: ModelContext, ideas: SchemaList, daily: SchemaList, order: Int, index: Double) {
+        let chores = SchemaList(title: "chores", order: order, kind: .tag)
+        let weekend = SchemaList(title: "weekend", order: order + 1, kind: .tag)
+        [chores, weekend].forEach(context.insert)
+        func chip(_ tag: SchemaList) -> [String: Any] {
+            ["type": "mention", "attrs": ["kind": "tag", "id": tag.id.uuidString, "label": tag.title]]
+        }
+        func text(_ value: String) -> [String: Any] { ["type": "text", "text": value] }
+        func paragraph(_ content: [[String: Any]]) -> [String: Any] { ["type": "paragraph", "content": content] }
+        func todo(_ content: [[String: Any]], done: Bool = false) -> [String: Any] {
+            ["type": "taskItem", "attrs": ["checked": done], "content": [paragraph(content)]]
+        }
+
+        if var doc = PageDocument.parse(ideas.documentJSON) {
+            var content = doc["content"] as? [[String: Any]] ?? []
+            content.append(["type": "heading", "attrs": ["level": 2], "content": [text("Around the flat")]])
+            content.append(["type": "taskList", "content": [
+                todo([text("Clean the kitchen island "), chip(chores)]),
+                todo([text("Fix the porch light "), chip(chores), text(" "), chip(weekend)], done: true),
+                todo([text("Sort the recycling before Thursday "), chip(chores)]),
+            ]])
+            content.append(["type": "bulletList", "content": [
+                ["type": "listItem", "content": [paragraph([text("Ask who can lend a drill for the shelf "), chip(weekend)])]],
+            ]])
+            doc["content"] = content
+            ideas.setDocument(TipTapDocument.json(doc))
+        }
+        chores.setDocument(TipTapDocument.json(["type": "doc", "content": [
+            paragraph([text("Kitchen on Mondays, bathroom on Thursdays. Bins go out Wednesday night.")]),
+        ]]))
+        if tagPageIsFlat { defaults.set([chores.id.uuidString], forKey: "schema.preferences.ungroupedTagPages") }
+        let bins = SchemaTask(title: "Take the bins out #chores", list: daily)
+        bins.manualSortIndex = index
+        context.insert(bins)
     }
 
     /// Three timers like the canvas (#89): one focusing, one on a break, one

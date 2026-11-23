@@ -101,7 +101,9 @@ extension DeleteConfirmationDialog {
     /// Deleting a page and everything on it (#42). There is no undo.
     init(page: SchemaList, onCancel: @escaping () -> Void, onConfirm: @escaping () -> Void) {
         let contents: String
-        if page.isScratchpad {
+        if page.isTagPage {
+            contents = "What you wrote on it is deleted, and #\(page.title) becomes plain text on every line that has it."
+        } else if page.isScratchpad {
             contents = "Its notes are deleted with it."
         } else {
             let count = page.tasks.count
@@ -110,7 +112,7 @@ extension DeleteConfirmationDialog {
                 : "Its \(count == 1 ? "task" : "\(count) tasks") \(count == 1 ? "is" : "are") deleted with it, and \(count == 1 ? "its reminder is" : "their reminders are") cancelled."
         }
         self.init(
-            title: "Delete \u{201C}\(page.title)\u{201D}?",
+            title: page.isTagPage ? "Delete #\(page.title)?" : "Delete \u{201C}\(page.title)\u{201D}?",
             message: contents + " This can\u{2019}t be undone.",
             cta: "Delete page",
             onCancel: onCancel,

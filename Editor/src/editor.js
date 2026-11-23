@@ -6,6 +6,8 @@
 //     .setMentionContext({ pages, tasks }) (see mention.js),
 //     .setTypography(on): replacements as you type, from Settings (see typography.js),
 //     .setSnippets([{ trigger, text }]): your own snippets, from Settings (see snippets.js),
+//     .setTaggedLines({ hideDone, groups }): a tag page's lines from other pages (see tagged.js),
+//     .revealPath([i, j, …]): caret to a block and scroll to it, for Go to line (#102),
 //     .setMode("page" | "note"): Quick note (#82) is a small note, not a page:
 //     Return saves, ⇧Return starts a new line, ⌘Return saves as a task, and
 //     there is no block handle.
@@ -41,7 +43,8 @@ import { menuKeyDown, isMenuOpen, closeMenu } from './menu.js'
 import { blockAt, duplicate } from './blocks.js'
 import { markdownPaste } from './paste.js'
 import { installTasks, setTaskContext, linkTask, toggleToDos } from './tasks.js'
-import { Mention, setMentionContext, updateMention } from './mention.js'
+import { Mention, TagChips, setMentionContext, updateMention } from './mention.js'
+import { setTaggedLines, revealPath } from './tagged.js'
 import { RevealMarkdown, restoreRevealed } from './reveal.js'
 import { SchemaTypography, setTypography } from './typography.js'
 import { Snippets, setSnippets } from './snippets.js'
@@ -118,6 +121,7 @@ const editor = new Editor({
       showOnlyCurrent: true,
     }),
     Mention,
+    TagChips,
     Markdown,
     RevealMarkdown,
     Snippets,
@@ -219,6 +223,12 @@ window.schemaEditor = {
   },
   setSnippets(list) {
     setSnippets(list)
+  },
+  setTaggedLines(data) {
+    setTaggedLines(data)
+  },
+  revealPath(path) {
+    revealPath(editor, path)
   },
   setMode(next) {
     mode = next === 'note' ? 'note' : 'page'

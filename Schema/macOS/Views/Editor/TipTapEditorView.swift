@@ -35,6 +35,12 @@ struct TipTapEditorView: NSViewRepresentable {
     /// What @ can mention, and opening a clicked chip (#81).
     var mentionContextJSON: String?
     var onOpenMention: ((EditorMention) -> Void)?
+    /// A tag page's lines from other pages (#102); nil elsewhere.
+    var taggedLinesJSON: String?
+    var onToggleTagged: ((_ holderID: UUID, _ path: [Int], _ isTask: Bool, _ checked: Bool) -> Void)?
+    var onOpenTagged: ((_ holderID: UUID, _ path: [Int]?, _ isTask: Bool) -> Void)?
+    /// Go to line from a tag page (#102).
+    var revealRequest: EditorRevealRequest?
     /// -> to →, ... to … and so on (#99); switched off in Settings.
     @AppStorage(SchemaPreferences.replacesAsYouTypeKey, store: SchemaPreferences.defaults) private var replacesAsYouType = true
     /// Your snippets (#101), edited in Settings › Editor.
@@ -177,10 +183,14 @@ struct TipTapEditorView: NSViewRepresentable {
             bridge.setTypography(view.replacesAsYouType)
             bridge.setSnippets(view.snippetsJSON)
             bridge.onChangeDefaultPage = view.onChangeDefaultPage
+            bridge.onToggleTagged = view.onToggleTagged
+            bridge.onOpenTagged = view.onOpenTagged
             onEscape = view.onEscape
             bridge.show(view.documentJSON, key: view.documentKey)
             bridge.setTaskContext(view.taskContextJSON ?? EditorTaskContext().json)
             bridge.setMentionContext(view.mentionContextJSON ?? EditorMentionContext().json)
+            bridge.setTaggedLines(view.taggedLinesJSON ?? "null")
+            bridge.reveal(view.revealRequest)
             bridge.focus(view.focusRequest)
         }
 

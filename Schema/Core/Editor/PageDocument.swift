@@ -78,10 +78,16 @@ nonisolated enum PageDocument {
             switch child["type"] as? String {
             case "text": child["text"] as? String ?? ""
             case "hardBreak": "\n"
-            case "mention": (child["attrs"] as? [String: Any])?["label"] as? String ?? ""
+            case "mention": mentionText(child["attrs"] as? [String: Any] ?? [:])
             default: inlineText(child)
             }
         }.joined()
+    }
+
+    /// A chip as text: its name, and a tag with its # (#102).
+    private static func mentionText(_ attrs: [String: Any]) -> String {
+        let label = attrs["label"] as? String ?? ""
+        return attrs["kind"] as? String == PageTags.mentionKind ? "#" + label : label
     }
 
     static func toDos(in node: Node) -> [ToDo] {
