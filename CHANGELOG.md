@@ -4,6 +4,10 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Editing markdown that Backspace brought back (#98): Return on a line like [x] hello now makes it a ticked to-do and starts a new to-do under it, in the same list. The caret could show up at the far right after a to-do came back; the line now turns back in the same edit, so the caret is drawn once, where it is. A bullet coming back no longer merges into a numbered list next to it.
+
 ### Added
 
 - Settings is its own page (#108). ⌘, or the gear opens Settings in the main window instead of a sheet, with its own sidebar: Back to Schema (Esc), a search field (⌘F), and sections for General, Editor, Quick note, Tasks & routines, Notifications and About (GitHub arrives in v0.6). Search looks through every setting's name and description and lists matches by section. Every setting works as before.

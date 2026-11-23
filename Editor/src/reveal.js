@@ -12,9 +12,11 @@
 
 import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state'
-import { canJoin } from '@tiptap/pm/transform'
+import { canJoin, findWrapping } from '@tiptap/pm/transform'
 
 const key = new PluginKey('schemaReveal')
+// Ids of revealed lines turned back in a transaction.
+const removeKey = 'schemaRevealRemoved'
 
 // { id, pos, taskId }: pos is where the revealed paragraph starts.
 let nextID = 0
@@ -79,89 +81,86 @@ const parse = (text) => {
   return null
 }
 
-// Turns one revealed line back into a block, keeping the caret where it was.
-function restore(editor, entry) {
-  const { state } = editor
-  const node = state.doc.nodeAt(entry.pos)
-  const drop = (tr) => tr.setMeta(key, { remove: entry.id })
-  if (!node || node.type.name !== 'paragraph') {
-    editor.view.dispatch(drop(state.tr))
-    return
-  }
-  const $pos = state.doc.resolve(entry.pos)
+// Turns one revealed line back into a block, inside `tr`. Returns false when
+// the entry is gone. Runs in appendTransaction, so the change lands in the
+// same update as the caret move that caused it: the editor draws the caret
+// once, in the right place (a second dispatch from inside an update could
+// leave WebKit drawing it where the line used to end).
+function restoreIn(tr, entry) {
+  tr.setMeta(removeKey, [...(tr.getMeta(removeKey) || []), entry.id])
+  const node = tr.doc.nodeAt(entry.pos)
+  if (!node || node.type.name !== 'paragraph') return
+  const { schema } = tr.doc.type
+  const $pos = tr.doc.resolve(entry.pos)
   // Already made into a to-do by typing "[ ] " again: give back its task,
   // and join the to-dos around it, as Backspace had split them.
   if ($pos.parent.type.name === 'taskItem') {
-    const tr = drop(state.tr)
     if (entry.taskId && !$pos.parent.attrs.taskId) {
       tr.setNodeMarkup($pos.before(), undefined, { ...$pos.parent.attrs, taskId: entry.taskId })
     }
-    const list = $pos.before($pos.depth - 1)
-    const after = list + tr.doc.nodeAt(list).nodeSize
-    if (canJoin(tr.doc, after)) tr.join(after)
-    if (canJoin(tr.doc, list)) tr.join(list)
-    editor.view.dispatch(tr)
+    joinAround(tr, $pos.before($pos.depth - 1))
     return
   }
   const found = parse(node.textContent)
-  if (!found) {
-    editor.view.dispatch(drop(state.tr))
+  if (!found) return
+  const inside = entry.pos + 1
+  tr.delete(inside, inside + found.length)
+  if (found.kind === 'heading') {
+    tr.setNodeMarkup(entry.pos, schema.nodes.heading, { level: found.level })
     return
   }
-  const bookmark = state.selection.getBookmark()
-  const inside = entry.pos + 1
-  const chain = editor.chain().command(({ tr }) => {
-    drop(tr)
-    tr.delete(inside, inside + found.length)
-    tr.setSelection(TextSelection.create(tr.doc, inside))
-    return true
+  const wrapper = {
+    todo: [schema.nodes.taskList, null],
+    bullet: [schema.nodes.bulletList, null],
+    ordered: [schema.nodes.orderedList, { start: found.start }],
+    quote: [schema.nodes.blockquote, null],
+  }[found.kind]
+  const $inside = tr.doc.resolve(inside)
+  const range = $inside.blockRange()
+  const wrapping = range && findWrapping(range, wrapper[0], wrapper[1])
+  if (!wrapping) return
+  tr.wrap(range, wrapping)
+  if (found.kind === 'todo') {
+    const item = tr.doc.nodeAt(entry.pos + 1)
+    if (item?.type.name === 'taskItem') {
+      tr.setNodeMarkup(entry.pos + 1, undefined, { ...item.attrs, checked: found.checked, taskId: entry.taskId || item.attrs.taskId })
+    }
+  }
+  if (found.kind !== 'quote') joinAround(tr, entry.pos)
+}
+
+// Joins the list at `pos` with lists of the same kind right before and after
+// it. (canJoin alone would also join a bullet list into a numbered one, or
+// try an empty paragraph into a list.)
+function joinAround(tr, pos) {
+  const list = tr.doc.nodeAt(pos)
+  if (!list) return
+  const same = (at) => {
+    const $at = tr.doc.resolve(at)
+    return $at.nodeBefore?.type === list.type && $at.nodeAfter?.type === list.type && canJoin(tr.doc, at)
+  }
+  const after = pos + list.nodeSize
+  if (same(after)) tr.join(after)
+  if (same(pos)) tr.join(pos)
+}
+
+// Lines to turn back: those the caret isn't in, ones typed back into a
+// to-do, and every one when the editor loses focus.
+function due(state, all, ids = []) {
+  const { head } = state.selection
+  return revealed(state).filter((e) => {
+    if (all || ids.includes(e.id)) return true
+    const node = state.doc.nodeAt(e.pos)
+    if (!node) return true
+    if (state.doc.resolve(e.pos).parent.type.name === 'taskItem') return true
+    return head < e.pos + 1 || head > e.pos + node.nodeSize - 1
   })
-  switch (found.kind) {
-    case 'heading': chain.setNode('heading', { level: found.level }); break
-    case 'todo': chain.toggleTaskList(); break
-    case 'bullet': chain.toggleBulletList(); break
-    case 'ordered': chain.toggleOrderedList(); break
-    case 'quote': chain.wrapIn('blockquote'); break
-  }
-  chain
-    .command(({ tr }) => {
-      if (found.kind === 'todo') {
-        const $line = tr.doc.resolve(tr.mapping.map(inside))
-        for (let d = $line.depth; d > 0; d--) {
-          const item = $line.node(d)
-          if (item.type.name !== 'taskItem') continue
-          tr.setNodeMarkup($line.before(d), undefined, { ...item.attrs, checked: found.checked, taskId: entry.taskId || item.attrs.taskId })
-          break
-        }
-      }
-      tr.setSelection(bookmark.map(tr.mapping).resolve(tr.doc))
-      return true
-    })
-    .run()
 }
 
-// Restores revealed lines the caret is not in; every one when `all`.
-let restoring = false
-export function restoreRevealed(editor, all = false) {
-  if (restoring || revealed(editor.state).length === 0) return
-  restoring = true
-  try { restoreEach(editor, all) } finally { restoring = false }
-}
-
-function restoreEach(editor, all) {
-  for (let guard = 0; guard < 100; guard++) {
-    const { selection } = editor.state
-    const entry = revealed(editor.state).find((e) => {
-      if (all) return true
-      const node = editor.state.doc.nodeAt(e.pos)
-      if (!node) return true
-      // Made into a to-do again by typing: its task comes back at once.
-      if (editor.state.doc.resolve(e.pos).parent.type.name === 'taskItem') return true
-      return selection.head < e.pos + 1 || selection.head > e.pos + node.nodeSize - 1
-    })
-    if (!entry) return
-    restore(editor, entry)
-  }
+// Turns every revealed line back, for when the editor loses focus.
+export function restoreRevealed(editor) {
+  if (revealed(editor.state).length === 0) return
+  editor.view.dispatch(editor.state.tr.setMeta(key, { restoreAll: true }))
 }
 
 export const RevealMarkdown = Extension.create({
@@ -172,6 +171,19 @@ export const RevealMarkdown = Extension.create({
   addKeyboardShortcuts() {
     return {
       Backspace: ({ editor }) => editor.commands.undoInputRule() || reveal(editor),
+      // Return on a line showing its markdown makes it a block again first,
+      // so Return then does what it does there: [x] hello → a ticked to-do,
+      // and the new line is a to-do under it.
+      Enter: ({ editor }) => {
+        const { state } = editor
+        const { head } = state.selection
+        const entry = revealed(state).find((e) => {
+          const node = state.doc.nodeAt(e.pos)
+          return node && head > e.pos && head < e.pos + node.nodeSize
+        })
+        if (entry) editor.view.dispatch(state.tr.setMeta(key, { restoreIds: [entry.id] }))
+        return false
+      },
     }
   },
 
@@ -190,10 +202,25 @@ export const RevealMarkdown = Extension.create({
                 return result.deleted ? [] : [{ ...e, pos: result.pos }]
               })
             }
+            const removed = tr.getMeta(removeKey) || []
+            if (removed.length) next = next.filter((e) => !removed.includes(e.id))
             if (meta?.remove !== undefined) next = next.filter((e) => e.id !== meta.remove)
             if (meta?.add) next = [...next.filter((e) => e.pos !== meta.add.pos), meta.add]
             return next
           },
+        },
+        appendTransaction(trs, _old, state) {
+          if (trs.some((tr) => tr.getMeta(key)?.restoring)) return null
+          const all = trs.some((tr) => tr.getMeta(key)?.restoreAll)
+          const ids = trs.flatMap((tr) => tr.getMeta(key)?.restoreIds || [])
+          const entries = due(state, all, ids)
+          if (entries.length === 0) return null
+          const tr = state.tr.setMeta(key, { restoring: true })
+          // Last first, so earlier positions stay put.
+          for (const entry of [...entries].sort((x, y) => y.pos - x.pos)) {
+            restoreIn(tr, { ...entry, pos: tr.mapping.map(entry.pos, 1) })
+          }
+          return tr
         },
       }),
     ]
