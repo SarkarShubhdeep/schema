@@ -19,6 +19,8 @@ enum SchemaPreferences {
 
     /// Replacing -> with →, ... with … and so on in the editor (#99). On by default.
     static let replacesAsYouTypeKey = "schema.preferences.replacesAsYouType"
+    /// Your snippets (#101), as JSON (see SnippetStore).
+    static let snippetsKey = "schema.preferences.snippets"
 
     #if DEBUG
     static let defaults: UserDefaults = DemoData.isEnabled ? DemoData.defaults : .standard

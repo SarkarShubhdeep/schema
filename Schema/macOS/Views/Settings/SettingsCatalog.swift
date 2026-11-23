@@ -46,7 +46,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 /// Which setting a row is; the page draws its control.
 enum SettingsKey: String, CaseIterable {
     case defaultList, weekStart
-    case replaceAsYouType
+    case replaceAsYouType, snippets
     case quickNotePage, quickNoteShortcut
     case followerRoutines
     case notificationPermission
@@ -90,6 +90,10 @@ enum SettingsCatalog {
                       title: "Replace as you type",
                       detail: "Turns -> into →, != into ≠ and three dots into …, and curls quotes. Backspace or ⌘Z right after keeps what you typed.",
                       keywords: ["arrows", "ligatures", "typography", "quotes", "smart"]),
+        SettingsEntry(key: .snippets, section: .editor, group: "Snippets",
+                      title: "Snippets",
+                      detail: "Type a trigger anywhere you write and it turns into its text.",
+                      keywords: ["text replacement", "expand", "shortcut", "trigger", "template"]),
         SettingsEntry(key: .quickNotePage, section: .quickNote, group: "Quick note",
                       title: "Quick note saves to",
                       detail: "Notes go to the top of this scratchpad under today's date.",

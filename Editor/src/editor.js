@@ -5,6 +5,7 @@
 //     .setTaskContext({ pages, tasks }), .linkTask(ref, taskId) (see tasks.js),
 //     .setMentionContext({ pages, tasks }) (see mention.js),
 //     .setTypography(on): replacements as you type, from Settings (see typography.js),
+//     .setSnippets([{ trigger, text }]): your own snippets, from Settings (see snippets.js),
 //     .setMode("page" | "note"): Quick note (#82) is a small note, not a page:
 //     Return saves, ⇧Return starts a new line, ⌘Return saves as a task, and
 //     there is no block handle.
@@ -43,6 +44,7 @@ import { installTasks, setTaskContext, linkTask, toggleToDos } from './tasks.js'
 import { Mention, setMentionContext, updateMention } from './mention.js'
 import { RevealMarkdown, restoreRevealed } from './reveal.js'
 import { SchemaTypography, setTypography } from './typography.js'
+import { Snippets, setSnippets } from './snippets.js'
 
 const post = (message) => {
   try {
@@ -118,6 +120,7 @@ const editor = new Editor({
     Mention,
     Markdown,
     RevealMarkdown,
+    Snippets,
     SchemaTypography,
   ],
   autofocus: false,
@@ -213,6 +216,9 @@ window.schemaEditor = {
   },
   setTypography(on) {
     setTypography(on)
+  },
+  setSnippets(list) {
+    setSnippets(list)
   },
   setMode(next) {
     mode = next === 'note' ? 'note' : 'page'
