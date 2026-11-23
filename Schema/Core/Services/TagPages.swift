@@ -18,42 +18,12 @@ enum TagPages {
     /// gather its lines again.
     static let documentSaved = Notification.Name("SchemaDocumentSaved")
 
-    /// What a tag page shows below its own writing (tagged.js).
-    struct Lines: Encodable, Equatable {
-        var hideDone: Bool
-        /// Under a "From <page>" divider per page; off, one list with each
-        /// line's page named on its right.
-        var grouped = true
-        var groups: [Group]
-
-        var json: String {
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = .sortedKeys
-            return (try? encoder.encode(self)).flatMap { String(data: $0, encoding: .utf8) } ?? "null"
-        }
-
-        var openCount: Int { groups.reduce(0) { $0 + $1.lines.count { $0.kind == .todo && !$0.checked } } }
-    }
-
-    struct Group: Encodable, Equatable {
-        var title: String
-        /// The page or task to open with Open.
-        var holderId: String
-        /// Open opens a task's page rather than a page.
-        var isTask: Bool
-        var lines: [Line]
-    }
-
-    struct Line: Encodable, Equatable {
-        var holderId: String
-        var path: [Int]?
-        var kind: PageTags.LineKind
-        var text: String
-        var otherTags: [String]
-        var checked: Bool
-        var linkedPage: String?
-        /// A task on a to-do list, tagged in its title.
-        var isTask: Bool
+    /// A tag page's synced blocks (#113), as the editor takes them
+    /// (synced.js): every block tagged with it elsewhere, live.
+    struct Synced: Equatable {
+        var json: String
+        var openCount: Int
+        var pageCount: Int
     }
 
     // MARK: Making tag pages
@@ -78,65 +48,141 @@ enum TagPages {
         return made
     }
 
-    // MARK: A tag's lines
+    // MARK: A tag's synced blocks
 
-    static func lines(for tag: SchemaList, hideDone: Bool, grouped: Bool = true, in context: ModelContext) -> Lines {
+    /// Every block tagged with `tag` on other pages and in task bodies, and
+    /// every task tagged in its title, in page order. Blocks without a
+    /// lasting id get one where they live first.
+    static func synced(for tag: SchemaList, hideDone: Bool, grouped: Bool, in context: ModelContext) -> Synced {
         let lists = ((try? context.fetch(FetchDescriptor<SchemaList>())) ?? []).sorted { $0.order < $1.order }
         let tasks = (try? context.fetch(FetchDescriptor<SchemaTask>())) ?? []
         let taskByID = Dictionary(tasks.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        var groups: [Group] = []
+        var blocks: [[String: Any]] = []
+        var open = 0
+        var pages = Set<String>()
 
-        func docLines(_ holder: any PageDocumentHolder, id: UUID) -> [Line] {
-            guard holder.hasDocument else { return [] }
-            return PageTags.lines(taggedWith: tag.id, in: holder.documentJSON).map { line in
-                Line(
-                    holderId: id.uuidString, path: line.path, kind: line.kind, text: line.text,
-                    otherTags: line.otherTags, checked: line.taskID.flatMap { taskByID[$0]?.isCompleted } ?? line.isChecked,
-                    linkedPage: line.taskID.flatMap { taskByID[$0]?.list?.title }, isTask: false
-                )
+        func add(_ holder: any PageDocumentHolder, id: UUID, source: String) {
+            guard holder.hasDocument, holder.documentJSON.contains(tag.id.uuidString) else { return }
+            if let withIDs = PageTags.ensuringBlockIDs(in: holder.documentJSON) { holder.setDocument(withIDs) }
+            for line in PageTags.lines(taggedWith: tag.id, in: holder.documentJSON) {
+                guard let bid = line.blockID else { continue }
+                let checked = line.taskID.flatMap { taskByID[$0]?.isCompleted } ?? line.isChecked
+                if line.kind == .todo, !checked { open += 1 }
+                pages.insert(id.uuidString)
+                var block: [String: Any] = [
+                    "holderId": id.uuidString, "bid": bid, "kind": line.kind.rawValue,
+                    "checked": checked, "source": source, "content": line.inline,
+                ]
+                if let page = line.taskID.flatMap({ taskByID[$0]?.list?.title }) { block["linkedPage"] = page }
+                if let number = line.number { block["number"] = number }
+                blocks.append(block)
             }
         }
 
+        // Tag pages are pages too: a line made on #chores and tagged #idea
+        // shows on #idea from #chores.
         for list in lists where list.id != tag.id && !list.isEverythingList {
-            var lines = docLines(list, id: list.id)
-            // Tasks on this to-do list tagged in their title.
+            add(list, id: list.id, source: list.isTagPage ? "#\(list.title)" : list.title)
             for task in tasks where task.list?.id == list.id && PageTags.title(task.title, hasTag: tag.title) {
-                lines.append(Line(
-                    holderId: task.id.uuidString, path: nil, kind: .todo,
-                    text: PageTags.strippingTag(from: task.title, named: tag.title),
-                    otherTags: [], checked: task.isCompleted, linkedPage: nil, isTask: true
-                ))
-            }
-            if !lines.isEmpty {
-                groups.append(Group(title: list.title, holderId: list.id.uuidString, isTask: false, lines: lines))
+                if !task.isCompleted { open += 1 }
+                pages.insert(list.id.uuidString)
+                blocks.append([
+                    "holderId": task.id.uuidString, "bid": "task:\(task.id.uuidString)", "kind": "task",
+                    "checked": task.isCompleted, "source": list.title,
+                    "content": [["type": "text", "text": task.title]],
+                ])
             }
         }
-        // Task pages' bodies.
         for task in tasks.sorted(by: { $0.createdAt < $1.createdAt }) {
-            let lines = docLines(task, id: task.id)
-            if !lines.isEmpty {
-                groups.append(Group(title: task.title, holderId: task.id.uuidString, isTask: true, lines: lines))
-            }
+            add(task, id: task.id, source: task.title)
         }
-        return Lines(hideDone: hideDone, grouped: grouped, groups: groups)
+        let payload: [String: Any] = ["grouped": grouped, "hideDone": hideDone, "tagLabel": tag.title, "blocks": blocks]
+        let json = (try? JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys])).flatMap { String(data: $0, encoding: .utf8) } ?? "null"
+        return Synced(json: json, openCount: open, pageCount: pages.count)
     }
 
-    // MARK: Ticking from the tag page
+    // MARK: Writing back
 
-    /// Ticks a tagged line where it lives: a to-do in a page or task body
-    /// (and its linked task), or a task tagged in its title.
-    static func toggle(holderID: UUID, path: [Int], isTask: Bool, checked: Bool, in context: ModelContext, toggleTask: (SchemaTask) -> Void) {
+    /// The tag page was edited: each synced block's line and tick go back to
+    /// the block where it lives, and blocks made with Return there are added
+    /// after the block they came from.
+    static func writeBack(_ json: String, in context: ModelContext, toggleTask: (SchemaTask) -> Void) {
+        guard json.contains(PageTags.syncedBlockType), let doc = PageDocument.parse(json) else { return }
+        let lists = (try? context.fetch(FetchDescriptor<SchemaList>())) ?? []
         let tasks = (try? context.fetch(FetchDescriptor<SchemaTask>())) ?? []
-        if isTask, path.isEmpty {
-            if let task = tasks.first(where: { $0.id == holderID }), task.isCompleted != checked { toggleTask(task) }
-            return
+        var touched: [ObjectIdentifier: any PageDocumentHolder] = [:]
+        for node in doc["content"] as? [[String: Any]] ?? [] where node["type"] as? String == PageTags.syncedBlockType {
+            let attrs = node["attrs"] as? [String: Any] ?? [:]
+            guard let holderString = attrs["holderId"] as? String, let holderID = UUID(uuidString: holderString),
+                  let bid = attrs["bid"] as? String else { continue }
+            let kind = attrs["kind"] as? String ?? "paragraph"
+            let checked = attrs["checked"] as? Bool ?? false
+            let after = attrs["after"] as? String
+            let inline = ((node["content"] as? [[String: Any]])?.first?["content"] as? [[String: Any]]) ?? []
+
+            if kind == "task" {
+                let title = PageDocument.plainText(["type": "doc", "content": [["type": "paragraph", "content": inline]]])
+                    .trimmingCharacters(in: .whitespaces)
+                if let task = tasks.first(where: { $0.id == holderID }) {
+                    if !title.isEmpty, task.title != title { task.title = title }
+                    if task.isCompleted != checked { toggleTask(task) }
+                } else if bid.hasPrefix("task:"), let newID = UUID(uuidString: String(bid.dropFirst(5))),
+                          let after, let previous = tasks.first(where: { "task:\($0.id.uuidString)" == after }),
+                          !title.isEmpty, !tasks.contains(where: { $0.id == newID }) {
+                    let task = SchemaTask(title: title, list: previous.list)
+                    task.id = newID
+                    task.manualSortIndex = previous.manualSortIndex + 0.5
+                    context.insert(task)
+                }
+                continue
+            }
+            let holder: (any PageDocumentHolder)? = lists.first { $0.id == holderID } ?? tasks.first { $0.id == holderID }
+            guard let holder else { continue }
+            let source = holder.documentJSON
+            var next = PageTags.updating(block: bid, inline: inline, checked: kind == "todo" ? checked : nil, in: source)
+            if next == nil, PageTags.path(ofBlock: bid, in: source) == nil, let after {
+                next = PageTags.inserting(after: after, kind: PageTags.LineKind(rawValue: kind) ?? .paragraph, blockID: bid, inline: inline, in: source)
+            }
+            guard let next else { continue }
+            holder.setDocument(next)
+            touched[ObjectIdentifier(holder)] = holder
+            for id in PageDocument.tasksToToggle(in: next, isDone: { id in tasks.first { $0.id == id }?.isCompleted }) {
+                if let task = tasks.first(where: { $0.id == id }) { toggleTask(task) }
+            }
         }
-        let holder: (any PageDocumentHolder)? = (try? context.fetch(FetchDescriptor<SchemaList>()))?.first { $0.id == holderID }
-            ?? tasks.first { $0.id == holderID }
-        guard let holder, let json = PageTags.settingChecked(checked, at: path, in: holder.documentJSON) else { return }
-        holder.setDocument(json)
-        for id in PageDocument.tasksToToggle(in: json, isDone: { id in tasks.first { $0.id == id }?.isCompleted }) {
-            if let task = tasks.first(where: { $0.id == id }) { toggleTask(task) }
+        try? context.save()
+    }
+
+    /// Synced blocks taken off a tag page by hand: the tag comes off each
+    /// where it lives (a task loses "#tag" from its title).
+    static func removeTag(_ tag: SchemaList, from items: [(holderID: UUID, blockID: String, kind: String)], in context: ModelContext) {
+        let lists = (try? context.fetch(FetchDescriptor<SchemaList>())) ?? []
+        let tasks = (try? context.fetch(FetchDescriptor<SchemaTask>())) ?? []
+        for item in items {
+            if item.kind == "task" {
+                if let task = tasks.first(where: { $0.id == item.holderID }) {
+                    task.title = PageTags.strippingTag(from: task.title, named: tag.title)
+                }
+                continue
+            }
+            let holder: (any PageDocumentHolder)? = lists.first { $0.id == item.holderID } ?? tasks.first { $0.id == item.holderID }
+            if let holder, let json = PageTags.removing(tag.id, fromBlock: item.blockID, in: holder.documentJSON) {
+                holder.setDocument(json)
+            }
+        }
+        try? context.save()
+    }
+
+    /// Delete everywhere: the block goes from where it lives, and so from
+    /// every tag page. A task tagged in its title is deleted.
+    static func deleteEverywhere(holderID: UUID, blockID: String, kind: String, in context: ModelContext) {
+        let lists = (try? context.fetch(FetchDescriptor<SchemaList>())) ?? []
+        let tasks = (try? context.fetch(FetchDescriptor<SchemaTask>())) ?? []
+        if kind == "task" {
+            if let task = tasks.first(where: { $0.id == holderID }) { context.delete(task) }
+        } else {
+            let holder: (any PageDocumentHolder)? = lists.first { $0.id == holderID } ?? tasks.first { $0.id == holderID }
+            if let holder, let json = PageTags.deleting(block: blockID, in: holder.documentJSON) { holder.setDocument(json) }
         }
         try? context.save()
     }

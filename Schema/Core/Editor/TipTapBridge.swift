@@ -79,12 +79,14 @@ final class TipTapBridge {
     var onOpenMention: ((EditorMention) -> Void)?
     /// "Change the default page…" in Make task in.
     var onChangeDefaultPage: (() -> Void)?
-    /// A tag page's line from another page was ticked (#102): the page or
-    /// task holding it, the path to the to-do, or a whole task (`isTask`).
-    var onToggleTagged: ((_ holderID: UUID, _ path: [Int], _ isTask: Bool, _ checked: Bool) -> Void)?
-    /// A tag page's line was clicked: open it where it lives. `path` is nil
-    /// for a page's Open button.
-    var onOpenTagged: ((_ holderID: UUID, _ path: [Int]?, _ isTask: Bool) -> Void)?
+    /// "Open in …" on a synced block (#113): the page or task it lives in,
+    /// and the block's lasting id.
+    var onOpenTagged: ((_ holderID: UUID, _ blockID: String?, _ isTask: Bool) -> Void)?
+    /// Synced blocks taken off a tag page by hand (#113): the tag comes off
+    /// each where it lives.
+    var onSyncedRemoved: (([(holderID: UUID, blockID: String, kind: String)]) -> Void)?
+    /// "Delete everywhere…" on a synced block (#113).
+    var onDeleteSynced: ((_ holderID: UUID, _ blockID: String, _ kind: String, _ source: String) -> Void)?
 
     private(set) var isReady = false
     /// The document the editor shows now, as far as Swift knows.
@@ -134,10 +136,10 @@ final class TipTapBridge {
         flush()
     }
 
-    /// A tag page's lines from other pages (#102), as JSON text; "null" on
-    /// every other page. Sent when it changes.
-    func setTaggedLines(_ json: String) {
-        wantedContexts["setTaggedLines"] = json
+    /// A tag page's synced blocks (#113), as JSON text; "null" on every
+    /// other page. Sent when they change.
+    func setSyncedBlocks(_ json: String) {
+        wantedContexts["setSyncedBlocks"] = json
         flush()
     }
 
@@ -207,12 +209,21 @@ final class TipTapBridge {
             onOpenMention?(mention)
         case "changeDefaultPage":
             onChangeDefaultPage?()
-        case "toggleTagged":
-            guard let id = (body["holderId"] as? String).flatMap(UUID.init(uuidString:)) else { return }
-            onToggleTagged?(id, Self.path(body["path"]) ?? [], (body["isTask"] as? Bool) ?? false, (body["checked"] as? Bool) ?? false)
         case "openTagged":
             guard let id = (body["holderId"] as? String).flatMap(UUID.init(uuidString:)) else { return }
-            onOpenTagged?(id, Self.path(body["path"]), (body["isTask"] as? Bool) ?? false)
+            onOpenTagged?(id, body["bid"] as? String, (body["isTask"] as? Bool) ?? false)
+        case "syncedRemoved":
+            let items = (body["items"] as? [[String: Any]] ?? []).compactMap { item -> (holderID: UUID, blockID: String, kind: String)? in
+                guard let id = (item["holderId"] as? String).flatMap(UUID.init(uuidString:)),
+                      let bid = item["bid"] as? String,
+                      item["after"] == nil || item["after"] is NSNull else { return nil }
+                return (id, bid, item["kind"] as? String ?? "paragraph")
+            }
+            if !items.isEmpty { onSyncedRemoved?(items) }
+        case "deleteSynced":
+            guard let id = (body["holderId"] as? String).flatMap(UUID.init(uuidString:)),
+                  let bid = body["bid"] as? String else { return }
+            onDeleteSynced?(id, bid, body["kind"] as? String ?? "paragraph", body["source"] as? String ?? "")
         case "error":
             onError?("\(body["message"] ?? "") \(body["source"] ?? "")")
         default:
