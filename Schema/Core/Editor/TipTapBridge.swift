@@ -106,6 +106,12 @@ final class TipTapBridge {
         flush()
     }
 
+    /// Replacements as you type, like -> to → (#99), from Settings.
+    func setTypography(_ isOn: Bool) {
+        wantedContexts["setTypography"] = isOn ? "true" : "false"
+        flush()
+    }
+
     /// A page, or Quick note's small note where Return saves (#82).
     func setMode(_ mode: EditorMode) {
         wantedContexts["setMode"] = "\"\(mode.rawValue)\""

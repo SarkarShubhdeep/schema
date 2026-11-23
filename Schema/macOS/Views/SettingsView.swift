@@ -17,6 +17,7 @@ struct SettingsView: View {
     @State private var authorizationStatus: NotificationAuthorizationStatus = .notDetermined
     @State private var isRequestingAuthorization = false
     @State private var quickNotePageID = SchemaPreferences.quickNotePageID
+    @AppStorage(SchemaPreferences.replacesAsYouTypeKey, store: SchemaPreferences.defaults) private var replacesAsYouType = true
 
     private var writableLists: [SchemaList] {
         lists.filter(\.acceptsTasks)
@@ -67,6 +68,21 @@ struct SettingsView: View {
                     options: writableLists.map { (value: Optional($0.id), label: $0.title) }
                 )
                 .fixedSize()
+            }
+
+            sectionDivider
+
+            settingsSection(title: "Editor") {
+                Toggle(isOn: $replacesAsYouType) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Replace as you type")
+                        Text("Turns -> into →, != into ≠ and three dots into …, and curls quotes. Backspace or ⌘Z right after keeps what you typed.")
+                            .font(.satoshi(12))
+                            .foregroundStyle(SchemaTheme.inkMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .toggleStyle(.switch)
             }
 
             sectionDivider

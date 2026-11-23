@@ -17,10 +17,13 @@ enum SchemaPreferences {
         static let quickNotePageID = "schema.preferences.quickNotePageID"
     }
 
+    /// Replacing -> with →, ... with … and so on in the editor (#99). On by default.
+    static let replacesAsYouTypeKey = "schema.preferences.replacesAsYouType"
+
     #if DEBUG
-    private static let defaults: UserDefaults = DemoData.isEnabled ? DemoData.defaults : .standard
+    static let defaults: UserDefaults = DemoData.isEnabled ? DemoData.defaults : .standard
     #else
-    private static let defaults = UserDefaults.standard
+    static let defaults = UserDefaults.standard
     #endif
 
     static var sortOption: TaskSortOption {

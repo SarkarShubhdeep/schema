@@ -4,6 +4,7 @@
 //   Swift → JS: window.schemaEditor.setContent(json, key), .focus(where), .getJSON(),
 //     .setTaskContext({ pages, tasks }), .linkTask(ref, taskId) (see tasks.js),
 //     .setMentionContext({ pages, tasks }) (see mention.js),
+//     .setTypography(on): replacements as you type, from Settings (see typography.js),
 //     .setMode("page" | "note"): Quick note (#82) is a small note, not a page:
 //     Return saves, ⇧Return starts a new line, ⌘Return saves as a task, and
 //     there is no block handle.
@@ -41,6 +42,7 @@ import { markdownPaste } from './paste.js'
 import { installTasks, setTaskContext, linkTask, toggleToDos } from './tasks.js'
 import { Mention, setMentionContext, updateMention } from './mention.js'
 import { RevealMarkdown, restoreRevealed } from './reveal.js'
+import { SchemaTypography, setTypography } from './typography.js'
 
 const post = (message) => {
   try {
@@ -116,6 +118,7 @@ const editor = new Editor({
     Mention,
     Markdown,
     RevealMarkdown,
+    SchemaTypography,
   ],
   autofocus: false,
   editorProps: {
@@ -208,6 +211,9 @@ window.schemaEditor = {
   },
   setMentionContext(context) {
     setMentionContext(editor, context)
+  },
+  setTypography(on) {
+    setTypography(on)
   },
   setMode(next) {
     mode = next === 'note' ? 'note' : 'page'

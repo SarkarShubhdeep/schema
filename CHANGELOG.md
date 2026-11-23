@@ -4,6 +4,10 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Replace as you type (#99). In pages, task pages and Quick note, -> becomes →, <- ←, <-> ↔, => ⇒, <=> ⇔, != ≠, >= ≥, <= ≤, ... …, a--b a—b, +/- ±, (c) ©, (tm) ™, and quotes and apostrophes curl. Never inside code blocks or code, and --- at the start of a line still makes a divider. Backspace or ⌘Z right after keeps what you typed, and Settings › Editor › Replace as you type turns it off.
+
 ### Changed
 
 - Backspace brings markdown back (#98). At the start of a heading, to-do, list item or quote, Backspace turns it into a plain line that starts with the markdown that made it (`## `, `[ ] `, `[x] `, `- `, `2. `, `> `), so you can edit it: type x between the brackets to tick a to-do, change `##` to `#`, or delete the markdown to keep a plain line. Moving off the line turns it back into a block, and a to-do made into a task keeps its task. ⌘Z right after puts the block back.
