@@ -63,8 +63,14 @@ enum TagPages {
 
         func add(_ holder: any PageDocumentHolder, id: UUID, source: String) {
             guard holder.hasDocument, holder.documentJSON.contains(tag.id.uuidString) else { return }
-            if let withIDs = PageTags.ensuringBlockIDs(in: holder.documentJSON) { holder.setDocument(withIDs) }
-            for line in PageTags.lines(taggedWith: tag.id, in: holder.documentJSON) {
+            var lines = PageTags.lines(taggedWith: tag.id, in: holder.documentJSON)
+            // The editor gives every block an id; a document written before
+            // that gets them here, the first time it's read.
+            if lines.contains(where: { $0.blockID == nil }), let withIDs = PageTags.ensuringBlockIDs(in: holder.documentJSON) {
+                holder.setDocument(withIDs)
+                lines = PageTags.lines(taggedWith: tag.id, in: withIDs)
+            }
+            for line in lines {
                 guard let bid = line.blockID else { continue }
                 let checked = line.taskID.flatMap { taskByID[$0]?.isCompleted } ?? line.isChecked
                 if line.kind == .todo, !checked { open += 1 }
@@ -79,11 +85,18 @@ enum TagPages {
             }
         }
 
+        // Tasks with the tag in their title, by page: one pass, and the
+        // pattern only runs on titles that have a "#".
+        var taggedTitles: [UUID: [SchemaTask]] = [:]
+        for task in tasks where task.title.contains("#") && PageTags.title(task.title, hasTag: tag.title) {
+            if let listID = task.list?.id { taggedTitles[listID, default: []].append(task) }
+        }
+
         // Tag pages are pages too: a line made on #chores and tagged #idea
         // shows on #idea from #chores.
         for list in lists where list.id != tag.id && !list.isEverythingList {
             add(list, id: list.id, source: list.isTagPage ? "#\(list.title)" : list.title)
-            for task in tasks where task.list?.id == list.id && PageTags.title(task.title, hasTag: tag.title) {
+            for task in taggedTitles[list.id] ?? [] {
                 if !task.isCompleted { open += 1 }
                 pages.insert(list.id.uuidString)
                 blocks.append([

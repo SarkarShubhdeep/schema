@@ -4,6 +4,10 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+## [0.5.6] — 2026-11-23
+
+Editor polish: #tags and tag pages with synced blocks, snippets, replace as you type, Backspace that brings markdown back, ⌘Return to tick, and Settings as its own page.
+
 ### Added
 
 - Synced blocks on tag pages (#113). A tagged block now exists once and is editable everywhere it shows: on #chores, type in, tick or format a block that lives in Ideas, and Ideas (and every other tag page it's on) shows the change. Return makes a new line under it that is the tag page's own (made on #chores, it lives on #chores; tag it #idea and it shows on #idea "from #chores"); Backspace in an empty one, or Remove #tag in its ⋮⋮ menu, takes the tag off; Delete everywhere… removes it from every page. Hovering one shows where it lives; Open in … goes there. Every block now carries a lasting id so a synced block is found after its page changes (no schema change).
@@ -20,6 +24,7 @@ All notable changes to Schema are documented in this file.
 ### Fixed
 
 - Editing markdown that Backspace brought back (#98): Return on a line like [x] hello now makes it a ticked to-do and starts a new to-do under it, in the same list. The caret could show up at the far right after a to-do came back; the line now turns back in the same edit, so the caret is drawn once, where it is. A bullet coming back no longer merges into a numbered list next to it.
+- Opening a tag page is faster with many tasks: tasks with the tag in their title are found in one pass, and a page is read once (#103). With 1,000 tasks and 100 tagged lines it opens in about 167 ms, from 223 ms.
 
 ### Development
 

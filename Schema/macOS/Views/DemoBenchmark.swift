@@ -44,6 +44,9 @@ enum DemoBenchmark {
             steps.append(Step(label: "open Journal (500 blocks) #\(round)") { listViewModel.selectList(journal) })
             steps.append(Step(label: "open Everything #\(round)") { listViewModel.selectEverythingList(from: lists) })
             steps.append(Step(label: "open Today #\(round)") { listViewModel.selectSmartView(.today, from: lists) })
+            if let review = lists.first(where: { $0.isTagPage && $0.title == "review" }) {
+                steps.append(Step(label: "open #review (100 synced lines) #\(round)") { listViewModel.selectList(review) })
+            }
         }
         // Selecting a task scrolls the list to it: step down the long list
         // about a screenful at a time.
