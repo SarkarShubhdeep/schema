@@ -79,8 +79,10 @@ enum TagPages {
             }
         }
 
+        // Tag pages are pages too: a line made on #chores and tagged #idea
+        // shows on #idea from #chores.
         for list in lists where list.id != tag.id && !list.isEverythingList {
-            add(list, id: list.id, source: list.title)
+            add(list, id: list.id, source: list.isTagPage ? "#\(list.title)" : list.title)
             for task in tasks where task.list?.id == list.id && PageTags.title(task.title, hasTag: tag.title) {
                 if !task.isCompleted { open += 1 }
                 pages.insert(list.id.uuidString)

@@ -181,4 +181,35 @@ struct TagPagesTests {
         #expect(ideas.documentText.contains("Rota housework"))
         #expect(bins.title == "Bins housework")
     }
+
+    /// A line made on #chores is #chores' own. Tagged #idea, it shows on
+    /// #idea from #chores, and edits there go back to #chores.
+    @Test func aLineMadeOnATagPageLivesThere() throws {
+        let context = try store()
+        let ideaID = UUID()
+        let chores = SchemaList(title: "chores", order: 1, kind: .tag)
+        let idea = SchemaList(title: "idea", order: 2, kind: .tag)
+        idea.id = ideaID
+        [chores, idea].forEach(context.insert)
+        let chip: [String: Any] = ["type": "mention", "attrs": ["kind": "tag", "id": ideaID.uuidString, "label": "idea"]]
+        chores.setDocument(TipTapDocument.json(["type": "doc", "content": [
+            ["type": "taskList", "content": [["type": "taskItem", "attrs": ["checked": false], "content": [
+                ["type": "paragraph", "content": [["type": "text", "text": "Label the drawers "], chip]]]]]],
+        ]]))
+
+        let blocks = try synced(idea, context)
+        #expect(blocks.count == 1)
+        #expect(blocks.first?["source"] as? String == "#chores")
+        #expect(blocks.first?["holderId"] as? String == chores.id.uuidString)
+        // Nothing on #chores itself: the line is its own, not a synced one.
+        #expect(try synced(chores, context).isEmpty)
+
+        let edited = tagPageJSON(blocks) { attrs, inline in
+            attrs["checked"] = true
+            inline.insert(["type": "text", "text": "Finally "], at: 0)
+        }
+        TagPages.writeBack(edited, in: context) { _ in }
+        #expect(chores.documentText.contains("Finally Label the drawers #idea"))
+        #expect(chores.checklistDoneCount == 1)
+    }
 }

@@ -6,9 +6,10 @@
 // app sends it here again (setSyncedBlocks) and it is updated in place.
 //
 // A syncedBlock holds one paragraph: the block's own line, with its chips.
-// It never merges with the blocks around it. Return makes the next block
-// where it lives, with the same tags; Backspace in an empty one takes the
-// tag off (it leaves this page, and stays where it lives).
+// It never merges with the blocks around it. Return makes a new line of
+// the same kind under it that is the tag page's own (made here, it lives
+// here); Backspace in an empty one takes the tag off (it leaves this page,
+// and stays where it lives).
 //
 // Every block also gets a lasting id (bid), so a synced block can be found
 // where it lives after that page changes.
@@ -216,26 +217,40 @@ export const SyncedBlock = Node.create({
       return null
     }
     return {
-      // A new block where this one lives, right after it, with the same tags.
+      // A new line of the same kind right after it, as the tag page's own
+      // line: made here, it lives here (and so is on this tag page without a
+      // chip). Give it another #tag and it shows on that tag page too, from
+      // this one.
       Enter: ({ editor }) => {
         const { state } = editor
         const found = inSynced(state)
         if (!found) return false
+        const { schema } = state
         const { node, pos } = found
-        const chips = []
-        node.firstChild.forEach((child) => {
-          if (child.type.name === 'mention' && child.attrs.kind === 'tag') chips.push(child.type.create(child.attrs))
-        })
-        const content = chips.length ? [state.schema.text(' '), ...chips.flatMap((c, i) => (i ? [state.schema.text(' '), c] : [c]))] : []
-        const kind = node.attrs.kind === 'heading' ? 'paragraph' : node.attrs.kind
-        const bid = kind === 'task' ? `task:${newID()}` : newID()
-        const block = node.type.create(
-          { ...node.attrs, bid, kind, checked: false, linkedPage: null, after: node.attrs.bid, number: node.attrs.number ? Number(node.attrs.number) + 1 : null },
-          state.schema.nodes.paragraph.create(null, content),
-        )
+        const paragraph = schema.nodes.paragraph.create()
+        let block
+        let inside
+        switch (node.attrs.kind) {
+          case 'todo':
+          case 'task':
+            block = schema.nodes.taskList.create(null, schema.nodes.taskItem.create({ checked: false }, paragraph))
+            inside = 3
+            break
+          case 'bullet':
+            block = schema.nodes.bulletList.create(null, schema.nodes.listItem.create(null, paragraph))
+            inside = 3
+            break
+          case 'numbered':
+            block = schema.nodes.orderedList.create(null, schema.nodes.listItem.create(null, paragraph))
+            inside = 3
+            break
+          default:
+            block = paragraph
+            inside = 1
+        }
         const at = pos + node.nodeSize
         const tr = state.tr.insert(at, block)
-        tr.setSelection(TextSelection.create(tr.doc, at + 2))
+        tr.setSelection(TextSelection.create(tr.doc, at + inside))
         editor.view.dispatch(tr.scrollIntoView())
         return true
       },
