@@ -50,6 +50,8 @@ enum DemoData {
     /// Settings page (#108): `-SchemaDemoSettingsSection editor`, `-SchemaDemoSettingsSearch note`.
     static let settingsSection = value(after: "-SchemaDemoSettingsSection").flatMap(SettingsSection.init(rawValue:))
     static let settingsQuery = value(after: "-SchemaDemoSettingsSearch")
+    /// Opens New snippet in Settings › Editor (#101).
+    static let opensNewSnippet = CommandLine.arguments.contains("-SchemaDemoNewSnippet")
     static let menuKeys = value(after: "-SchemaDemoMenuKeys")?.split(separator: ",").map(String.init) ?? []
     static let menuClick = value(after: "-SchemaDemoMenuClick").flatMap { Int($0) }
     /// `-SchemaDemoRightClick 0.1,0.4` right-clicks at that spot of the
@@ -122,6 +124,12 @@ enum DemoData {
             defaults.set(true, forKey: "schema.preferences.isSidebarCollapsed")
             defaults.set(true, forKey: "schema.preferences.isDetailsPanelCollapsed")
         }
+        // A few snippets (#101), so Settings and the editor have some to show.
+        defaults.set(SnippetStore.encode([
+            Snippet(trigger: ";email", text: "name@example.com"),
+            Snippet(trigger: ";meet", text: "## Meeting notes {date}\n- [ ] Agenda\n- [ ] Decisions\n- [ ] Actions\n{cursor}"),
+            Snippet(trigger: ";shrug", text: "¯\\_(ツ)_/¯"),
+        ]), forKey: SchemaPreferences.snippetsKey)
         return defaults
     }()
 

@@ -201,6 +201,16 @@ struct TipTapBridgeTests {
         #expect(EditorMention(kind: "date", id: "21 Nov") == nil)
     }
 
+    @Test func snippetsAreSentOnlyWhenTheyChange() {
+        bridge.receive(["type": "ready"])
+        let json = SnippetStore.encode([Snippet(trigger: ";email", text: "name@example.com")])
+        bridge.setSnippets(json)
+        bridge.setSnippets(json)
+        bridge.setSnippets("[]")
+        let calls = page.scripts.filter { $0.0.contains("setSnippets") }.map { $0.1["json"] as? String }
+        #expect(calls == [json, "[]"])
+    }
+
     @Test func typographyIsSentOnlyWhenItChanges() {
         bridge.receive(["type": "ready"])
         bridge.setTypography(true)

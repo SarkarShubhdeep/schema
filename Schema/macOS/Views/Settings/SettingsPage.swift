@@ -71,7 +71,16 @@ struct SettingsPage: View {
 
     // MARK: Cards and rows
 
+    @ViewBuilder
     private func card(_ group: SettingsResultGroup, showsSection: Bool) -> some View {
+        if group.entries.contains(where: { $0.key == .snippets }) {
+            SnippetsSettings(title: showsSection ? group.title : group.group)
+        } else {
+            plainCard(group, showsSection: showsSection)
+        }
+    }
+
+    private func plainCard(_ group: SettingsResultGroup, showsSection: Bool) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(showsSection ? group.title : group.group)
                 .font(.schemaLabel)
@@ -145,6 +154,8 @@ struct SettingsPage: View {
             SettingsSegmented(title: entry.title, selection: $workspace.weekStart, options: WeekStart.allCases.map { ($0, $0.label) })
         case .replaceAsYouType:
             settingsSwitch(entry.title, isOn: $replacesAsYouType)
+        case .snippets:
+            EmptyView()
         case .quickNotePage:
             SchemaMenuPicker(
                 title: entry.title,
