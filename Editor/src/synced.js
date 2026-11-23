@@ -14,7 +14,8 @@
 // where it lives after that page changes.
 
 import { Node, Extension, mergeAttributes } from '@tiptap/core'
-import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state'
+import { Plugin, PluginKey, Selection, TextSelection } from '@tiptap/pm/state'
+import { GapCursor } from '@tiptap/pm/gapcursor'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 
 const post = (message) => {
@@ -92,6 +93,25 @@ const reconcileKey = new PluginKey('schemaSyncedReconcile')
 const MARKS = {
   bullet: () => Object.assign(document.createElement('span'), { className: 'synced-mark', textContent: '•' }),
   quote: () => Object.assign(document.createElement('span'), { className: 'synced-mark is-quote' }),
+}
+
+// The line above or below, when the caret is on the first or last line of
+// a block and a synced block is on either side of that edge.
+function crossEdge(editor, dir) {
+  const { state, view } = editor
+  const { selection } = state
+  if (!selection.empty || !view.endOfTextblock(dir < 0 ? 'up' : 'down')) return false
+  const $from = selection.$from
+  if ($from.depth < 1) return false
+  const top = $from.node(1)
+  const edge = dir < 0 ? $from.before(1) : $from.after(1)
+  const $edge = state.doc.resolve(edge)
+  const neighbour = dir < 0 ? $edge.nodeBefore : $edge.nodeAfter
+  if (top.type.name !== 'syncedBlock' && neighbour?.type.name !== 'syncedBlock') return false
+  const next = Selection.findFrom($edge, dir, true)
+  if (!next) return false
+  view.dispatch(state.tr.setSelection(next).scrollIntoView())
+  return true
 }
 
 export const SyncedBlock = Node.create({
@@ -233,6 +253,10 @@ export const SyncedBlock = Node.create({
         }
         return true
       },
+      // ↑ ↓ across a synced block's edge go to the next line themselves: the
+      // "From …" divider between pages would stop the browser's own caret.
+      ArrowUp: ({ editor }) => crossEdge(editor, -1),
+      ArrowDown: ({ editor }) => crossEdge(editor, 1),
       // Delete at the end of the block above a synced block does nothing.
       Delete: ({ editor }) => {
         const { state } = editor
@@ -253,6 +277,20 @@ export const SyncedBlock = Node.create({
       return map
     }
     return [new Plugin({
+      // Synced blocks never merge with their neighbours (isolating), which
+      // also lets the arrow keys stop *between* them with a gap cursor (a
+      // line drawn under the block). Move on into the next line instead, the
+      // way the arrows were going, so ↑ ↓ go line to line as anywhere else.
+      appendTransaction(trs, old, state) {
+        const sel = state.selection
+        if (!(sel instanceof GapCursor)) return null
+        const $pos = sel.$from
+        if (![$pos.nodeBefore, $pos.nodeAfter].some((n) => n?.type.name === 'syncedBlock')) return null
+        const dir = sel.from >= old.selection.from ? 1 : -1
+        const next = Selection.findFrom($pos, dir, true) || Selection.findFrom($pos, -dir, true)
+        return next ? state.tr.setSelection(next) : null
+      },
+    }), new Plugin({
       key: reconcileKey,
       state: {
         init: () => ({ fromApp: false }),
@@ -381,8 +419,11 @@ export function setSyncedBlocks(editor, data, key) {
     tr.doc.forEach((node) => { if (node.type.name === 'syncedBlock' && node.attrs.bid === b.bid) inDoc = true })
     if (inDoc) continue
     // Before the empty line the editor keeps at the end, so it stays last.
+    // A tag page with nothing of its own yet keeps its one empty line on
+    // top, to write in above the synced blocks.
     const last = tr.doc.lastChild
-    let at = tr.doc.content.size - (last && last.type.name === 'paragraph' && last.content.size === 0 ? last.nodeSize : 0)
+    const trailing = tr.doc.childCount > 1 && last && last.type.name === 'paragraph' && last.content.size === 0
+    let at = tr.doc.content.size - (trailing ? last.nodeSize : 0)
     if (options.grouped) {
       let lastOfPage = null
       tr.doc.forEach((node, pos) => { if (node.type.name === 'syncedBlock' && node.attrs.source === b.source) lastOfPage = pos + node.nodeSize })
