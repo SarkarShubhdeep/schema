@@ -6,7 +6,7 @@ All notable changes to Schema are documented in this file.
 
 ### Development
 
-- Debug builds are called "Schema Dev" and have their own icon, the Schema glyph in yellow on near-black, so they're easy to tell apart from the TestFlight app in the Dock and ⌘Tab. Release and TestFlight builds are unchanged.
+- Debug builds are called "Schema Dev" and have their own icon, the Schema glyph in yellow on near-black, so they're easy to tell apart from the TestFlight app in the Dock and ⌘Tab. They also have their own bundle ID (com.sarkarshubhdeep.schema.dev), so they keep their own data and never open the TestFlight app's. Release and TestFlight builds are unchanged.
 
 ### Changed
 
