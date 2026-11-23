@@ -7,7 +7,7 @@ import SwiftUI
 import SwiftData
 
 /// Window root: creates the view models and workspace state, then hosts the
-/// workspace with its toolbar, settings sheet, and navigation.
+/// workspace, or the Settings page in its place (#108).
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
 
@@ -67,7 +67,17 @@ struct ContentView: View {
         workspace.showNotifications = false
     }
 
+    @ViewBuilder
     private func workspaceStack(listViewModel: ListViewModel, taskViewModel: TaskViewModel) -> some View {
+        if workspace.showSettings {
+            SettingsScreen(listViewModel: listViewModel, lists: lists, notificationService: notificationService)
+                .frame(minWidth: ShellMetrics.minimumWindowWidth, minHeight: 520)
+        } else {
+            appStack(listViewModel: listViewModel, taskViewModel: taskViewModel)
+        }
+    }
+
+    private func appStack(listViewModel: ListViewModel, taskViewModel: TaskViewModel) -> some View {
         @Bindable var workspace = workspace
 
         return HStack(spacing: 0) {
@@ -143,15 +153,6 @@ struct ContentView: View {
         } action: { width in
             workspace.windowWidthChanged(to: width)
         }
-        .sheet(isPresented: $workspace.showSettings) {
-            SettingsView(
-                listViewModel: listViewModel,
-                lists: lists,
-                notificationService: notificationService,
-                allowIndependentFollowerRoutineCompletion: $workspace.allowIndependentFollowerRoutineCompletion,
-                weekStart: $workspace.weekStart
-            )
-        }
         .task {
             await workspace.refreshNotifications(using: notificationService)
         }
@@ -213,8 +214,8 @@ struct ContentView: View {
                 workspace.toggleSidebar()
             }
         }
-        if DemoData.isEnabled, DemoData.opensSettings {
-            workspace.showSettings = true
+        if DemoData.isEnabled, DemoData.opensSettings || DemoData.settingsQuery != nil || DemoData.settingsSection != nil {
+            workspace.openSettings(DemoData.settingsSection)
         }
         if DemoData.isEnabled, DemoData.opensNewPage {
             listVM.openNewPage()

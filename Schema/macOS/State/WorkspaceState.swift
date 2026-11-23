@@ -52,7 +52,18 @@ final class WorkspaceState {
 
     var highlightedTaskID: UUID?
     var showNotifications = false
-    var showSettings = false
+    /// Settings is its own page (#108): it takes the window until Back or Esc.
+    var showSettings = false {
+        didSet { if !showSettings { settingsQuery = "" } }
+    }
+    var settingsSection: SettingsSection = .general
+    /// Typed in the Settings search field; empty shows `settingsSection`.
+    var settingsQuery = ""
+
+    func openSettings(_ section: SettingsSection? = nil) {
+        if let section { settingsSection = section }
+        showSettings = true
+    }
     var notificationItems: [SchemaNotificationItem] = []
     var isAddTaskExpanded = false
     var quickEntryListCandidateIndex = 0
