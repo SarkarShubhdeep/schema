@@ -6,6 +6,7 @@ All notable changes to Schema are documented in this file.
 
 ### Added
 
+- Snippets (#101). In Settings › Editor, make your own snippets: a trigger like ;email and the text it turns into. Typing the trigger in a page, task page or Quick note replaces it as soon as it's complete; Backspace or ⌘Z right after brings the trigger back. Text can span lines and use markdown (a heading and to-dos, say), with {date}, {time} and {cursor} filled in when used. Plain-word triggers only fire on their own; ones starting with a symbol fire anywhere. Never inside code.
 - Settings is its own page (#108). ⌘, or the gear opens Settings in the main window instead of a sheet, with its own sidebar: Back to Schema (Esc), a search field (⌘F), and sections for General, Editor, Quick note, Tasks & routines, Notifications and About (GitHub arrives in v0.6). Search looks through every setting's name and description and lists matches by section. Every setting works as before.
 - Replace as you type (#99). In pages, task pages and Quick note, -> becomes →, <- ←, <-> ↔, => ⇒, <=> ⇔, != ≠, >= ≥, <= ≤, ... …, a--b a—b, +/- ±, (c) ©, (tm) ™, and quotes and apostrophes curl. Never inside code blocks or code, and --- at the start of a line still makes a divider. Backspace or ⌘Z right after keeps what you typed, and Settings › Editor › Replace as you type turns it off.
 

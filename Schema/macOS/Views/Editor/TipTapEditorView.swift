@@ -37,6 +37,8 @@ struct TipTapEditorView: NSViewRepresentable {
     var onOpenMention: ((EditorMention) -> Void)?
     /// -> to →, ... to … and so on (#99); switched off in Settings.
     @AppStorage(SchemaPreferences.replacesAsYouTypeKey, store: SchemaPreferences.defaults) private var replacesAsYouType = true
+    /// Your snippets (#101), edited in Settings › Editor.
+    @AppStorage(SchemaPreferences.snippetsKey, store: SchemaPreferences.defaults) private var snippetsJSON = "[]"
 
     static let log = Logger(subsystem: "com.sarkarshubhdeep.schema", category: "Editor")
 
@@ -173,6 +175,7 @@ struct TipTapEditorView: NSViewRepresentable {
             bridge.onSubmit = view.onSubmit
             bridge.setMode(view.mode)
             bridge.setTypography(view.replacesAsYouType)
+            bridge.setSnippets(view.snippetsJSON)
             bridge.onChangeDefaultPage = view.onChangeDefaultPage
             onEscape = view.onEscape
             bridge.show(view.documentJSON, key: view.documentKey)

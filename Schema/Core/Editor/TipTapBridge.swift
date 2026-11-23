@@ -112,6 +112,12 @@ final class TipTapBridge {
         flush()
     }
 
+    /// Your snippets (#101), as the JSON Settings stores. Sent when they change.
+    func setSnippets(_ json: String) {
+        wantedContexts["setSnippets"] = json
+        flush()
+    }
+
     /// A page, or Quick note's small note where Return saves (#82).
     func setMode(_ mode: EditorMode) {
         wantedContexts["setMode"] = "\"\(mode.rawValue)\""
