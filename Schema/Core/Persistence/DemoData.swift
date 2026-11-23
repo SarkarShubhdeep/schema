@@ -35,6 +35,8 @@ enum DemoData {
     static let opensScratchpad = CommandLine.arguments.contains("-SchemaDemoScratchpad")
     /// `-SchemaDemoTagPage` opens the #chores tag page (#102).
     static let opensTagPage = CommandLine.arguments.contains("-SchemaDemoTagPage")
+    /// `-SchemaDemoTagFlat`: #chores with Group by page off.
+    static let tagPageIsFlat = CommandLine.arguments.contains("-SchemaDemoTagFlat")
     /// Opens the Pomodoro page (#89).
     static let opensPomodoro = CommandLine.arguments.contains("-SchemaDemoPomodoro")
     /// Scrolls the Pomodoro page to its focus history, for screenshots.
@@ -323,6 +325,7 @@ enum DemoData {
         chores.setDocument(TipTapDocument.json(["type": "doc", "content": [
             paragraph([text("Kitchen on Mondays, bathroom on Thursdays. Bins go out Wednesday night.")]),
         ]]))
+        if tagPageIsFlat { defaults.set([chores.id.uuidString], forKey: "schema.preferences.ungroupedTagPages") }
         let bins = SchemaTask(title: "Take the bins out #chores", list: daily)
         bins.manualSortIndex = index
         context.insert(bins)

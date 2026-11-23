@@ -26,6 +26,7 @@ struct ScratchpadPageView: View {
     /// On a tag page: its lines from other pages, and whether done ones hide.
     @State private var tagged: TagPages.Lines?
     @State private var hidesDone = false
+    @State private var groupsByPage = true
 
     var body: some View {
         VStack(spacing: 18) {
@@ -40,6 +41,12 @@ struct ScratchpadPageView: View {
         .onAppear(perform: pageAppeared)
         .onChange(of: page.id) { _, _ in pageAppeared() }
         .onChange(of: hidesDone) { _, _ in gatherTagged() }
+        .onChange(of: groupsByPage) { _, grouped in
+            var ungrouped = SchemaPreferences.ungroupedTagPageIDs
+            if grouped { ungrouped.remove(page.id) } else { ungrouped.insert(page.id) }
+            SchemaPreferences.ungroupedTagPageIDs = ungrouped
+            gatherTagged()
+        }
         .onReceive(NotificationCenter.default.publisher(for: TagPages.documentSaved)) { _ in gatherTagged() }
         .onChange(of: workspace.pageRenameRequest) { _, _ in takeRenameRequest() }
     }
@@ -148,6 +155,12 @@ struct ScratchpadPageView: View {
                     }
                 }
             }
+            if page.isTagPage {
+                SchemaMenuItem.divider
+                SchemaMenuItem.action("Group by page", isChecked: groupsByPage) { groupsByPage.toggle() }
+                SchemaMenuItem.action(hidesDone ? "Show done" : "Hide done") { hidesDone.toggle() }
+                SchemaMenuItem.divider
+            }
             SchemaMenuItem.action("Rename") { workspace.requestPageRename(page.id) }
             SchemaMenuItem.action("Copy as Markdown", shortcut: "\u{21E7}\u{2318}C", copyMarkdown)
             SchemaMenuItem.action("Export as Markdown\u{2026}", exportMarkdown)
@@ -215,6 +228,7 @@ struct ScratchpadPageView: View {
 
     private func pageAppeared() {
         takeRenameRequest()
+        groupsByPage = !SchemaPreferences.ungroupedTagPageIDs.contains(page.id)
         gatherTagged()
         // A new page opens with the caret on its first line.
         if titleFocus == nil, page.documentText.isEmpty, !page.hasDocument {
@@ -245,7 +259,7 @@ struct ScratchpadPageView: View {
             tagged = nil
             return
         }
-        let next = TagPages.lines(for: page, hideDone: hidesDone, in: modelContext)
+        let next = TagPages.lines(for: page, hideDone: hidesDone, grouped: groupsByPage, in: modelContext)
         if next != tagged { tagged = next }
     }
 

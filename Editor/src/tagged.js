@@ -7,7 +7,10 @@
 // task), and clicking one opens it on its page. Lines live in the page they
 // were written on, so editing happens there.
 //
-// The app sends them with setTaggedLines({ hideDone, groups: [{ title,
+// With grouped off (the ⋯ menu's Group by page), they run as one list,
+// each with its page named on the right.
+//
+// The app sends them with setTaggedLines({ hideDone, grouped, groups: [{ title,
 // holderId, lines: [{ holderId, path, kind, text, otherTags, checked,
 // linkedPage, isTask }] }] }), and an empty list on other pages.
 
@@ -54,6 +57,7 @@ function lineRow(line, number) {
   for (const tag of line.otherTags || []) text.append(el('span', 'schema-mention is-tag tagged-chip', `#${tag}`))
   row.append(text)
   const trail = el('span', 'tagged-trail')
+  if (line.showsPage) trail.append(el('span', 'tagged-page', line.page))
   if (line.linkedPage) trail.append(el('span', 'schema-task-link', `Task in ${line.linkedPage}`))
   trail.append(el('span', 'tagged-go', 'Go to line ↗'))
   row.append(trail)
@@ -73,6 +77,20 @@ export function setTaggedLines(data) {
     document.querySelector('#editor')?.after(root)
   }
   root.replaceChildren()
+  if (data && data.grouped === false && groups.length) {
+    const list = el('div', 'tagged-lines is-flat')
+    list.setAttribute('role', 'list')
+    list.setAttribute('aria-label', 'Tagged on other pages')
+    let number = 0
+    for (const group of groups) {
+      for (const line of group.lines) {
+        number = line.kind === 'numbered' ? number + 1 : 0
+        list.append(lineRow({ ...line, page: group.title, showsPage: true }, number))
+      }
+    }
+    root.append(list)
+    return
+  }
   for (const group of groups) {
     const head = el('div', 'tagged-divider')
     head.append(el('span', 'tagged-from', `From ${group.title}`), el('span', 'tagged-rule'))

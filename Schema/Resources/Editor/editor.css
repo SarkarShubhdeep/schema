@@ -382,7 +382,7 @@ body.has-tagged #editor { min-height: 0; padding-bottom: 8px; }
 .tagged-line.kind-heading .tagged-text { font-family: "Space Grotesk", Satoshi, sans-serif; font-weight: 600; }
 .tagged-line.kind-quote .tagged-mark { width: 2px; align-self: stretch; margin: 2px 7px; background: var(--line); }
 .tagged-line.kind-quote .tagged-text { color: var(--ink-muted); }
-.tagged-chip { margin-left: 6px; cursor: inherit; }
+.tagged-chip { margin-left: 6px; cursor: inherit; vertical-align: 0; }
 .tagged-trail { flex: none; display: flex; align-items: center; gap: 6px; }
 .tagged-go {
   font: 500 12px/16px Satoshi, -apple-system, sans-serif; color: var(--ink-muted);
@@ -393,3 +393,7 @@ body.has-tagged #editor { min-height: 0; padding-bottom: 8px; }
 
 /* Go to line: the block flashes once where it lands. */
 .ProseMirror .is-revealed { background: var(--hover); border-radius: 6px; transition: background 600ms ease; }
+/* Group by page off: one list, each line's page named on the right. */
+.tagged-lines.is-flat { padding-top: 18px; }
+.tagged-page { font: 500 12px/16px Satoshi, -apple-system, sans-serif; color: var(--ink-muted); white-space: nowrap; }
+.tagged-line:hover .tagged-page { display: none; }

@@ -21,6 +21,9 @@ enum TagPages {
     /// What a tag page shows below its own writing (tagged.js).
     struct Lines: Encodable, Equatable {
         var hideDone: Bool
+        /// Under a "From <page>" divider per page; off, one list with each
+        /// line's page named on its right.
+        var grouped = true
         var groups: [Group]
 
         var json: String {
@@ -77,7 +80,7 @@ enum TagPages {
 
     // MARK: A tag's lines
 
-    static func lines(for tag: SchemaList, hideDone: Bool, in context: ModelContext) -> Lines {
+    static func lines(for tag: SchemaList, hideDone: Bool, grouped: Bool = true, in context: ModelContext) -> Lines {
         let lists = ((try? context.fetch(FetchDescriptor<SchemaList>())) ?? []).sorted { $0.order < $1.order }
         let tasks = (try? context.fetch(FetchDescriptor<SchemaTask>())) ?? []
         let taskByID = Dictionary(tasks.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
@@ -115,7 +118,7 @@ enum TagPages {
                 groups.append(Group(title: task.title, holderId: task.id.uuidString, isTask: true, lines: lines))
             }
         }
-        return Lines(hideDone: hideDone, groups: groups)
+        return Lines(hideDone: hideDone, grouped: grouped, groups: groups)
     }
 
     // MARK: Ticking from the tag page

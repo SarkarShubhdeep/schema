@@ -19,6 +19,12 @@ enum SchemaPreferences {
 
     /// Replacing -> with →, ... with … and so on in the editor (#99). On by default.
     static let replacesAsYouTypeKey = "schema.preferences.replacesAsYouType"
+    /// Tag pages showing their lines in one list instead of by page (#102), by id.
+    static var ungroupedTagPageIDs: Set<UUID> {
+        get { Set((defaults.stringArray(forKey: "schema.preferences.ungroupedTagPages") ?? []).compactMap(UUID.init(uuidString:))) }
+        set { defaults.set(newValue.map(\.uuidString).sorted(), forKey: "schema.preferences.ungroupedTagPages") }
+    }
+
     /// Your snippets (#101), as JSON (see SnippetStore).
     static let snippetsKey = "schema.preferences.snippets"
 
