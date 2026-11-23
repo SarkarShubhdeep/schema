@@ -6,7 +6,8 @@
 //  (#77). The header stays put while the page scrolls under it.
 //
 //  A tag page (#102) is the same page, named #tag: what you write on it,
-//  then every line tagged with it on other pages, live (TagPages).
+//  then every block tagged with it on other pages, as synced blocks you
+//  can edit right here (#113, TagPages).
 //
 
 import AppKit
@@ -24,7 +25,9 @@ struct ScratchpadPageView: View {
     @State private var titleFocus: BlockFocusRequest?
     @State private var editorFocus: EditorFocusRequest?
     /// On a tag page: its lines from other pages, and whether done ones hide.
-    @State private var tagged: TagPages.Lines?
+    @State private var synced: TagPages.Synced?
+    /// Delete everywhere… on a synced block, waiting for its confirmation.
+    @State private var pendingDelete: PendingSyncedDelete?
     @State private var hidesDone = false
     @State private var groupsByPage = true
 
@@ -41,6 +44,21 @@ struct ScratchpadPageView: View {
         .onAppear(perform: pageAppeared)
         .onChange(of: page.id) { _, _ in pageAppeared() }
         .onChange(of: hidesDone) { _, _ in gatherTagged() }
+        .overlay {
+            if let pending = pendingDelete {
+                DeleteConfirmationDialog(
+                    title: "Delete it everywhere?",
+                    message: "It is deleted from \(pending.source) and leaves every tag page. This can\u{2019}t be undone.",
+                    cta: "Delete everywhere",
+                    onCancel: { pendingDelete = nil },
+                    onConfirm: {
+                        TagPages.deleteEverywhere(holderID: pending.holderID, blockID: pending.blockID, kind: pending.kind, in: modelContext)
+                        pendingDelete = nil
+                        gatherTagged()
+                    }
+                )
+            }
+        }
         .onChange(of: groupsByPage) { _, grouped in
             var ungrouped = SchemaPreferences.ungroupedTagPageIDs
             if grouped { ungrouped.remove(page.id) } else { ungrouped.insert(page.id) }
@@ -52,16 +70,21 @@ struct ScratchpadPageView: View {
     }
 
     private var editor: some View {
-        let toggle: ((UUID, [Int], Bool, Bool) -> Void)? = page.isTagPage
-            ? { holderID, path, isTask, checked in toggleTagged(holderID, path, isTask, checked) }
+        let isTag = page.isTagPage
+        let saved: ((String) -> Void)? = isTag ? { json in writeBack(json) } : nil
+        let removed: (([(holderID: UUID, blockID: String, kind: String)]) -> Void)? = isTag ? { items in removeTag(items) } : nil
+        let delete: ((UUID, String, String, String) -> Void)? = isTag
+            ? { holderID, blockID, kind, source in pendingDelete = PendingSyncedDelete(holderID: holderID, blockID: blockID, kind: kind, source: source) }
             : nil
         return PageBodyEditor(
             holder: page,
             id: page.id,
             taskActions: taskActions,
             focusRequest: editorFocus,
-            taggedLinesJSON: page.isTagPage ? (tagged?.json ?? "null") : nil,
-            onToggleTagged: toggle
+            syncedBlocksJSON: isTag ? (synced?.json ?? "null") : nil,
+            onSaved: saved,
+            onSyncedRemoved: removed,
+            onDeleteSynced: delete
         )
     }
 
@@ -243,9 +266,9 @@ struct ScratchpadPageView: View {
 
     private var editedLabel: String {
         if page.isTagPage {
-            let open = tagged?.openCount ?? 0
-            let pages = tagged?.groups.count ?? 0
-            return "Tag page · \(open) open to-do\(open == 1 ? "" : "s") · lines from \(pages) page\(pages == 1 ? "" : "s")"
+            let open = synced?.openCount ?? 0
+            let pages = synced?.pageCount ?? 0
+            return "Tag page · \(open) open to-do\(open == 1 ? "" : "s") · synced from \(pages) page\(pages == 1 ? "" : "s")"
         }
         guard let edited = page.documentEditedAt, !page.documentText.isEmpty else { return "Scratchpad" }
         return "Scratchpad · edited \(edited.formatted(.relative(presentation: .named)))"
@@ -253,23 +276,34 @@ struct ScratchpadPageView: View {
 
     // MARK: Tag page (#102)
 
-    /// The tag's lines from other pages, gathered again after any save.
+    /// The tag's synced blocks as they are now, gathered again after any
+    /// save anywhere; the editor updates them in place.
     private func gatherTagged() {
         guard page.isTagPage else {
-            tagged = nil
+            synced = nil
             return
         }
-        let next = TagPages.lines(for: page, hideDone: hidesDone, grouped: groupsByPage, in: modelContext)
-        if next != tagged { tagged = next }
+        let next = TagPages.synced(for: page, hideDone: hidesDone, grouped: groupsByPage, in: modelContext)
+        if next != synced { synced = next }
     }
 
-    private func toggleTagged(_ holderID: UUID, _ path: [Int], _ isTask: Bool, _ checked: Bool) {
-        TagPages.toggle(holderID: holderID, path: path, isTask: isTask, checked: checked, in: modelContext) { task in
-            taskActions?.toggleTask(task)
-        }
-        try? modelContext.save()
+    /// The tag page was saved: its synced blocks' edits go where they live.
+    private func writeBack(_ json: String) {
+        TagPages.writeBack(json, in: modelContext) { task in taskActions?.toggleTask(task) }
+    }
+
+    private func removeTag(_ items: [(holderID: UUID, blockID: String, kind: String)]) {
+        TagPages.removeTag(page, from: items, in: modelContext)
         gatherTagged()
     }
+}
+
+/// Delete everywhere… on a synced block (#113), until it is confirmed.
+private struct PendingSyncedDelete: Equatable {
+    let holderID: UUID
+    let blockID: String
+    let kind: String
+    let source: String
 }
 
 extension PageKind {

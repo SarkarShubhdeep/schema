@@ -21,9 +21,12 @@ struct PageBodyEditor: View {
     var taskActions: BlockTaskActions?
     var focusRequest: EditorFocusRequest?
     var onEscape: (() -> Void)?
-    /// On a tag page (#102): its lines from other pages, and ticking one.
-    var taggedLinesJSON: String?
-    var onToggleTagged: ((_ holderID: UUID, _ path: [Int], _ isTask: Bool, _ checked: Bool) -> Void)?
+    /// On a tag page (#113): its synced blocks, what happens after each save
+    /// (writing them back), and synced blocks removed or deleted by hand.
+    var syncedBlocksJSON: String?
+    var onSaved: ((_ json: String) -> Void)?
+    var onSyncedRemoved: (([(holderID: UUID, blockID: String, kind: String)]) -> Void)?
+    var onDeleteSynced: ((_ holderID: UUID, _ blockID: String, _ kind: String, _ source: String) -> Void)?
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openSettings) private var openSettings
@@ -54,9 +57,10 @@ struct PageBodyEditor: View {
             onChangeDefaultPage: { openSettings() },
             mentionContextJSON: mentionContext.json,
             onOpenMention: mentionActions.open,
-            taggedLinesJSON: taggedLinesJSON,
-            onToggleTagged: onToggleTagged,
-            onOpenTagged: mentionActions.openLine,
+            syncedBlocksJSON: syncedBlocksJSON,
+            onOpenTagged: openSynced,
+            onSyncedRemoved: onSyncedRemoved,
+            onDeleteSynced: onDeleteSynced,
             revealRequest: workspace.revealRequest?.key == id.uuidString ? workspace.revealRequest : nil
         )
     }
@@ -113,7 +117,16 @@ struct PageBodyEditor: View {
         // The first #tag of a name makes its tag page (#102).
         TagPages.ensurePages(for: json, in: modelContext)
         try? modelContext.save()
+        if key == id.uuidString { onSaved?(json) }
         NotificationCenter.default.post(name: TagPages.documentSaved, object: nil)
+    }
+
+    /// "Open in …" on a synced block (#113): the page or task where it
+    /// lives, with the caret on the block.
+    private func openSynced(_ holderID: UUID, _ blockID: String?, _ isTask: Bool) {
+        let holder = Self.holder(for: holderID.uuidString, in: modelContext)
+        let path = blockID.flatMap { id in holder.flatMap { PageTags.path(ofBlock: id, in: $0.documentJSON) } }
+        mentionActions.openLine(holderID, path, isTask)
     }
 
     /// The page or task a change from before a switch belongs to.

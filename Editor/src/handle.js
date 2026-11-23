@@ -40,7 +40,29 @@ const copyMarkdown = (block) => {
   }
 }
 
+const postToApp = (message) => {
+  try {
+    window.webkit?.messageHandlers?.schema?.postMessage(message)
+  } catch (_) {
+    // Outside the app there is nothing to open.
+  }
+}
+
+// A synced block on a tag page (#113): it lives on another page, so its
+// menu opens it there, takes this tag off, or deletes it everywhere.
+function syncedMenuItems(editor, block) {
+  const a = block.node.attrs
+  const tag = document.body.dataset.tagLabel || 'tag'
+  return [
+    { title: `Open in ${a.source}`, trail: '↗', selected: true, run: () => postToApp({ type: 'openTagged', holderId: a.holderId, bid: a.bid, isTask: a.kind === 'task' }) },
+    { separator: true },
+    { title: `Remove #${tag}`, run: () => remove(editor, block) },
+    { title: 'Delete everywhere\u2026', danger: true, run: () => postToApp({ type: 'deleteSynced', holderId: a.holderId, bid: a.bid, kind: a.kind, source: a.source }) },
+  ]
+}
+
 export function blockMenuItems(editor, block) {
+  if (block.node.type.name === 'syncedBlock') return syncedMenuItems(editor, block)
   const current = kindOf(block)
   // A to-do can become a task (#80), or open the task it already is.
   const task = taskState(block.node)

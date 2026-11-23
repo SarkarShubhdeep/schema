@@ -93,4 +93,42 @@ struct PageTagsTests {
         #expect(PageTags.renamingTag(in: "Bins #chores today", from: "chores", to: "housework") == "Bins #housework today")
         #expect(PageTags.removingTag(from: "Bins #chores", named: "chores") == "Bins chores")
     }
+
+    @Test func blocksGetLastingIDs() throws {
+        let withIDs = try #require(PageTags.ensuringBlockIDs(in: document))
+        #expect(PageTags.ensuringBlockIDs(in: withIDs) == nil)
+        let lines = PageTags.lines(taggedWith: chores, in: withIDs)
+        #expect(lines.allSatisfy { $0.blockID != nil })
+        #expect(Set(lines.compactMap(\.blockID)).count == lines.count)
+        let todo = try #require(lines.first { $0.kind == .todo })
+        #expect(PageTags.path(ofBlock: try #require(todo.blockID), in: withIDs) == [1, 0])
+        #expect(lines.first { $0.kind == .numbered }?.number == 1)
+    }
+
+    @Test func syncedBlocksOnATagPageAreNotItsOwnTaggedLines() {
+        let synced: [String: Any] = ["type": "syncedBlock", "attrs": ["bid": "X"], "content": [paragraph([text("Elsewhere "), tag(chores, "chores")])]]
+        let json = TipTapDocument.json(["type": "doc", "content": [synced]])
+        #expect(PageTags.lines(taggedWith: chores, in: json).isEmpty)
+    }
+
+    @Test func writingABlockBack() throws {
+        let withIDs = try #require(PageTags.ensuringBlockIDs(in: document))
+        let lines = PageTags.lines(taggedWith: chores, in: withIDs)
+        let todo = try #require(lines.first { $0.kind == .todo }?.blockID)
+        let updated = try #require(PageTags.updating(block: todo, inline: [text("Scrub the island "), tag(chores, "chores")], checked: true, in: withIDs))
+        let after = PageTags.lines(taggedWith: chores, in: updated)
+        #expect(after[1].text == "Scrub the island" && after[1].isChecked)
+        #expect(PageTags.updating(block: todo, inline: [text("Scrub the island "), tag(chores, "chores")], checked: true, in: updated) == nil)
+
+        let inserted = try #require(PageTags.inserting(after: todo, kind: .todo, blockID: "NEW", inline: [text("Wipe the fridge "), tag(chores, "chores")], in: updated))
+        #expect(PageTags.lines(taggedWith: chores, in: inserted).map(\.text).contains("Wipe the fridge"))
+        #expect(PageTags.path(ofBlock: "NEW", in: inserted) == [1, 1])
+
+        let untagged = try #require(PageTags.removing(chores, fromBlock: "NEW", in: inserted))
+        #expect(!PageTags.lines(taggedWith: chores, in: untagged).map(\.text).contains("Wipe the fridge"))
+        #expect(PageTags.path(ofBlock: "NEW", in: untagged) == [1, 1]) // words left: the block stays
+
+        let deleted = try #require(PageTags.deleting(block: "NEW", in: untagged))
+        #expect(PageTags.path(ofBlock: "NEW", in: deleted) == nil)
+    }
 }

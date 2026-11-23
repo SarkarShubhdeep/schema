@@ -31,7 +31,25 @@ struct TagPagesTests {
         return TipTapDocument.json(doc)
     }
 
-    @Test func theFirstTagMakesItsPageAndGathersItsLines() throws {
+    private func synced(_ tag: SchemaList, _ context: ModelContext) throws -> [[String: Any]] {
+        let result = TagPages.synced(for: tag, hideDone: false, grouped: true, in: context)
+        let payload = try #require(PageDocument.parse(result.json))
+        return payload["blocks"] as? [[String: Any]] ?? []
+    }
+
+    /// The tag page as the editor would send it back: `blocks` as synced
+    /// blocks, with `edit` applied to each one's attrs and line.
+    private func tagPageJSON(_ blocks: [[String: Any]], edit: (inout [String: Any], inout [[String: Any]]) -> Void = { _, _ in }) -> String {
+        let nodes: [[String: Any]] = blocks.map { block in
+            var attrs: [String: Any] = ["holderId": block["holderId"]!, "bid": block["bid"]!, "kind": block["kind"]!, "checked": block["checked"]!]
+            var inline = block["content"] as? [[String: Any]] ?? []
+            edit(&attrs, &inline)
+            return ["type": "syncedBlock", "attrs": attrs, "content": [["type": "paragraph", "content": inline]]]
+        }
+        return TipTapDocument.json(["type": "doc", "content": [["type": "paragraph", "content": [["type": "text", "text": "Own words"]]]] + nodes])
+    }
+
+    @Test func theFirstTagMakesItsPageAndItsBlocksSync() throws {
         let context = try store()
         let ideas = SchemaList(title: "Ideas", order: 1, kind: .scratchpad)
         let daily = SchemaList(title: "Daily Todos", order: 2)
@@ -47,14 +65,16 @@ struct TagPagesTests {
         let tag = try #require(try context.fetch(FetchDescriptor<SchemaList>()).first { $0.id == tagID })
         #expect(tag.isTagPage && tag.title == "chores")
 
-        let lines = TagPages.lines(for: tag, hideDone: false, in: context)
-        #expect(lines.groups.map(\.title) == ["Ideas", "Daily Todos"])
-        #expect(lines.groups[0].lines.map(\.text) == ["Clean the island", "Rota"])
-        #expect(lines.groups[1].lines.map(\.text) == ["Take the bins out"])
-        #expect(lines.openCount == 2)
+        let blocks = try synced(tag, context)
+        #expect(blocks.map { $0["kind"] as? String } == ["todo", "paragraph", "task"])
+        #expect(blocks.map { $0["source"] as? String } == ["Ideas", "Ideas", "Daily Todos"])
+        // Ideas' blocks got lasting ids where they live.
+        #expect(blocks.prefix(2).allSatisfy { ($0["bid"] as? String).map { ideas.documentJSON.contains($0) } ?? false })
+        let summary = TagPages.synced(for: tag, hideDone: false, grouped: true, in: context)
+        #expect(summary.openCount == 2 && summary.pageCount == 2)
     }
 
-    @Test func tickingReachesThePageAndTheTask() throws {
+    @Test func editsOnTheTagPageGoWhereTheBlocksLive() throws {
         let context = try store()
         let ideas = SchemaList(title: "Ideas", order: 1, kind: .scratchpad)
         let daily = SchemaList(title: "Daily Todos", order: 2)
@@ -64,12 +84,77 @@ struct TagPagesTests {
         let tagID = UUID()
         ideas.setDocument(document(tag: tagID))
         TagPages.ensurePages(for: ideas.documentJSON, in: context)
+        let tag = try #require(try context.fetch(FetchDescriptor<SchemaList>()).first { $0.id == tagID })
+        let blocks = try synced(tag, context)
 
-        TagPages.toggle(holderID: ideas.id, path: [0, 0], isTask: false, checked: true, in: context) { _ in }
-        #expect(ideas.checklistDoneCount == 1)
         var toggled: [UUID] = []
-        TagPages.toggle(holderID: bins.id, path: [], isTask: true, checked: true, in: context) { toggled.append($0.id) }
+        let edited = tagPageJSON(blocks) { attrs, inline in
+            switch attrs["kind"] as? String {
+            case "todo":
+                attrs["checked"] = true
+                inline.insert(["type": "text", "text": "Really "], at: 0)
+            case "task":
+                attrs["checked"] = true
+                inline = [["type": "text", "text": "Bins out tonight #chores"]]
+            default: break
+            }
+        }
+        TagPages.writeBack(edited, in: context) { toggled.append($0.id) }
+        #expect(ideas.documentText.contains("Really Clean the island #chores"))
+        #expect(ideas.checklistDoneCount == 1)
+        #expect(bins.title == "Bins out tonight #chores")
         #expect(toggled == [bins.id])
+    }
+
+    @Test func returnOnTheTagPageAddsABlockWhereItLives() throws {
+        let context = try store()
+        let ideas = SchemaList(title: "Ideas", order: 1, kind: .scratchpad)
+        context.insert(ideas)
+        let tagID = UUID()
+        ideas.setDocument(document(tag: tagID))
+        TagPages.ensurePages(for: ideas.documentJSON, in: context)
+        let tag = try #require(try context.fetch(FetchDescriptor<SchemaList>()).first { $0.id == tagID })
+        let todo = try #require(try synced(tag, context).first)
+        let chip: [String: Any] = ["type": "mention", "attrs": ["kind": "tag", "id": tagID.uuidString, "label": "chores"]]
+        var made = tagPageJSON([todo])
+        var doc = try #require(PageDocument.parse(made))
+        var content = doc["content"] as! [[String: Any]]
+        content.append(["type": "syncedBlock", "attrs": ["holderId": ideas.id.uuidString, "bid": "NEW-1", "kind": "todo", "checked": false, "after": todo["bid"]!],
+                        "content": [["type": "paragraph", "content": [["type": "text", "text": "Wipe the fridge "], chip]]]])
+        doc["content"] = content
+        made = TipTapDocument.json(doc)
+
+        TagPages.writeBack(made, in: context) { _ in }
+        #expect(ideas.documentText.contains("Clean the island #chores\nWipe the fridge #chores"))
+        #expect(ideas.checklistCount == 2)
+        TagPages.writeBack(made, in: context) { _ in } // again: found by its id now, not added twice
+        #expect(ideas.checklistCount == 2)
+    }
+
+    @Test func removingAndDeletingSyncedBlocks() throws {
+        let context = try store()
+        let ideas = SchemaList(title: "Ideas", order: 1, kind: .scratchpad)
+        let daily = SchemaList(title: "Daily Todos", order: 2)
+        let bins = SchemaTask(title: "Bins #chores", list: daily)
+        [ideas, daily].forEach(context.insert)
+        context.insert(bins)
+        let tagID = UUID()
+        ideas.setDocument(document(tag: tagID))
+        TagPages.ensurePages(for: ideas.documentJSON, in: context)
+        let tag = try #require(try context.fetch(FetchDescriptor<SchemaList>()).first { $0.id == tagID })
+        let blocks = try synced(tag, context)
+        let todoBID = try #require(blocks[0]["bid"] as? String)
+        let rotaBID = try #require(blocks[1]["bid"] as? String)
+
+        TagPages.removeTag(tag, from: [(ideas.id, todoBID, "todo"), (bins.id, "task:\(bins.id)", "task")], in: context)
+        #expect(ideas.documentText.contains("Clean the island\n"))
+        #expect(!ideas.documentText.contains("island #chores"))
+        #expect(bins.title == "Bins")
+        #expect(try synced(tag, context).count == 1)
+
+        TagPages.deleteEverywhere(holderID: ideas.id, blockID: rotaBID, kind: "paragraph", in: context)
+        #expect(!ideas.documentText.contains("Rota"))
+        #expect(try synced(tag, context).isEmpty)
     }
 
     @Test func renameAndDeleteReachEveryUse() throws {

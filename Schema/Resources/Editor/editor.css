@@ -337,11 +337,7 @@ body.is-note .schema-handle { display: none; }
 /* #tags (#102): a chip with its # and no icon, quieter than mentions. */
 .schema-mention.is-tag { font-family: "Space Grotesk", Satoshi, -apple-system, sans-serif; font-size: 13px; color: var(--ink-muted); gap: 0; height: 20px; padding: 0 5px; vertical-align: 6px; }
 .schema-mention.is-tag:hover { color: var(--ink); }
-
-/* A tag page's lines from other pages (#102): below its own writing, in the
-   same column, drawn like the editor's blocks. */
-body.has-tagged #editor { min-height: 0; padding-bottom: 8px; }
-.tagged { max-width: 720px; margin: 0 auto; padding: 0 0 160px 32px; box-sizing: border-box; }
+/* "From <page>" above a tag page's synced blocks (#102, #113). */
 .tagged-divider { display: flex; align-items: center; gap: 12px; padding: 18px 0 6px; }
 .tagged-from {
   font: 600 11px/16px "Space Grotesk", Satoshi, sans-serif;
@@ -350,50 +346,43 @@ body.has-tagged #editor { min-height: 0; padding-bottom: 8px; }
   color: var(--ink-muted);
 }
 .tagged-rule { flex: 1; height: 1px; background: var(--line); }
-.tagged-open {
-  font: 500 12px/16px Satoshi, -apple-system, sans-serif;
-  height: 24px; padding: 0 8px; border: 0; border-radius: 999px;
-  background: transparent; color: var(--ink-muted); cursor: pointer;
-}
-.tagged-open::after { content: " ›"; }
-.tagged-open:hover { background: var(--hover); color: var(--ink); }
-.tagged-line {
-  display: flex; align-items: flex-start; gap: 10px;
-  margin: 0 -8px; padding: 2px 8px; min-height: 24px;
-  border-radius: 8px; cursor: pointer;
-  font-size: 15px; line-height: 24px;
-}
-.tagged-line:hover { background: var(--hover); }
-.tagged-mark { flex: none; width: 16px; color: var(--ink-muted); text-align: center; }
-.tagged-check {
-  flex: none; margin-top: 4px; padding: 0;
-  width: 16px; height: 16px; border-radius: 999px;
-  border: 1.5px solid var(--line-strong); background: transparent;
-  display: grid; place-items: center; cursor: pointer;
-}
-.tagged-line.is-done .tagged-check { background: var(--accent); border-color: var(--accent); }
-.tagged-line.is-done .tagged-check::after {
-  content: ""; width: 4px; height: 7px; margin-top: -2px;
-  border: solid var(--on-accent); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
-}
-.tagged-check:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-.tagged-text { flex: 1; min-width: 0; }
-.tagged-line.is-done .tagged-text { color: var(--ink-faint); text-decoration: line-through; }
-.tagged-line.kind-heading .tagged-text { font-family: "Space Grotesk", Satoshi, sans-serif; font-weight: 600; }
-.tagged-line.kind-quote .tagged-mark { width: 2px; align-self: stretch; margin: 2px 7px; background: var(--line); }
-.tagged-line.kind-quote .tagged-text { color: var(--ink-muted); }
-.tagged-chip { margin-left: 6px; cursor: inherit; vertical-align: 0; }
-.tagged-trail { flex: none; display: flex; align-items: center; gap: 6px; }
-.tagged-go {
-  font: 500 12px/16px Satoshi, -apple-system, sans-serif; color: var(--ink-muted);
-  padding: 3px 8px; border-radius: 999px; background: var(--surface);
-  opacity: 0; transition: opacity 120ms ease;
-}
-.tagged-line:hover .tagged-go { opacity: 1; }
 
 /* Go to line: the block flashes once where it lands. */
 .ProseMirror .is-revealed { background: var(--hover); border-radius: 6px; transition: background 600ms ease; }
-/* Group by page off: one list, each line's page named on the right. */
-.tagged-lines.is-flat { padding-top: 18px; }
-.tagged-page { font: 500 12px/16px Satoshi, -apple-system, sans-serif; color: var(--ink-muted); white-space: nowrap; }
-.tagged-line:hover .tagged-page { display: none; }
+
+/* Synced blocks on tag pages (#113): look like any block; hovering or
+   typing in one shows a thin rail and where it lives. */
+.ProseMirror .schema-synced {
+  position: relative; display: flex; align-items: flex-start; gap: 10px;
+  margin: 0 -8px; padding: 0 8px; border-radius: 8px;
+}
+.ProseMirror .schema-synced:hover,
+.ProseMirror .schema-synced:focus-within { box-shadow: inset 2px 0 0 var(--line-strong); }
+.synced-lead { flex: none; width: 16px; min-height: 24px; display: flex; align-items: center; justify-content: center; user-select: none; }
+.synced-mark { color: var(--ink-muted); }
+.synced-mark.is-quote { width: 2px; align-self: stretch; background: var(--line); }
+.synced-check {
+  padding: 0; width: 16px; height: 16px; border-radius: 999px;
+  border: 1.5px solid var(--line-strong); background: transparent;
+  display: grid; place-items: center; cursor: pointer;
+}
+.schema-synced.is-done .synced-check { background: var(--accent); border-color: var(--accent); }
+.schema-synced.is-done .synced-check::after {
+  content: ""; width: 4px; height: 7px; margin-top: -2px;
+  border: solid var(--on-accent); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
+}
+.synced-check:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.synced-content { flex: 1; min-width: 0; }
+.synced-content > p { margin: 0; }
+.schema-synced.is-done .synced-content > p { color: var(--ink-faint); text-decoration: line-through; }
+.schema-synced.kind-heading .synced-content > p { font-family: "Space Grotesk", Satoshi, sans-serif; font-weight: 600; font-size: 19px; line-height: 26px; }
+.schema-synced.kind-quote .synced-content > p { color: var(--ink-muted); }
+.synced-trail { flex: none; display: flex; align-items: center; gap: 6px; min-height: 24px; user-select: none; }
+.synced-source {
+  font: 500 12px/16px Satoshi, -apple-system, sans-serif; color: var(--ink-muted);
+  padding: 2px 8px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line);
+  opacity: 0; transition: opacity 120ms ease;
+}
+.ProseMirror .schema-synced:hover .synced-source,
+.ProseMirror .schema-synced:focus-within .synced-source { opacity: 1; }
+body.hides-done .ProseMirror .schema-synced.is-done { display: none; }
