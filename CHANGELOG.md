@@ -4,6 +4,7 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+
 ### Added
 
 - Snippets (#101). In Settings › Editor, make your own snippets: a trigger like ;email and the text it turns into. Typing the trigger in a page, task page or Quick note replaces it as soon as it's complete; Backspace or ⌘Z right after brings the trigger back. Text can span lines and use markdown (a heading and to-dos, say), with {date}, {time} and {cursor} filled in when used. Plain-word triggers only fire on their own; ones starting with a symbol fire anywhere. Never inside code.
@@ -14,6 +15,10 @@ All notable changes to Schema are documented in this file.
 
 - Backspace brings markdown back (#98). At the start of a heading, to-do, list item or quote, Backspace turns it into a plain line that starts with the markdown that made it (`## `, `[ ] `, `[x] `, `- `, `2. `, `> `), so you can edit it: type x between the brackets to tick a to-do, change `##` to `#`, or delete the markdown to keep a plain line. Moving off the line turns it back into a block, and a to-do made into a task keeps its task. ⌘Z right after puts the block back.
 - ⌘Return in a to-do ticks it, or unticks it, instead of adding a line break (#97). With several to-dos selected it ticks them all (or unticks them if all were done), and a to-do made into a task ticks its task too. ⇧Return still adds a line break, ⌘Return elsewhere on a page works as before, and in Quick note it still saves as a task.
+
+### Fixed
+
+- Editing markdown that Backspace brought back (#98): Return on a line like [x] hello now makes it a ticked to-do and starts a new to-do under it, in the same list. The caret could show up at the far right after a to-do came back; the line now turns back in the same edit, so the caret is drawn once, where it is. A bullet coming back no longer merges into a numbered list next to it.
 
 ### Development
 

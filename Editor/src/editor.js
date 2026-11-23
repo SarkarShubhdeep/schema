@@ -165,13 +165,12 @@ const editor = new Editor({
     updateSlash(e)
   },
   onSelectionUpdate: ({ editor: e }) => {
-    restoreRevealed(e)
     updateMention(e)
     updateSlash(e)
   },
   onFocus: () => post({ type: 'focus', focused: true }),
   onBlur: ({ editor: e }) => {
-    restoreRevealed(e, true)
+    restoreRevealed(e)
     flushChange(e)
     post({ type: 'focus', focused: false })
   },
