@@ -13,6 +13,10 @@ All notable changes to Schema are documented in this file.
 - Backspace brings markdown back (#98). At the start of a heading, to-do, list item or quote, Backspace turns it into a plain line that starts with the markdown that made it (`## `, `[ ] `, `[x] `, `- `, `2. `, `> `), so you can edit it: type x between the brackets to tick a to-do, change `##` to `#`, or delete the markdown to keep a plain line. Moving off the line turns it back into a block, and a to-do made into a task keeps its task. ⌘Z right after puts the block back.
 - ⌘Return in a to-do ticks it, or unticks it, instead of adding a line break (#97). With several to-dos selected it ticks them all (or unticks them if all were done), and a to-do made into a task ticks its task too. ⇧Return still adds a line break, ⌘Return elsewhere on a page works as before, and in Quick note it still saves as a task.
 
+### Development
+
+- Debug builds are called "Schema Dev" and have their own icon, the Schema glyph in yellow on near-black, so they're easy to tell apart from the TestFlight app in the Dock and ⌘Tab. They also have their own bundle ID (com.sarkarshubhdeep.schema.dev), so they keep their own data and never open the TestFlight app's. Release and TestFlight builds are unchanged.
+
 ## [0.5.5] — 2026-11-21
 
 The new editor everywhere, with Markdown, @ mentions, to-dos that become tasks, and Schema's own menus. Pages, task pages and Quick note all use it, and the old block editor is gone.
