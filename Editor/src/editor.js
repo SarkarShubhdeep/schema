@@ -38,7 +38,7 @@ import { updateSlash, openTurnInto } from './slash.js'
 import { menuKeyDown, isMenuOpen, closeMenu } from './menu.js'
 import { blockAt, duplicate } from './blocks.js'
 import { markdownPaste } from './paste.js'
-import { installTasks, setTaskContext, linkTask } from './tasks.js'
+import { installTasks, setTaskContext, linkTask, toggleToDos } from './tasks.js'
 import { Mention, setMentionContext, updateMention } from './mention.js'
 
 const post = (message) => {
@@ -135,6 +135,10 @@ const editor = new Editor({
         return true
       }
       const mod = isMac ? event.metaKey : event.ctrlKey
+      // ⌘Return in a to-do ticks it (#97); elsewhere it stays a line break.
+      if (mod && !event.shiftKey && !event.altKey && event.key === 'Enter' && !event.isComposing) {
+        return toggleToDos(editor)
+      }
       if (mod && !event.shiftKey && !event.altKey && event.key === '/') {
         openTurnInto(editor)
         return true

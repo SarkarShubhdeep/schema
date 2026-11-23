@@ -4,6 +4,10 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- ⌘Return in a to-do ticks it, or unticks it, instead of adding a line break (#97). With several to-dos selected it ticks them all (or unticks them if all were done), and a to-do made into a task ticks its task too. ⇧Return still adds a line break, ⌘Return elsewhere on a page works as before, and in Quick note it still saves as a task.
+
 ## [0.5.5] — 2026-11-21
 
 The new editor everywhere, with Markdown, @ mentions, to-dos that become tasks, and Schema's own menus. Pages, task pages and Quick note all use it, and the old block editor is gone.

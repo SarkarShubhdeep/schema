@@ -216,3 +216,34 @@ export function installTasks(editor) {
     })
   }, true) // Before the editor's own right-click menu (handle.js).
 }
+
+// ⌘Return in a to-do ticks it, or unticks it (#97). With a selection, every
+// to-do whose own line is in it: all ticked if any were open, else all
+// unticked. Linked tasks follow when the app saves, as with a click.
+// Returns false outside to-dos, so ⌘Return does what it did before.
+export function toggleToDos(editor) {
+  const { state } = editor
+  const { from, to, empty, $from } = state.selection
+  const items = []
+  if (empty) {
+    for (let d = $from.depth; d > 0; d--) {
+      if ($from.node(d).type.name === 'taskItem') {
+        items.push({ pos: $from.before(d), node: $from.node(d) })
+        break
+      }
+    }
+  } else {
+    state.doc.nodesBetween(from, to, (node, pos) => {
+      if (node.type.name !== 'taskItem') return true
+      const lineEnd = pos + 1 + (node.firstChild?.nodeSize ?? 0)
+      if (pos + 1 < to && lineEnd > from) items.push({ pos, node })
+      return true
+    })
+  }
+  if (items.length === 0) return false
+  const checked = items.some(({ node }) => !node.attrs.checked)
+  const tr = state.tr
+  items.forEach(({ pos, node }) => tr.setNodeMarkup(pos, undefined, { ...node.attrs, checked }))
+  editor.view.dispatch(tr)
+  return true
+}
