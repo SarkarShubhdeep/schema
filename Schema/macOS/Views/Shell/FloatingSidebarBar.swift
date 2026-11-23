@@ -59,7 +59,7 @@ struct FloatingSidebarBar: View {
 
                 notificationsButton
                 FloatingBarButton(systemImage: "gearshape", label: "Settings", shortcut: "⌘,") {
-                    workspace.showSettings = true
+                    workspace.openSettings()
                 }
                 .keyboardShortcut(",", modifiers: .command)
             }

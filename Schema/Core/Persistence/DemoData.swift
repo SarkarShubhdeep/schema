@@ -47,6 +47,9 @@ enum DemoData {
     /// accessibility label; `-SchemaDemoMenuKeys down,down,right` then
     /// presses keys in it, and `-SchemaDemoMenuClick <row>` clicks a row.
     static let opensMenu = value(after: "-SchemaDemoMenu")
+    /// Settings page (#108): `-SchemaDemoSettingsSection editor`, `-SchemaDemoSettingsSearch note`.
+    static let settingsSection = value(after: "-SchemaDemoSettingsSection").flatMap(SettingsSection.init(rawValue:))
+    static let settingsQuery = value(after: "-SchemaDemoSettingsSearch")
     static let menuKeys = value(after: "-SchemaDemoMenuKeys")?.split(separator: ",").map(String.init) ?? []
     static let menuClick = value(after: "-SchemaDemoMenuClick").flatMap { Int($0) }
     /// `-SchemaDemoRightClick 0.1,0.4` right-clicks at that spot of the

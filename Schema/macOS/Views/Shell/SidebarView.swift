@@ -68,7 +68,7 @@ struct SidebarView: View {
         ) {
             Image(systemName: "gearshape")
         } action: {
-            workspace.showSettings = true
+            workspace.openSettings()
         }
         .keyboardShortcut(",", modifiers: .command)
     }

@@ -201,6 +201,15 @@ struct TipTapBridgeTests {
         #expect(EditorMention(kind: "date", id: "21 Nov") == nil)
     }
 
+    @Test func typographyIsSentOnlyWhenItChanges() {
+        bridge.receive(["type": "ready"])
+        bridge.setTypography(true)
+        bridge.setTypography(true)
+        bridge.setTypography(false)
+        let calls = page.scripts.filter { $0.0.contains("setTypography") }.map { $0.1["json"] as? String }
+        #expect(calls == ["true", "false"])
+    }
+
     @Test func quickNoteModeIsSentAndReturnSubmitsTheNote() {
         bridge.receive(["type": "ready"])
         bridge.setMode(.note)

@@ -4,14 +4,19 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
-### Development
+### Added
 
-- Debug builds are called "Schema Dev" and have their own icon, the Schema glyph in yellow on near-black, so they're easy to tell apart from the TestFlight app in the Dock and ⌘Tab. They also have their own bundle ID (com.sarkarshubhdeep.schema.dev), so they keep their own data and never open the TestFlight app's. Release and TestFlight builds are unchanged.
+- Settings is its own page (#108). ⌘, or the gear opens Settings in the main window instead of a sheet, with its own sidebar: Back to Schema (Esc), a search field (⌘F), and sections for General, Editor, Quick note, Tasks & routines, Notifications and About (GitHub arrives in v0.6). Search looks through every setting's name and description and lists matches by section. Every setting works as before.
+- Replace as you type (#99). In pages, task pages and Quick note, -> becomes →, <- ←, <-> ↔, => ⇒, <=> ⇔, != ≠, >= ≥, <= ≤, ... …, a--b a—b, +/- ±, (c) ©, (tm) ™, and quotes and apostrophes curl. Never inside code blocks or code, and --- at the start of a line still makes a divider. Backspace or ⌘Z right after keeps what you typed, and Settings › Editor › Replace as you type turns it off.
 
 ### Changed
 
 - Backspace brings markdown back (#98). At the start of a heading, to-do, list item or quote, Backspace turns it into a plain line that starts with the markdown that made it (`## `, `[ ] `, `[x] `, `- `, `2. `, `> `), so you can edit it: type x between the brackets to tick a to-do, change `##` to `#`, or delete the markdown to keep a plain line. Moving off the line turns it back into a block, and a to-do made into a task keeps its task. ⌘Z right after puts the block back.
 - ⌘Return in a to-do ticks it, or unticks it, instead of adding a line break (#97). With several to-dos selected it ticks them all (or unticks them if all were done), and a to-do made into a task ticks its task too. ⇧Return still adds a line break, ⌘Return elsewhere on a page works as before, and in Quick note it still saves as a task.
+
+### Development
+
+- Debug builds are called "Schema Dev" and have their own icon, the Schema glyph in yellow on near-black, so they're easy to tell apart from the TestFlight app in the Dock and ⌘Tab. They also have their own bundle ID (com.sarkarshubhdeep.schema.dev), so they keep their own data and never open the TestFlight app's. Release and TestFlight builds are unchanged.
 
 ## [0.5.5] — 2026-11-21
 
