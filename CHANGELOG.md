@@ -4,6 +4,10 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+### Development
+
+- Debug builds are called "Schema Dev" and have their own icon, the Schema glyph in yellow on near-black, so they're easy to tell apart from the TestFlight app in the Dock and ⌘Tab. Release and TestFlight builds are unchanged.
+
 ### Changed
 
 - ⌘Return in a to-do ticks it, or unticks it, instead of adding a line break (#97). With several to-dos selected it ticks them all (or unticks them if all were done), and a to-do made into a task ticks its task too. ⇧Return still adds a line break, ⌘Return elsewhere on a page works as before, and in Quick note it still saves as a task.

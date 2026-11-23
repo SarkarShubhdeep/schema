@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		5404D2D12FDDF79900765A88 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 5404D2D02FDDF79900765A88 /* AppIcon.icon */; };
+		SCHMADEV2F00010000000002 /* AppIconDev.icon in Resources */ = {isa = PBXBuildFile; fileRef = SCHMADEV2F00010000000001 /* AppIconDev.icon */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -22,6 +23,7 @@
 
 /* Begin PBXFileReference section */
 		5404D2D02FDDF79900765A88 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		SCHMADEV2F00010000000001 /* AppIconDev.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIconDev.icon; sourceTree = "<group>"; };
 		SCHMA0012F00010000000001 /* Schema.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Schema.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		SCHMA0012F00010000000020 /* SchemaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SchemaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -61,6 +63,7 @@
 			isa = PBXGroup;
 			children = (
 				5404D2D02FDDF79900765A88 /* AppIcon.icon */,
+				SCHMADEV2F00010000000001 /* AppIconDev.icon */,
 				SCHMA0012F00010000000002 /* Schema */,
 				SCHMA0012F00010000000021 /* SchemaTests */,
 				SCHMA0012F00010000000004 /* Products */,
@@ -169,6 +172,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5404D2D12FDDF79900765A88 /* AppIcon.icon in Resources */,
+				SCHMADEV2F00010000000002 /* AppIconDev.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -328,7 +332,7 @@
 		SCHMA0012F0001000000000F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconDev;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = Schema/Schema.entitlements;
@@ -341,7 +345,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Schema;
+				INFOPLIST_KEY_CFBundleDisplayName = "Schema Dev";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Shubhdeep Sarkar";
