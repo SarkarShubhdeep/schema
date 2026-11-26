@@ -13,6 +13,7 @@ struct SchemaCardModifier: ViewModifier {
     var padding: CGFloat = 16
     var cornerRadius: CGFloat = 16
     var fill: Color = SchemaTheme.surface
+    var bordered = true
 
     func body(content: Content) -> some View {
         content
@@ -23,15 +24,15 @@ struct SchemaCardModifier: ViewModifier {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(SchemaTheme.line, lineWidth: 1)
+                    .strokeBorder(bordered ? SchemaTheme.line : .clear, lineWidth: 1)
             )
     }
 }
 
 extension View {
     /// A surface card: panels, stat tiles, task groups, dialogs.
-    func schemaCard(padding: CGFloat = 16, cornerRadius: CGFloat = 16, fill: Color = SchemaTheme.surface) -> some View {
-        modifier(SchemaCardModifier(padding: padding, cornerRadius: cornerRadius, fill: fill))
+    func schemaCard(padding: CGFloat = 16, cornerRadius: CGFloat = 16, fill: Color = SchemaTheme.surface, bordered: Bool = true) -> some View {
+        modifier(SchemaCardModifier(padding: padding, cornerRadius: cornerRadius, fill: fill, bordered: bordered))
     }
 }
 

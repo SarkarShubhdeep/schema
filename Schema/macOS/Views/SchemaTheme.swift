@@ -21,8 +21,9 @@ enum SchemaTheme {
     static let surface = color(light: 0xFFFFFF, dark: 0x1A1A1A)
     /// The window's floating islands (#116): sidebar, page header, details panel.
     static let island = color(light: 0xEBEBE8, dark: 0x1A1A1A)
-    /// Cards inside an island, one step up from it.
-    static let islandCard = color(light: 0xFFFFFF, dark: 0x252525)
+    /// Cards inside an island: flush with it, only a faint tint apart
+    /// (ink at 3.5% over the island), with no border.
+    static let islandCard = color(light: 0xE3E3E0, dark: 0x222222)
     /// Hovered and selected rows. Selection is neutral, never tinted.
     static let surfaceHover = color(light: 0xE6E6E3, dark: 0x252525)
 

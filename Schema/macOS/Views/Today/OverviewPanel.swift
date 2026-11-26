@@ -112,7 +112,7 @@ struct OverviewPanel: View {
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .schemaCard(padding: 16, cornerRadius: ShellMetrics.innerRadius, fill: SchemaTheme.islandCard)
+        .schemaCard(padding: 16, cornerRadius: ShellMetrics.innerRadius, fill: SchemaTheme.islandCard, bordered: false)
     }
 }
 
