@@ -315,7 +315,7 @@ private let taskListCoordinateSpace = "TaskListContent"
 
 private enum TaskListMetrics {
     static let horizontalInset: CGFloat = 32
-    static let maxContentWidth: CGFloat = 900
+    static let maxContentWidth: CGFloat = ShellMetrics.contentWidth
     static let rowSpacing: CGFloat = 2
     static let sectionSpacing: CGFloat = 22
     static let topInset: CGFloat = 20

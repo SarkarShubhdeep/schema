@@ -69,23 +69,27 @@ struct ContentView: View {
 
     @ViewBuilder
     private func workspaceStack(listViewModel: ListViewModel, taskViewModel: TaskViewModel) -> some View {
-        if workspace.showSettings {
-            SettingsScreen(listViewModel: listViewModel, lists: lists, notificationService: notificationService)
-                .frame(minWidth: ShellMetrics.minimumWindowWidth, minHeight: 520)
-        } else {
-            appStack(listViewModel: listViewModel, taskViewModel: taskViewModel)
+        Group {
+            if workspace.showSettings {
+                SettingsScreen(listViewModel: listViewModel, lists: lists, notificationService: notificationService)
+                    .frame(minWidth: ShellMetrics.minimumWindowWidth, minHeight: 520)
+            } else {
+                appStack(listViewModel: listViewModel, taskViewModel: taskViewModel)
+            }
         }
+        // The window controls sit in the sidebar's header row (#116).
+        .background(WindowControlsPlacement())
     }
 
     private func appStack(listViewModel: ListViewModel, taskViewModel: TaskViewModel) -> some View {
         @Bindable var workspace = workspace
 
-        return HStack(spacing: 0) {
+        return HStack(spacing: ShellMetrics.margin) {
             if !workspace.isSidebarCollapsed {
                 SidebarView(lists: lists, allTasks: allTasks, listViewModel: listViewModel, onNotificationSelect: { item in
                     openNotification(item, listViewModel: listViewModel)
                 })
-                .transition(SchemaMotion.moving(.move(edge: .leading)))
+                .transition(SchemaMotion.moving(.move(edge: .leading).combined(with: .opacity)))
             }
 
             WorkspaceView(
@@ -95,22 +99,23 @@ struct ContentView: View {
                 taskViewModel: taskViewModel,
                 notificationService: notificationService
             )
-            .frame(minWidth: ShellMetrics.mainMinWidth + ShellMetrics.detailsRailWidth, maxWidth: .infinity)
-            .clipped()
+            .frame(minWidth: ShellMetrics.mainMinWidth, maxWidth: .infinity)
         }
-        .background(SchemaTheme.canvas.ignoresSafeArea())
-        // Collapsed, the sidebar is a floating bar over the main column (#43).
+        .padding(ShellMetrics.margin)
+        // Collapsed, the sidebar is a pill at the top left beside the page's header (#116).
         .overlay(alignment: .topLeading) {
             if workspace.isSidebarCollapsed {
-                FloatingSidebarBar(lists: lists, listViewModel: listViewModel, onNotificationSelect: { item in
-                    openNotification(item, listViewModel: listViewModel)
-                })
+                SidebarPill()
+                    .padding(ShellMetrics.margin)
                     .transition(SchemaMotion.followingPanel(.opacity.combined(with: .offset(x: -8))))
             }
         }
-        .overlay(alignment: .topTrailing) {
-            DetailsPanelTitleBarStrip()
-        }
+        .environment(\.shellHeaderInsets, ShellHeaderInsets(
+            leading: workspace.isSidebarCollapsed ? ShellMetrics.collapsedSidebarWidth + ShellMetrics.margin : 0,
+            trailing: 0
+        ))
+        .background(SchemaTheme.canvas)
+        .ignoresSafeArea()
         .frame(minWidth: ShellMetrics.minimumWindowWidth, minHeight: 520)
         .overlay {
             if let ids = workspace.pendingDeleteIDs {

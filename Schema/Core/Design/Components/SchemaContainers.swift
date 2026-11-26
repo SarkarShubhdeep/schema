@@ -12,25 +12,27 @@ import SwiftUI
 struct SchemaCardModifier: ViewModifier {
     var padding: CGFloat = 16
     var cornerRadius: CGFloat = 16
+    var fill: Color = SchemaTheme.surface
+    var bordered = true
 
     func body(content: Content) -> some View {
         content
             .padding(padding)
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(SchemaTheme.surface)
+                    .fill(fill)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(SchemaTheme.line, lineWidth: 1)
+                    .strokeBorder(bordered ? SchemaTheme.line : .clear, lineWidth: 1)
             )
     }
 }
 
 extension View {
     /// A surface card: panels, stat tiles, task groups, dialogs.
-    func schemaCard(padding: CGFloat = 16, cornerRadius: CGFloat = 16) -> some View {
-        modifier(SchemaCardModifier(padding: padding, cornerRadius: cornerRadius))
+    func schemaCard(padding: CGFloat = 16, cornerRadius: CGFloat = 16, fill: Color = SchemaTheme.surface, bordered: Bool = true) -> some View {
+        modifier(SchemaCardModifier(padding: padding, cornerRadius: cornerRadius, fill: fill, bordered: bordered))
     }
 }
 

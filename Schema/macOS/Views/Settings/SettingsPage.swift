@@ -40,14 +40,13 @@ struct SettingsPage: View {
                         .foregroundStyle(SchemaTheme.inkMuted)
                 }
             }
-            .frame(maxWidth: 680, alignment: .leading)
+            .frame(maxWidth: ShellMetrics.contentWidth, alignment: .leading)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 32)
-            .padding(.top, 28)
+            .padding(.top, 24)
             .padding(.bottom, 56)
         }
         .scrollIndicators(.automatic)
-        .background(SchemaTheme.canvas)
         .task {
             authorizationStatus = await notificationService.authorizationStatus()
         }

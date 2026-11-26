@@ -143,8 +143,8 @@ struct WorkspaceView: View {
         let requiresManualSort = scratchpadPage == nil && openTask == nil
             && RoutineSequenceOrdering.requiresManualSort(for: selectedList, in: allTasks)
 
-        HStack(spacing: 0) {
-        VStack(spacing: 0) {
+        HStack(spacing: ShellMetrics.margin) {
+        VStack(spacing: ShellMetrics.margin) {
             if let task = openTask {
                 TaskPageView(
                     task: task,
@@ -164,6 +164,11 @@ struct WorkspaceView: View {
             } else if let scratchpad = scratchpadPage {
                 ScratchpadPageView(page: scratchpad, taskActions: blockTaskActions)
             } else {
+            PageHeaderBar(
+                model: headerModel(openCount: incomplete.count, doneCount: completed.count),
+                listViewModel: listViewModel,
+                requiresManualSort: requiresManualSort
+            )
             TaskListView(
                 pageKey: listViewModel.smartView?.rawValue ?? listViewModel.selectedListID?.uuidString ?? "",
                 header: VStack(alignment: .leading, spacing: 22) {
@@ -238,15 +243,21 @@ struct WorkspaceView: View {
             selectionToolbar(visible: incomplete + completed)
         }
         .animation(SchemaMotion.appear, value: workspace.selectedTaskIDs.isEmpty)
-        // Room for the floating sidebar bar when the sidebar is collapsed.
-        .padding(.leading, workspace.isSidebarCollapsed ? ShellMetrics.floatingBarContentInset : 0)
         .frame(minWidth: ShellMetrics.mainMinWidth, maxWidth: .infinity, minHeight: 520)
-        .clipped()
+        // Collapsed, the details panel is its expand button at the top right,
+        // beside the page's header (#116).
+        .transformEnvironment(\.shellHeaderInsets) { insets in
+            insets.trailing = workspace.isDetailsPanelCollapsed ? ShellMetrics.collapsedDetailsWidth + ShellMetrics.margin : 0
+        }
+        .overlay(alignment: .topTrailing) {
+            if workspace.isDetailsPanelCollapsed {
+                DetailsPanelPill(title: openTask == nil ? "Overview" : "Task")
+                    .transition(SchemaMotion.followingPanel(.opacity.combined(with: .offset(x: 8))))
+            }
+        }
 
-            DetailsPanelView(
-                title: openTask == nil ? "Overview" : "Task",
-                railItems: openTask == nil ? Self.overviewRail : Self.taskRail
-            ) {
+            if !workspace.isDetailsPanelCollapsed {
+            DetailsPanelView(title: openTask == nil ? "Overview" : "Task") {
                 if let task = openTask, let editor = workspace.taskDetailEditor {
                     TaskPagePanel(
                         task: task,
@@ -262,10 +273,11 @@ struct WorkspaceView: View {
                     OverviewPanel(stats: todayStats ?? dayStats)
                 }
             }
+            .transition(SchemaMotion.moving(.move(edge: .trailing).combined(with: .opacity)))
+            }
         }
         .animation(SchemaMotion.smooth, value: workspace.isTaskPageOpen)
         .environment(\.editorMentionActions, EditorMentionActions(open: openMention, openLine: openTaggedLine))
-        .background(SchemaTheme.canvas)
         .clickOutsideDismiss(isActive: workspace.hasDismissibleState) {
             dismissActiveEditing()
         }
@@ -395,23 +407,10 @@ struct WorkspaceView: View {
                 }
             )
             .keepsSelectionOnClick()
-            .padding(.bottom, 24)
-            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
             .transition(SchemaMotion.moving(.move(edge: .bottom).combined(with: .opacity)))
         }
     }
-
-    static let overviewRail = [
-        PanelRailItem(systemImage: "bell", label: "Upcoming reminders"),
-        PanelRailItem(systemImage: "chart.bar", label: "This week"),
-        PanelRailItem(systemImage: "repeat", label: "Routines"),
-    ]
-
-    static let taskRail = [
-        PanelRailItem(systemImage: "slider.horizontal.3", label: "Properties"),
-        PanelRailItem(systemImage: "checklist", label: "Checklist"),
-        PanelRailItem(systemImage: "link", label: "Linked"),
-    ]
 
     /// The task whose page is open (#31).
     var openTask: SchemaTask? {

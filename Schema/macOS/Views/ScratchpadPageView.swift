@@ -32,13 +32,15 @@ struct ScratchpadPageView: View {
     @State private var groupsByPage = true
 
     var body: some View {
-        VStack(spacing: 18) {
-            header
-                .frame(maxWidth: 720, alignment: .leading)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 32)
-                .padding(.top, 28)
-            editor
+        VStack(spacing: ShellMetrics.margin) {
+            headerBar
+            VStack(spacing: 18) {
+                header
+                    .frame(maxWidth: ShellMetrics.contentWidth + PageBodyEditor.gutterWidth, alignment: .leading)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 24)
+                editor
+            }
         }
         .background(hiddenShortcuts)
         .onAppear(perform: pageAppeared)
@@ -88,34 +90,36 @@ struct ScratchpadPageView: View {
         )
     }
 
+    /// The header island (#116): where the page is, then its actions.
+    private var headerBar: some View {
+        HeaderIsland {
+            Text(page.isTagPage ? "Tags" : "Pages")
+            Text("/").foregroundStyle(SchemaTheme.inkFaint)
+            Text(page.isTagPage ? "#\(page.title)" : page.title)
+                .foregroundStyle(SchemaTheme.ink)
+        } trailing: {
+            if page.isTagPage {
+                Button(hidesDone ? "Show done" : "Hide done") { hidesDone.toggle() }
+                    .buttonStyle(.schema(.secondary))
+                    .help(hidesDone ? "Show ticked lines from other pages" : "Hide ticked lines from other pages")
+            } else {
+                Button {
+                    QuickNoteController.shared.show()
+                } label: {
+                    HStack(spacing: 8) {
+                        Text("Quick note")
+                        SchemaKeyHint("⌃⌥N")
+                    }
+                }
+                .buttonStyle(.schema(.secondary))
+                .help("Write a note from any app  ⌃⌥N")
+            }
+            pageMenu
+        }
+    }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: 22) {
-            HStack(spacing: 6) {
-                Text(page.isTagPage ? "Tags" : "Pages")
-                Text("/").foregroundStyle(SchemaTheme.inkFaint)
-                Text(page.isTagPage ? "#\(page.title)" : page.title).lineLimit(1)
-                Spacer(minLength: 12)
-                if page.isTagPage {
-                    Button(hidesDone ? "Show done" : "Hide done") { hidesDone.toggle() }
-                        .buttonStyle(.schema(.secondary))
-                        .help(hidesDone ? "Show ticked lines from other pages" : "Hide ticked lines from other pages")
-                } else {
-                    Button {
-                        QuickNoteController.shared.show()
-                    } label: {
-                        HStack(spacing: 8) {
-                            Text("Quick note")
-                            SchemaKeyHint("⌃⌥N")
-                        }
-                    }
-                    .buttonStyle(.schema(.secondary))
-                    .help("Write a note from any app  ⌃⌥N")
-                }
-                pageMenu
-            }
-            .font(.satoshi(13, weight: .medium, relativeTo: .callout))
-            .foregroundStyle(SchemaTheme.inkMuted)
-
             VStack(alignment: .leading, spacing: 4) {
                 Label(editedLabel, systemImage: page.pageKind.systemImage)
                     .font(.satoshi(13, weight: .medium, relativeTo: .callout))

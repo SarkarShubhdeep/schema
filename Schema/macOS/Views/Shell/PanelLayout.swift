@@ -75,9 +75,10 @@ extension WorkspaceState {
 
     private func fits(sidebarCollapsed: Bool, detailsCollapsed: Bool) -> Bool {
         guard let windowWidth else { return true }
-        let needed = (sidebarCollapsed ? ShellMetrics.floatingBarContentInset : ShellMetrics.sidebarWidth)
+        let needed = ShellMetrics.margin * 2
+            + ShellMetrics.leadingWidth(sidebarCollapsed: sidebarCollapsed)
             + ShellMetrics.mainMinWidth
-            + (detailsCollapsed ? ShellMetrics.detailsRailWidth : ShellMetrics.detailsWidth)
+            + ShellMetrics.trailingWidth(detailsCollapsed: detailsCollapsed)
         return needed <= windowWidth
     }
 

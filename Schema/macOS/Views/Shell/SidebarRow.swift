@@ -2,17 +2,15 @@
 //  SidebarRow.swift
 //  Schema
 //
-//  One sidebar item, and the section header between groups. The collapsed
-//  sidebar is a separate floating bar (FloatingSidebarBar).
+//  One sidebar item, and the section header between groups. Rows fill the
+//  sidebar island's width, with its 8pt inner corners (#116).
 //
 
 import SwiftUI
 
 enum SidebarMetrics {
-    /// Horizontal inset of rows from the sidebar edges.
-    static let rowInset: CGFloat = 12
     /// Space before the icon inside a row.
-    static let iconLeading: CGFloat = 17
+    static let iconLeading: CGFloat = 12
     static let rowHeight: CGFloat = 36
     static let iconSize: CGFloat = 14
 }
@@ -55,9 +53,8 @@ struct SidebarRow<Icon: View>: View {
             .padding(.trailing, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: SidebarMetrics.rowHeight)
-            .background(Capsule(style: .continuous).fill(background))
-            .clipShape(Capsule(style: .continuous))
-            .contentShape(Capsule(style: .continuous))
+            .background(RoundedRectangle(cornerRadius: ShellMetrics.innerRadius, style: .continuous).fill(background))
+            .contentShape(RoundedRectangle(cornerRadius: ShellMetrics.innerRadius, style: .continuous))
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
@@ -122,7 +119,7 @@ struct SidebarSectionHeader<Accessory: View>: View {
             Spacer(minLength: 8)
             accessory()
         }
-        .padding(.leading, SidebarMetrics.iconLeading - 5)
+        .padding(.leading, SidebarMetrics.iconLeading)
         .frame(height: 30)
         .padding(.top, 6)
     }

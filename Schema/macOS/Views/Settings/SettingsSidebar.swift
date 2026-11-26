@@ -17,6 +17,12 @@ struct SettingsSidebar: View {
         let searching = !workspace.settingsQuery.trimmingCharacters(in: .whitespaces).isEmpty
 
         VStack(alignment: .leading, spacing: 2) {
+            // The window controls sit here (WindowControlsPlacement, #116).
+            Color.clear
+                .frame(height: ShellMetrics.control)
+                .padding(.bottom, ShellMetrics.innerGap - 2)
+                .accessibilityHidden(true)
+
             Button {
                 workspace.showSettings = false
             } label: {
@@ -60,18 +66,9 @@ struct SettingsSidebar: View {
                 .disabled(section.comingIn != nil)
             }
         }
-        .padding(.horizontal, SidebarMetrics.rowInset)
-        .padding(.top, 6)
-        .padding(.bottom, 16)
-        .frame(width: ShellMetrics.sidebarWidth, alignment: .topLeading)
+        .frame(width: ShellMetrics.sidebarWidth - ShellMetrics.islandPadding * 2, alignment: .topLeading)
         .frame(maxHeight: .infinity, alignment: .top)
-        .background(SchemaTheme.surfaceSunken.ignoresSafeArea())
-        .overlay(alignment: .trailing) {
-            Rectangle()
-                .fill(SchemaTheme.line)
-                .frame(width: 1)
-                .ignoresSafeArea()
-        }
+        .shellIsland()
     }
 
     private func searchField(query: Binding<String>, isActive: Bool) -> some View {

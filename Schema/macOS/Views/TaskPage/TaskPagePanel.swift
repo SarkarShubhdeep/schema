@@ -45,7 +45,7 @@ struct TaskPagePanel: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: ShellMetrics.innerGap) {
             card(title: "Properties", trailing: nil) {
                 TaskPropertiesList(
                     task: task,
@@ -146,7 +146,7 @@ struct TaskPagePanel: View {
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .schemaCard(padding: 16)
+        .schemaCard(padding: 16, cornerRadius: ShellMetrics.innerRadius, fill: SchemaTheme.islandCard, bordered: false)
     }
 }
 

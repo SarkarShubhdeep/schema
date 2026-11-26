@@ -17,12 +17,24 @@ struct SettingsScreen: View {
     @FocusState private var isSearchFocused: Bool
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: ShellMetrics.margin) {
             SettingsSidebar(isSearchFocused: $isSearchFocused)
-            SettingsPage(listViewModel: listViewModel, lists: lists, notificationService: notificationService)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            VStack(spacing: ShellMetrics.margin) {
+                HeaderIsland {
+                    Text("Settings")
+                    Text("/").foregroundStyle(SchemaTheme.inkFaint)
+                    Text(workspace.settingsQuery.isEmpty ? workspace.settingsSection.title : "Search")
+                        .foregroundStyle(SchemaTheme.ink)
+                } trailing: {
+                    EmptyView()
+                }
+                SettingsPage(listViewModel: listViewModel, lists: lists, notificationService: notificationService)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
-        .background(SchemaTheme.canvas.ignoresSafeArea())
+        .padding(ShellMetrics.margin)
+        .background(SchemaTheme.canvas)
+        .ignoresSafeArea()
         .background {
             // ⌘F from anywhere on the page.
             Button("Search settings") { isSearchFocused = true }
