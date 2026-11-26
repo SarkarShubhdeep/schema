@@ -37,18 +37,17 @@ struct TaskPageView: View {
 
     var body: some View {
         VStack(spacing: 18) {
+            topBar
             VStack(alignment: .leading, spacing: 20) {
-                topBar
                 header
                 Rectangle()
                     .fill(SchemaTheme.line)
                     .frame(height: 1)
                     .padding(.leading, PageBodyEditor.gutterWidth)
             }
-            .frame(maxWidth: 720, alignment: .leading)
+            .frame(maxWidth: ShellMetrics.contentWidth + PageBodyEditor.gutterWidth, alignment: .leading)
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, 32)
-            .padding(.top, 28)
+            .padding(.top, 6)
             PageBodyEditor(holder: task, id: task.id, focusRequest: editorFocus, onEscape: back)
         }
         .background(hiddenShortcuts)
@@ -62,8 +61,10 @@ struct TaskPageView: View {
 
     // MARK: Top bar
 
+    /// The header island (#116): back to where the task was opened from,
+    /// then previous, next and the task's options.
     private var topBar: some View {
-        HStack(spacing: 6) {
+        HeaderIsland {
             Button(action: back) {
                 HStack(spacing: 4) {
                     Image(systemName: "chevron.left")
@@ -83,11 +84,8 @@ struct TaskPageView: View {
             Text("/").foregroundStyle(SchemaTheme.inkFaint)
             Text(task.title)
                 .foregroundStyle(SchemaTheme.ink)
-                .lineLimit(1)
                 .truncationMode(.tail)
-
-            Spacer(minLength: 12)
-
+        } trailing: {
             SchemaIconButton(systemImage: "chevron.up", label: "Previous task", shortcut: "⌘[", size: 32) {
                 actions.onPrevious?()
             }
@@ -98,9 +96,6 @@ struct TaskPageView: View {
             .disabled(actions.onNext == nil)
             optionsMenu
         }
-        .font(.satoshi(13, weight: .medium, relativeTo: .callout))
-        .foregroundStyle(SchemaTheme.inkMuted)
-        .padding(.leading, PageBodyEditor.gutterWidth)
     }
 
     private var optionsMenu: some View {

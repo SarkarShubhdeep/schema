@@ -2,9 +2,10 @@
 //  SidebarView.swift
 //  Schema
 //
-//  Left column of the window. The window controls sit at its top (the title
-//  bar is hidden). It is 240pt wide; ⌘⌥← collapses it, and the floating bar
-//  (FloatingSidebarBar) takes its place.
+//  The sidebar island (#116), 283pt wide: a header row with the window
+//  controls and the collapse button, the views, pages and tags (they
+//  scroll), and a footer row with Settings and Notifications. ⌘⌥←
+//  collapses it to SidebarPill.
 //
 
 import SwiftUI
@@ -18,59 +19,37 @@ struct SidebarView: View {
     let onNotificationSelect: (SchemaNotificationItem) -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Schema")
-                    .font(.spaceGrotesk(19, weight: .bold, relativeTo: .title3))
-                    .tracking(-0.4)
-                    .foregroundStyle(SchemaTheme.ink)
-                    .lineLimit(1)
-                    .padding(.leading, 12)
-                    .frame(height: SidebarMetrics.rowHeight)
-                    .padding(.bottom, 2)
+        VStack(spacing: ShellMetrics.innerGap) {
+            HStack(spacing: ShellMetrics.innerGap) {
+                // The window controls sit here (WindowControlsPlacement).
+                Color.clear
+                    .frame(maxWidth: .infinity)
+                    .accessibilityHidden(true)
+                IslandIconButton(systemImage: "sidebar.left", label: "Collapse sidebar", shortcut: "⌘⌥←") {
+                    workspace.toggleSidebar()
+                }
+            }
+            .frame(height: ShellMetrics.control)
 
+            ScrollView {
                 SidebarNavigation(lists: lists, allTasks: allTasks, listViewModel: listViewModel)
+                    .padding(.bottom, 8)
+            }
+            .scrollIndicators(.never)
+            .frame(maxHeight: .infinity)
 
-                Color.clear.frame(height: 36)
+            HStack(spacing: ShellMetrics.innerGap) {
+                IslandIconButton(systemImage: "gearshape", label: "Settings", shortcut: "⌘,") {
+                    workspace.openSettings()
+                }
+                .keyboardShortcut(",", modifiers: .command)
                 notificationsRow
-                settingsRow
             }
-            .padding(.horizontal, SidebarMetrics.rowInset)
-            .padding(.top, 6)
-            .padding(.bottom, 16)
+            .frame(height: ShellMetrics.control)
         }
-        .scrollIndicators(.never)
-        .frame(width: ShellMetrics.sidebarWidth)
+        .frame(width: ShellMetrics.sidebarWidth - ShellMetrics.islandPadding * 2)
         .frame(maxHeight: .infinity)
-        .background(SchemaTheme.surfaceSunken.ignoresSafeArea())
-        .overlay(alignment: .topTrailing) {
-            SchemaIconButton(systemImage: "sidebar.left", label: "Collapse sidebar", shortcut: "⌘⌥←", size: 28) {
-                workspace.toggleSidebar()
-            }
-            .padding(.trailing, 12)
-            .offset(y: ShellMetrics.windowControlsCenterY - 14)
-            .ignoresSafeArea()
-        }
-        .overlay(alignment: .trailing) {
-            Rectangle()
-                .fill(SchemaTheme.line)
-                .frame(width: 1)
-                .ignoresSafeArea()
-        }
-    }
-
-    private var settingsRow: some View {
-        SidebarRow(
-            title: "Settings",
-            isActive: false,
-            trailing: .keys("⌘,"),
-            tooltip: "Settings  ⌘,"
-        ) {
-            Image(systemName: "gearshape")
-        } action: {
-            workspace.openSettings()
-        }
-        .keyboardShortcut(",", modifiers: .command)
+        .shellIsland()
     }
 
     private var notificationsRow: some View {
@@ -95,9 +74,43 @@ struct SidebarView: View {
         } action: {
             workspace.showNotifications.toggle()
         }
+        .frame(height: ShellMetrics.control)
         .popover(isPresented: $workspace.showNotifications, arrowEdge: .trailing) {
             NotificationsPopover(items: workspace.notificationItems, onSelect: onNotificationSelect)
         }
         .accessibilityValue(pending == 0 ? "" : "\(pending) pending")
+    }
+}
+
+/// The collapsed sidebar (#116): a 150pt pill at the top left that holds
+/// the window controls and the expand button, nothing else.
+struct SidebarPill: View {
+    @Environment(WorkspaceState.self) private var workspace
+
+    var body: some View {
+        HStack(spacing: ShellMetrics.innerGap) {
+            Color.clear
+                .frame(maxWidth: .infinity)
+                .accessibilityHidden(true)
+            IslandIconButton(systemImage: "sidebar.left", label: "Expand sidebar", shortcut: "⌘⌥←") {
+                workspace.toggleSidebar()
+            }
+        }
+        .frame(width: ShellMetrics.collapsedSidebarWidth - ShellMetrics.islandPadding * 2, height: ShellMetrics.control)
+        .shellIsland()
+    }
+}
+
+/// The collapsed details panel (#116): its expand button at the top right.
+struct DetailsPanelPill: View {
+    @Environment(WorkspaceState.self) private var workspace
+
+    let title: String
+
+    var body: some View {
+        IslandIconButton(systemImage: "sidebar.right", label: "Show \(title.lowercased())", shortcut: "⌘⌥→") {
+            workspace.toggleDetailsPanel()
+        }
+        .shellIsland()
     }
 }

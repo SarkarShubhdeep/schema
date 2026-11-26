@@ -32,6 +32,8 @@ struct PomodoroPageView: View {
             PomodoroHistory.Entry(timerID: $0.timerID, timerName: $0.timerName, startedAt: $0.startedAt, minutes: $0.minutes)
         }
         let today = entries.filter { Calendar.current.isDateInToday($0.startedAt) }
+        VStack(spacing: ShellMetrics.margin) {
+        headerBar
         ScrollViewReader { proxy in
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -40,10 +42,10 @@ struct PomodoroPageView: View {
                 PomodoroHistoryView(entries: entries, timers: timers)
                     .id("history")
             }
-            .frame(maxWidth: 1000, alignment: .leading)
+            .frame(maxWidth: ShellMetrics.contentWidth, alignment: .leading)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 32)
-            .padding(.top, 28)
+            .padding(.top, 24)
             .padding(.bottom, 56)
         }
         .scrollIndicators(.automatic)
@@ -55,6 +57,7 @@ struct PomodoroPageView: View {
             proxy.scrollTo("history", anchor: .bottom)
         }
         #endif
+        }
         }
         .background(hiddenShortcuts)
         #if DEBUG
@@ -82,7 +85,16 @@ struct PomodoroPageView: View {
                     .font(.satoshi(13, relativeTo: .callout))
                     .foregroundStyle(SchemaTheme.inkMuted)
             }
-            Spacer(minLength: 12)
+        }
+    }
+
+    /// The header island (#116): where you are, then New timer.
+    private var headerBar: some View {
+        HeaderIsland {
+            Text("Views")
+            Text("/").foregroundStyle(SchemaTheme.inkFaint)
+            Text("Pomodoro").foregroundStyle(SchemaTheme.ink)
+        } trailing: {
             Button {
                 isAdding.toggle()
             } label: {
@@ -138,7 +150,7 @@ struct PomodoroPageView: View {
             .schemaCard(padding: 18)
         } else {
             let target = spaceTarget
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 290), spacing: 16, alignment: .top)], alignment: .leading, spacing: 16) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 340), spacing: 16, alignment: .top)], alignment: .leading, spacing: 16) {
                 ForEach(timers) { timer in
                     PomodoroTimerCard(
                         timer: timer,

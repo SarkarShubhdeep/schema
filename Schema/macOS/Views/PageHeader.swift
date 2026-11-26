@@ -2,9 +2,10 @@
 //  PageHeader.swift
 //  Schema
 //
-//  The top of a page: breadcrumb with sort pills and page options, then the
-//  page type, a large title (double-click a page title to rename it), the
-//  open count, and done-of-total with a flat progress bar.
+//  The top of a to-do page: the header island (PageHeaderBar: breadcrumb,
+//  sort pills, page options), then in the page the page type, a large title
+//  (double-click a page title to rename it), the open count, and
+//  done-of-total with a flat progress bar.
 //
 
 import SwiftUI
@@ -38,56 +39,10 @@ struct PageHeader: View {
     private static let titleFont = Font.spaceGrotesk(44, weight: .semibold, relativeTo: .largeTitle)
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            topBar
-            titleBlock
-        }
+        titleBlock
         // Rename from the page menu or the sidebar (#42).
         .onAppear(perform: takeRenameRequest)
         .onChange(of: workspace.pageRenameRequest) { _, _ in takeRenameRequest() }
-    }
-
-    // MARK: Top bar
-
-    private var topBar: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 6) {
-                Text(model.crumb)
-                    .foregroundStyle(SchemaTheme.inkMuted)
-                Text("/")
-                    .foregroundStyle(SchemaTheme.inkFaint)
-                Text(model.title)
-                    .foregroundStyle(SchemaTheme.inkMuted)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-            }
-            .font(.schemaControl)
-
-            Spacer(minLength: 12)
-
-            HStack(spacing: 6) {
-                sortPill("Manual", option: .manual)
-                sortPill("Due", option: .reminderTime)
-                sortPill("A–Z", option: .alphabetical)
-            }
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel("Sort")
-
-            ListPreferencesMenu(listViewModel: listViewModel, requiresManualSort: requiresManualSort, page: model.renamableList)
-        }
-    }
-
-    private func sortPill(_ title: String, option: TaskSortOption) -> some View {
-        let isOn = listViewModel.sortOption == option
-        return Button(title) {
-            withAnimation(SchemaMotion.smooth) {
-                listViewModel.sortOption = option
-            }
-        }
-        .buttonStyle(SortPillStyle(isOn: isOn))
-        .disabled(requiresManualSort && option != .manual)
-        .help(requiresManualSort && option != .manual ? "Routine chains keep this page in manual order" : "Sort: \(title)")
-        .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 
     // MARK: Title block
@@ -162,6 +117,48 @@ struct PageHeader: View {
     private func takeRenameRequest() {
         guard let id = model.renamableList?.id, workspace.takePageRenameRequest(for: id) else { return }
         titleFocus = BlockFocusRequest(blockID: id, caret: .all)
+    }
+}
+
+/// The header island of a to-do page or view (#116): where you are, then
+/// the sort pills and the page options.
+struct PageHeaderBar: View {
+    let model: PageHeaderModel
+    @Bindable var listViewModel: ListViewModel
+    let requiresManualSort: Bool
+
+    var body: some View {
+        HeaderIsland {
+            Text(model.crumb)
+            Text("/")
+                .foregroundStyle(SchemaTheme.inkFaint)
+            Text(model.title)
+                .foregroundStyle(SchemaTheme.ink)
+                .truncationMode(.tail)
+        } trailing: {
+            HStack(spacing: 6) {
+                sortPill("Manual", option: .manual)
+                sortPill("Due", option: .reminderTime)
+                sortPill("A–Z", option: .alphabetical)
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Sort")
+
+            ListPreferencesMenu(listViewModel: listViewModel, requiresManualSort: requiresManualSort, page: model.renamableList)
+        }
+    }
+
+    private func sortPill(_ title: String, option: TaskSortOption) -> some View {
+        let isOn = listViewModel.sortOption == option
+        return Button(title) {
+            withAnimation(SchemaMotion.smooth) {
+                listViewModel.sortOption = option
+            }
+        }
+        .buttonStyle(SortPillStyle(isOn: isOn))
+        .disabled(requiresManualSort && option != .manual)
+        .help(requiresManualSort && option != .manual ? "Routine chains keep this page in manual order" : "Sort: \(title)")
+        .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 }
 
