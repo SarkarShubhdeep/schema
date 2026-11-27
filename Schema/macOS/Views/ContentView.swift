@@ -78,6 +78,18 @@ struct ContentView: View {
                 appStack(listViewModel: listViewModel, taskViewModel: taskViewModel)
             }
         }
+        // ⌘K over everything, Settings included (#122).
+        .overlay {
+            if workspace.isCommandBarOpen {
+                CommandBar(search: commandSearch(listViewModel), initialQuery: workspace.commandBarPrefix, onPerform: { action in
+                    perform(action, listViewModel: listViewModel)
+                }, onClose: {
+                    workspace.isCommandBarOpen = false
+                })
+                .transition(.opacity)
+            }
+        }
+        .animation(SchemaMotion.fast, value: workspace.isCommandBarOpen)
         // The window controls sit in the sidebar's header row (#116).
         .background(WindowControlsPlacement())
         .focusedSceneValue(\.workspaceState, workspace)
@@ -172,6 +184,47 @@ struct ContentView: View {
         }
     }
 
+    // MARK: Command bar (#122)
+
+    private func commandSearch(_ listViewModel: ListViewModel) -> CommandSearch {
+        let pages = listViewModel.pages(from: lists) + listViewModel.tagPages(from: lists)
+        let titles = Dictionary(lists.map { ($0.id, $0.title) }, uniquingKeysWith: { first, _ in first })
+        return CommandSearch(
+            pages: pages.map {
+                .init(id: $0.id, title: $0.title, systemImage: $0.pageKind.systemImage, isTag: $0.isTagPage, text: $0.documentText)
+            },
+            tasks: allTasks.map {
+                .init(id: $0.id, title: $0.title, pageTitle: $0.list.flatMap { titles[$0.id] } ?? "", isCompleted: $0.isCompleted)
+            }
+        )
+    }
+
+    private func perform(_ action: CommandBarAction, listViewModel: ListViewModel) {
+        withAnimation(SchemaMotion.smooth) {
+            switch action {
+            case .go(let destination):
+                listViewModel.go(to: destination)
+            case .openLine(let pageID, _):
+                listViewModel.go(to: .page(pageID))
+            case .openTask(let id):
+                guard let task = allTasks.first(where: { $0.id == id }) else { return }
+                listViewModel.selectList(task.list)
+                workspace.taskDetailEditor = TaskDetailEditor(task: task)
+                workspace.selectSingle(task.id)
+            case .newPage:
+                listViewModel.openNewPage()
+            case .toggleSidebar:
+                workspace.toggleSidebar()
+            case .toggleDetailsPanel:
+                workspace.toggleDetailsPanel()
+            case .back:
+                workspace.navigation.goBack()
+            case .forward:
+                workspace.navigation.goForward()
+            }
+        }
+    }
+
     /// ⌘1–⌘9 go to the first nine pages; the new page is added last.
     private func newPageShortcutNumber(_ listViewModel: ListViewModel) -> Int? {
         let next = listViewModel.pages(from: lists).count + 1
@@ -198,6 +251,9 @@ struct ContentView: View {
         if DemoData.isEnabled, !DemoData.hasNoPins,
            let ideas = listVM.pages(from: lists).first(where: \.isScratchpad), !listVM.isPinned(.page(ideas.id)) {
             listVM.togglePin(.page(ideas.id))
+        }
+        if DemoData.isEnabled, DemoData.commandBarQuery != nil {
+            workspace.isCommandBarOpen = true
         }
         if DemoData.isEnabled, DemoData.opensToday {
             listVM.selectSmartView(.today, from: lists)

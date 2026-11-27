@@ -53,6 +53,13 @@ final class WorkspaceState {
     var highlightedTaskID: UUID?
     /// The ⌘K command bar (#122).
     var isCommandBarOpen = false
+    /// Typed into ⌘K as it opens: ">" for ⌘⇧P (commands only).
+    var commandBarPrefix = ""
+
+    func openCommandBar(commandsOnly: Bool = false) {
+        commandBarPrefix = commandsOnly ? ">" : ""
+        isCommandBarOpen = true
+    }
     var showNotifications = false
     /// Where the window is (#118); shared with the list view model.
     let navigation = Navigation()

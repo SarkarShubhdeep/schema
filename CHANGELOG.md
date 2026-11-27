@@ -10,6 +10,8 @@ All notable changes to Schema are documented in this file.
 
 - A new sidebar (#120). Under the window controls: Search (⌘K) and a Today tile with the date, the next reminder and how many tasks are due (dark while Today is open). Then Pinned, Views (Upcoming, Everything), Pages, Tags and Tools as sections, one open at a time: click a header to open it; headers above it stay at the top, the rest move to the bottom, and the open one gets the room between and scrolls. Pages is one flat list. Right-click a page, view or Pomodoro to pin it: Pinned appears with it (drag to reorder), and the item keeps its place in its own section with a small pin. The sidebar remembers which section was open.
 
+- Search everything with ⌘K (#122). One field finds pages and tags, tasks, and lines inside pages, plus commands such as New page, Go to Today, Open Settings and toggling the panels. Results are grouped; ↑ and ↓ move, Return opens, Esc closes. Typing > lists commands only, and ⌘⇧P opens it that way. The Search pill at the top of the sidebar opens it too.
+
 ### Changed
 
 - Themed scroll bars everywhere (#121). The system scroll bars are gone from pages, lists, the editor, the sidebar, the overview panel, Settings, Pomodoro and Notifications. In their place is a thin rounded thumb in the text colour at 16%, with no track, that shows while you scroll and fades away after, in light and dark, even with "Always show scroll bars" on.
