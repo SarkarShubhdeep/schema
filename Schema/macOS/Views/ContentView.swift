@@ -208,9 +208,9 @@ struct ContentView: View {
                 listViewModel.go(to: .page(pageID))
             case .openTask(let id):
                 guard let task = allTasks.first(where: { $0.id == id }) else { return }
-                listViewModel.selectList(task.list)
                 workspace.taskDetailEditor = TaskDetailEditor(task: task)
                 workspace.selectSingle(task.id)
+                listViewModel.go(to: .task(id))
             case .newPage:
                 listViewModel.openNewPage()
             case .toggleSidebar:
@@ -323,12 +323,14 @@ struct ContentView: View {
            let task = allTasks.first(where: { !$0.isCompleted && $0.displayDescription != nil && $0.reminderTime != nil }) {
             workspace.selectSingle(task.id)
             workspace.taskDetailEditor = TaskDetailEditor(task: task)
+            listVM.go(to: .task(task.id))
         }
         if DemoData.isEnabled, DemoData.opensRoutineTask,
            let task = allTasks.first(where: { $0.isRoutine && !$0.isCompleted }) {
             task.routineDays = [2, 3, 5, 6, 7, 1]
             workspace.selectSingle(task.id)
             workspace.taskDetailEditor = TaskDetailEditor(task: task)
+            listVM.go(to: .task(task.id))
         }
         #endif
 

@@ -35,7 +35,7 @@ struct SidebarView: View {
             SidebarSearchPill { workspace.openCommandBar() }
                 .padding(.horizontal, 4)
             SidebarTodayTile(
-                isActive: listViewModel.destination == .view(.today),
+                isActive: listViewModel.context == .view(.today),
                 openCount: summary.today,
                 nextReminder: summary.nextReminder
             ) {
