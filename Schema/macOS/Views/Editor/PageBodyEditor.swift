@@ -27,6 +27,10 @@ struct PageBodyEditor: View {
     var onSaved: ((_ json: String) -> Void)?
     var onSyncedRemoved: (([(holderID: UUID, blockID: String, kind: String)]) -> Void)?
     var onDeleteSynced: ((_ holderID: UUID, _ blockID: String, _ kind: String, _ source: String) -> Void)?
+    /// Sized to the writing inside a scrolling page (#123).
+    var isInline = false
+
+    @State private var inlineHeight: CGFloat = 32
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openSettings) private var openSettings
@@ -38,6 +42,15 @@ struct PageBodyEditor: View {
     private var openTasks: [SchemaTask]
 
     var body: some View {
+        if isInline {
+            editor
+                .frame(height: inlineHeight)
+        } else {
+            editor
+        }
+    }
+
+    private var editor: some View {
         TipTapEditorView(
             documentJSON: displayJSON,
             documentKey: id.uuidString,
@@ -61,7 +74,11 @@ struct PageBodyEditor: View {
             onOpenTagged: openSynced,
             onSyncedRemoved: onSyncedRemoved,
             onDeleteSynced: onDeleteSynced,
-            revealRequest: workspace.revealRequest?.key == id.uuidString ? workspace.revealRequest : nil
+            revealRequest: workspace.revealRequest?.key == id.uuidString ? workspace.revealRequest : nil,
+            isInline: isInline,
+            onHeight: isInline ? { inlineHeight = max(24, $0) } : nil,
+            // Single-key shortcuts (N, /) are typing while it has focus.
+            onFocusChange: isInline ? { workspace.isInlineEditorFocused = $0 } : nil
         )
     }
 

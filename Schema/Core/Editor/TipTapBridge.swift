@@ -77,6 +77,8 @@ final class TipTapBridge {
     var onSubmit: ((_ json: String, _ asTask: Bool) -> Void)?
     /// A mention chip was clicked (#81).
     var onOpenMention: ((EditorMention) -> Void)?
+    /// Inline editors (#123): how tall the content is, in points.
+    var onHeight: ((Double) -> Void)?
     /// "Change the default page…" in Make task in.
     var onChangeDefaultPage: (() -> Void)?
     /// "Open in …" on a synced block (#113): the page or task it lives in,
@@ -224,6 +226,8 @@ final class TipTapBridge {
             guard let id = (body["holderId"] as? String).flatMap(UUID.init(uuidString:)),
                   let bid = body["bid"] as? String else { return }
             onDeleteSynced?(id, bid, body["kind"] as? String ?? "paragraph", body["source"] as? String ?? "")
+        case "height":
+            if let value = body["value"] as? Double { onHeight?(value) }
         case "error":
             onError?("\(body["message"] ?? "") \(body["source"] ?? "")")
         default:

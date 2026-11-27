@@ -61,6 +61,12 @@ struct WorkspaceView: View {
         return selectedList
     }
 
+    /// A to-do list page, which can have writing above its tasks (#123).
+    var writingPage: SchemaList? {
+        guard listViewModel.selectedListID != nil, let selectedList, selectedList.acceptsTasks else { return nil }
+        return selectedList
+    }
+
     /// Open tasks grouped into Today, Later this week, Later and Someday.
     var incompleteSections: [TaskSectionGroup] {
         shownTasks.sections
@@ -182,6 +188,11 @@ struct WorkspaceView: View {
                         isEditingListName: $workspace.isEditingListName
                     )
 
+                    if let page = writingPage {
+                        ListWritingView(page: page, taskActions: blockTaskActions)
+                            .id(page.id)
+                    }
+
                     if listViewModel.smartView == .today {
                         TodaySummaryTiles(stats: todayStats ?? dayStats)
                     }
@@ -277,6 +288,16 @@ struct WorkspaceView: View {
             }
         }
         .animation(SchemaMotion.smooth, value: workspace.isTaskPageOpen)
+        .background {
+            // Add writing above a list's tasks (#123).
+            Button("Add writing") {
+                if let page = writingPage { workspace.requestListWriting(page.id) }
+            }
+            .keyboardShortcut("w", modifiers: [.command, .option])
+            .disabled(writingPage == nil || workspace.isTaskPageOpen)
+            .hidden()
+            .accessibilityHidden(true)
+        }
         .environment(\.editorMentionActions, EditorMentionActions(open: openMention, openLine: openTaggedLine))
         .clickOutsideDismiss(isActive: workspace.hasDismissibleState) {
             dismissActiveEditing()
@@ -307,6 +328,7 @@ struct WorkspaceView: View {
             }
         }
         .onChange(of: listViewModel.destination) { _, destination in
+            workspace.isInlineEditorFocused = false
             // Going elsewhere leaves an open task page, unless that task was
             // just opened on its own page (a mention, #81).
             if let editor = workspace.taskDetailEditor, let pageID = destination.pageID,
@@ -343,7 +365,8 @@ struct WorkspaceView: View {
             isAddTaskFocused: $isAddTaskFocused,
             pageCount: listViewModel.pages(from: lists).count,
             canUndo: taskViewModel.canUndo,
-            allowsSingleKeyShortcuts: scratchpadPage == nil && !workspace.isTaskPageOpen && !listViewModel.showsPomodoro,
+            allowsSingleKeyShortcuts: scratchpadPage == nil && !workspace.isTaskPageOpen && !listViewModel.showsPomodoro
+                && !workspace.isInlineEditorFocused,
             onSelectListAtIndex: { index in
                 listViewModel.selectList(at: index, from: listViewModel.pages(from: lists))
             },
