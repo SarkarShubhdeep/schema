@@ -25,6 +25,12 @@ enum SchemaPreferences {
         set { defaults.set(newValue.map(\.uuidString).sorted(), forKey: "schema.preferences.ungroupedTagPages") }
     }
 
+    /// Pinned pages and views, in the order the Pinned section shows them (#119).
+    static var pinnedDestinations: [Destination] {
+        get { (defaults.stringArray(forKey: "schema.preferences.pinned") ?? []).compactMap(Destination.init(storageKey:)) }
+        set { defaults.set(newValue.map(\.storageKey), forKey: "schema.preferences.pinned") }
+    }
+
     /// Your snippets (#101), as JSON (see SnippetStore).
     static let snippetsKey = "schema.preferences.snippets"
 

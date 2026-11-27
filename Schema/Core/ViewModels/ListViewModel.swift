@@ -88,6 +88,42 @@ final class ListViewModel {
         navigation.go(to: destination)
     }
 
+    // MARK: Pins (#119)
+
+    /// Pinned pages and views, in order. Pinning doesn't move anything: the
+    /// item keeps its place in its own section too.
+    private(set) var pinned: [Destination] = SchemaPreferences.pinnedDestinations {
+        didSet { SchemaPreferences.pinnedDestinations = pinned }
+    }
+
+    func isPinned(_ destination: Destination) -> Bool {
+        pinned.contains(destination)
+    }
+
+    /// Pins at the end of the Pinned section, or unpins.
+    func togglePin(_ destination: Destination) {
+        if let index = pinned.firstIndex(of: destination) {
+            pinned.remove(at: index)
+        } else {
+            pinned.append(destination)
+        }
+    }
+
+    /// Puts `moving` where `target` is now in the Pinned section.
+    func movePin(_ moving: Destination, to target: Destination) {
+        guard moving != target,
+              let from = pinned.firstIndex(of: moving),
+              let to = pinned.firstIndex(of: target) else { return }
+        let item = pinned.remove(at: from)
+        pinned.insert(item, at: to)
+    }
+
+    /// Pins whose page still exists, in order.
+    func pinnedDestinations(existingIn lists: [SchemaList]) -> [Destination] {
+        let ids = Set(lists.map(\.id))
+        return pinned.filter { $0.pageID.map(ids.contains) ?? true }
+    }
+
     func ensureDefaultListsIfNeeded(from lists: [SchemaList]) {
         guard lists.isEmpty else { return }
 
@@ -236,6 +272,7 @@ final class ListViewModel {
         guard !list.isEverythingList else { return }
 
         navigation.forget(page: list.id)
+        pinned.removeAll { $0 == .page(list.id) }
 
         modelContext.delete(list)
         save()
