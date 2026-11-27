@@ -172,12 +172,22 @@ extension WorkspaceView {
 
     // MARK: Task page (#31)
 
-    /// Opens the task as a page in the main column.
+    /// Opens the task as a page in the main column (#124): a step in back
+    /// and forward, over the list or view it was opened from.
     func openTaskDetail(_ taskID: UUID) {
         guard let task = allTasks.first(where: { $0.id == taskID }) else { return }
         workspace.taskDetailEditor = TaskDetailEditor(task: task)
         workspace.selectSingle(taskID)
         workspace.requestFocus(.none)
+        listViewModel.go(to: .task(taskID))
+    }
+
+    /// Previous or next task on a task page: replaces this step.
+    func stepTaskDetail(to taskID: UUID) {
+        guard let task = allTasks.first(where: { $0.id == taskID }) else { return }
+        workspace.taskDetailEditor = TaskDetailEditor(task: task)
+        workspace.selectSingle(taskID)
+        listViewModel.navigation.replace(with: .task(taskID))
     }
 
     /// A mention chip (#81): the page, the task as a page, or the day on
@@ -189,11 +199,7 @@ extension WorkspaceView {
                 guard let page = lists.first(where: { $0.id == id }) else { return }
                 listViewModel.selectList(page)
             case .task(let id):
-                guard let task = allTasks.first(where: { $0.id == id }) else { return }
-                if listViewModel.smartView != nil || listViewModel.selectedListID != task.list?.id {
-                    listViewModel.selectList(task.list)
-                }
-                openTaskDetail(task.id)
+                openTaskDetail(id)
             case .date(let date):
                 let view: SmartView = Calendar.schema().isDateInToday(date) ? .today : .upcoming
                 listViewModel.selectSmartView(view, from: lists)
@@ -206,12 +212,8 @@ extension WorkspaceView {
     func openTaggedLine(_ holderID: UUID, path: [Int]?, isTask: Bool) {
         withAnimation(SchemaMotion.smooth) {
             if let page = lists.first(where: { $0.id == holderID }) {
-                workspace.taskDetailEditor = nil
                 listViewModel.selectList(page)
             } else if let task = allTasks.first(where: { $0.id == holderID }) {
-                if listViewModel.smartView != nil || listViewModel.selectedListID != task.list?.id {
-                    listViewModel.selectList(task.list)
-                }
                 openTaskDetail(task.id)
             } else {
                 return
@@ -222,8 +224,12 @@ extension WorkspaceView {
         }
     }
 
-    /// Back to the list, with the task still selected.
+    /// Up to the list or view under the task page (Esc), with the task
+    /// still selected.
     func closeTaskDetail() {
+        if listViewModel.destination.taskID != nil {
+            listViewModel.go(to: listViewModel.context)
+        }
         workspace.taskDetailEditor = nil
         workspace.requestFocus(.taskList)
     }

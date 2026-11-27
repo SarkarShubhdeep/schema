@@ -13,6 +13,8 @@ import SwiftUI
 
 struct TaskPageActions {
     var onBack: () -> Void
+    /// The task's list, from the breadcrumb.
+    var onOpenPage: (() -> Void)?
     var onPrevious: (() -> Void)?
     var onNext: (() -> Void)?
     var onToggle: () -> Void
@@ -25,8 +27,8 @@ struct TaskPageActions {
 
 struct TaskPageView: View {
     let task: SchemaTask
-    /// The page or view the task was opened from, for the breadcrumb.
-    let originTitle: String
+    /// The task's list, for the breadcrumb: List / Task (#124).
+    let pageTitle: String
     let isBlocked: Bool
     let actions: TaskPageActions
 
@@ -61,25 +63,20 @@ struct TaskPageView: View {
 
     // MARK: Top bar
 
-    /// The header island (#116): back to where the task was opened from,
-    /// then previous, next and the task's options.
+    /// The header island (#116): back and forward, the task's list, then
+    /// previous, next and the task's options. Esc goes up to the list.
     private var topBar: some View {
         HeaderIsland {
-            Button(action: back) {
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 11, weight: .semibold))
-                    Text(originTitle)
-                        .lineLimit(1)
-                }
-                .padding(.leading, 6)
-                .padding(.trailing, 10)
-                .frame(height: 28)
-                .contentShape(Capsule())
+            Button {
+                actions.onOpenPage?()
+            } label: {
+                Text(pageTitle)
+                    .lineLimit(1)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help("Back to \(originTitle)  Esc")
-            .padding(.leading, -6)
+            .disabled(actions.onOpenPage == nil)
+            .help("Open \(pageTitle)")
 
             Text("/").foregroundStyle(SchemaTheme.inkFaint)
             Text(task.title)

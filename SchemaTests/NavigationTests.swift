@@ -71,3 +71,32 @@ struct PinTests {
         #expect(Destination(storageKey: "junk") == nil)
     }
 }
+
+@MainActor
+struct TaskPageNavigationTests {
+    @Test func aTaskPageSitsOverWhereItWasOpened() {
+        let list = UUID(), first = UUID(), second = UUID()
+        let navigation = Navigation()
+        navigation.go(to: .page(list))
+        navigation.go(to: .task(first))
+        #expect(navigation.context == .page(list))
+
+        // Previous and next replace the step, so Back leaves the task pages.
+        navigation.replace(with: .task(second))
+        #expect(navigation.context == .page(list))
+        navigation.goBack()
+        #expect(navigation.destination == .page(list))
+        navigation.goForward()
+        #expect(navigation.destination == .task(second))
+    }
+
+    @Test func forgettingADeletedTask() {
+        let list = UUID(), task = UUID()
+        let navigation = Navigation()
+        navigation.go(to: .page(list))
+        navigation.go(to: .task(task))
+        navigation.forget(task: task, fallback: navigation.context)
+        #expect(navigation.destination == .page(list))
+        #expect(!navigation.canGoForward)
+    }
+}

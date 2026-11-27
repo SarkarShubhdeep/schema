@@ -154,7 +154,7 @@ struct WorkspaceView: View {
             if let task = openTask {
                 TaskPageView(
                     task: task,
-                    originTitle: originTitle,
+                    pageTitle: task.list?.title ?? "Task",
                     isBlocked: RoutineSequenceOrdering.isBlocked(
                         task,
                         in: allTasks,
@@ -307,6 +307,7 @@ struct WorkspaceView: View {
             if let editor = workspace.taskDetailEditor, request.taskIDs.contains(editor.taskID) {
                 closeTaskDetail()
             }
+            for id in request.taskIDs { listViewModel.navigation.forget(task: id, fallback: listViewModel.context) }
             withAnimation(SchemaMotion.smooth) {
                 deleteSelected(request.taskIDs)
             }
@@ -327,17 +328,25 @@ struct WorkspaceView: View {
                 workspace.requestFocus(.taskList)
             }
         }
-        .onChange(of: listViewModel.destination) { _, destination in
+        .onChange(of: listViewModel.destination) { old, destination in
             workspace.isInlineEditorFocused = false
-            // Going elsewhere leaves an open task page, unless that task was
-            // just opened on its own page (a mention, #81).
-            if let editor = workspace.taskDetailEditor, let pageID = destination.pageID,
-               allTasks.first(where: { $0.id == editor.taskID })?.list?.id == pageID {
-                enforceManualSortIfNeeded()
+            // A task page is a destination (#124): its editor follows it,
+            // through back and forward too.
+            if let taskID = destination.taskID {
+                if workspace.taskDetailEditor?.taskID != taskID,
+                   let task = allTasks.first(where: { $0.id == taskID }) {
+                    workspace.taskDetailEditor = TaskDetailEditor(task: task)
+                    workspace.selectSingle(taskID)
+                }
                 return
             }
             workspace.taskDetailEditor = nil
-            workspace.clearSelection()
+            // Back from a task to its list keeps the task selected.
+            if old.taskID == nil {
+                workspace.clearSelection()
+            } else {
+                workspace.requestFocus(.taskList)
+            }
             enforceManualSortIfNeeded()
         }
         .onChange(of: listViewModel.sortOption) { _, _ in
@@ -420,10 +429,11 @@ struct WorkspaceView: View {
 
     /// Keeps each page's and view's scroll position apart.
     private var pageKey: String {
-        switch listViewModel.destination {
+        switch listViewModel.context {
         case .page(let id): id.uuidString
         case .view(let kind): kind.rawValue
         case .tool(let kind): kind.rawValue
+        case .task(let id): id.uuidString
         }
     }
 
@@ -433,20 +443,15 @@ struct WorkspaceView: View {
         return allTasks.first { $0.id == editor.taskID }
     }
 
-    /// Where the open task page goes back to: the page or view under it.
-    private var originTitle: String {
-        if case .view(let kind) = listViewModel.destination { return kind.title }
-        return selectedList?.title ?? "Back"
-    }
-
     private func taskPageActions(for task: SchemaTask, in ids: [UUID]) -> TaskPageActions {
         let index = ids.firstIndex(of: task.id)
         let previous = index.flatMap { $0 > 0 ? ids[$0 - 1] : nil }
         let next = index.flatMap { $0 + 1 < ids.count ? ids[$0 + 1] : nil }
         return TaskPageActions(
             onBack: closeTaskDetail,
-            onPrevious: previous.map { id in { openTaskDetail(id) } },
-            onNext: next.map { id in { openTaskDetail(id) } },
+            onOpenPage: task.list.map { page in { withAnimation(SchemaMotion.smooth) { listViewModel.selectList(page) } } },
+            onPrevious: previous.map { id in { stepTaskDetail(to: id) } },
+            onNext: next.map { id in { stepTaskDetail(to: id) } },
             onToggle: { toggleCompletion(task) },
             onRename: { taskViewModel.updateTitle(task, title: $0) },
             onDuplicate: {

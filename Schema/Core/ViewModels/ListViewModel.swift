@@ -51,20 +51,23 @@ final class ListViewModel {
 
     var destination: Destination { navigation.destination }
 
-    /// The open page; `nil` while a view or tool is shown.
-    var selectedListID: UUID? { navigation.destination.pageID }
+    /// What's under an open task page; otherwise the destination (#124).
+    var context: Destination { navigation.context }
+
+    /// The open page (or the one under a task page); `nil` for views and tools.
+    var selectedListID: UUID? { context.pageID }
 
     /// Today or Upcoming, shown over every task. `nil` otherwise.
     var smartView: SmartView? {
-        if case .view(let kind) = navigation.destination { return kind.smartView }
+        if case .view(let kind) = context { return kind.smartView }
         return nil
     }
 
     /// The Pomodoro page (#89).
-    var showsPomodoro: Bool { navigation.destination == .tool(.pomodoro) }
+    var showsPomodoro: Bool { context == .tool(.pomodoro) }
 
     /// Everything is open (the view over every task).
-    var showsEverything: Bool { navigation.destination == .view(.everything) }
+    var showsEverything: Bool { context == .view(.everything) }
 
     var showNewListSheet = false
     var newListTitle = ""

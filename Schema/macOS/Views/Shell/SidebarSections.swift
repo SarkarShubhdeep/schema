@@ -189,7 +189,8 @@ struct SidebarSections: View {
     /// their own section.
     @ViewBuilder
     private func row(for destination: Destination, showsPin: Bool = true) -> some View {
-        let isActive = listViewModel.destination == destination
+        // A task page keeps the list or view it was opened from lit (#124).
+        let isActive = listViewModel.context == destination
         let isPinned = showsPin && listViewModel.isPinned(destination)
         switch destination {
         case .view(let kind):
@@ -216,6 +217,8 @@ struct SidebarSections: View {
             if let page = lists.first(where: { $0.id == id }) {
                 pageRow(page, isActive: isActive, isPinned: isPinned)
             }
+        case .task:
+            EmptyView()
         }
     }
 

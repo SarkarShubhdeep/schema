@@ -66,9 +66,16 @@ nonisolated enum Destination: Hashable, Sendable {
     case page(UUID)
     case view(ViewKind)
     case tool(ToolKind)
+    /// A task opened as its own page (#124).
+    case task(UUID)
 
     var pageID: UUID? {
         if case .page(let id) = self { return id }
+        return nil
+    }
+
+    var taskID: UUID? {
+        if case .task(let id) = self { return id }
         return nil
     }
 
@@ -78,6 +85,7 @@ nonisolated enum Destination: Hashable, Sendable {
         case .page(let id): "page:\(id.uuidString)"
         case .view(let kind): "view:\(kind.rawValue)"
         case .tool(let kind): "tool:\(kind.rawValue)"
+        case .task(let id): "task:\(id.uuidString)"
         }
     }
 
@@ -88,6 +96,7 @@ nonisolated enum Destination: Hashable, Sendable {
         case "page": guard let id = UUID(uuidString: parts[1]) else { return nil }; self = .page(id)
         case "view": guard let kind = ViewKind(rawValue: parts[1]) else { return nil }; self = .view(kind)
         case "tool": guard let kind = ToolKind(rawValue: parts[1]) else { return nil }; self = .tool(kind)
+        case "task": guard let id = UUID(uuidString: parts[1]) else { return nil }; self = .task(id)
         default: return nil
         }
     }
@@ -108,6 +117,13 @@ final class Navigation {
         self.destination = destination
     }
 
+    /// The page, view or tool under an open task page: where it was opened
+    /// from. The same as `destination` when no task is open.
+    var context: Destination {
+        guard destination.taskID != nil else { return destination }
+        return backStack.last(where: { $0.taskID == nil }) ?? .view(.everything)
+    }
+
     var canGoBack: Bool { !backStack.isEmpty }
     var canGoForward: Bool { !forwardStack.isEmpty }
 
@@ -118,6 +134,13 @@ final class Navigation {
         if backStack.count > limit { backStack.removeFirst(backStack.count - limit) }
         forwardStack.removeAll()
         self.destination = destination
+    }
+
+    /// Swaps where you are without adding a step: previous and next on a
+    /// task page (#124), so Back still leaves the task pages.
+    func replace(with destination: Destination) {
+        self.destination = destination
+        forwardStack.removeAll()
     }
 
     func goBack() {
@@ -134,12 +157,20 @@ final class Navigation {
 
     /// Forgets a page that no longer exists; if it is open, goes back past it.
     func forget(page id: UUID, fallback: Destination = .view(.today)) {
-        let gone: (Destination) -> Bool = { $0.pageID == id }
+        forget(where: { $0.pageID == id }, fallback: fallback)
+    }
+
+    /// Forgets a task that no longer exists (#124).
+    func forget(task id: UUID, fallback: Destination = .view(.today)) {
+        forget(where: { $0.taskID == id }, fallback: fallback)
+    }
+
+    private func forget(where gone: (Destination) -> Bool, fallback: Destination) {
         backStack.removeAll(where: gone)
         forwardStack.removeAll(where: gone)
         // Drop repeats left next to each other.
         backStack = backStack.reduce(into: []) { if $0.last != $1 { $0.append($1) } }
-        if destination.pageID == id {
+        if gone(destination) {
             destination = backStack.popLast() ?? fallback
         }
     }

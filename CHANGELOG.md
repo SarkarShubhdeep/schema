@@ -14,6 +14,8 @@ All notable changes to Schema are documented in this file.
 
 - Writing on to-do lists (#123). A list can have writing above its tasks, in the same editor as notes: plans, context, links, checklists. It stays out of sight until you choose Add writing in the page's ⋯ menu (⌥⌘W), is only as tall as what you write, and scrolls with the list. Single-key shortcuts like N stay out of the way while you type there.
 
+- Task pages are places you can go back to (#124). Opening a task from a list, Today, Upcoming, Everything, a tag page, a mention or ⌘K makes it a step in back and forward, over the list or view you opened it from (which stays lit in the sidebar). The header reads List / Task; click the list to open it. Esc goes up to the list with the task still selected, and previous and next (⌥⌘↑ ⌥⌘↓) step through tasks without filling up Back.
+
 ### Changed
 
 - Themed scroll bars everywhere (#121). The system scroll bars are gone from pages, lists, the editor, the sidebar, the overview panel, Settings, Pomodoro and Notifications. In their place is a thin rounded thumb in the text colour at 16%, with no track, that shows while you scroll and fades away after, in light and dark, even with "Always show scroll bars" on.
