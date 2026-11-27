@@ -30,6 +30,8 @@ enum DemoData {
     static let sidebarSection = value(after: "-SchemaDemoSidebarSection").flatMap(SidebarSection.init(rawValue:))
     /// `-SchemaDemoNoPins` starts with nothing pinned.
     static let hasNoPins = CommandLine.arguments.contains("-SchemaDemoNoPins")
+    /// `-SchemaDemoScrollBars` keeps the themed scroll bars showing (#121).
+    static let showsScrollBars = CommandLine.arguments.contains("-SchemaDemoScrollBars")
     /// `-SchemaDemoSettings` opens Settings.
     static let opensSettings = CommandLine.arguments.contains("-SchemaDemoSettings")
 

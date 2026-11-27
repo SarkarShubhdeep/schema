@@ -45,6 +45,7 @@ struct SettingsPage: View {
             .padding(.horizontal, 32)
             .padding(.top, 24)
             .padding(.bottom, 56)
+            .themedScrollBars()
         }
         .scrollIndicators(.automatic)
         .task {

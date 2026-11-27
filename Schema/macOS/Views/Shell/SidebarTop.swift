@@ -100,6 +100,6 @@ struct SidebarTodayTile: View {
     private var subtitle: String {
         let day = Date.now.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
         guard let nextReminder else { return day }
-        return "\(day) · next at \(nextReminder.formatted(date: .omitted, time: .shortened))"
+        return "\(day) · next \(nextReminder.formatted(date: .omitted, time: .shortened))"
     }
 }

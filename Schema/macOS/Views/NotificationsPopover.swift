@@ -62,6 +62,7 @@ struct NotificationsPopover: View {
                             }
                         }
                     }
+                    .themedScrollBars()
                 }
                 .frame(maxHeight: 280)
             }

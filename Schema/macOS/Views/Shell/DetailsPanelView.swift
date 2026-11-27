@@ -40,6 +40,7 @@ struct DetailsPanelView<Content: View>: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
+                .themedScrollBars()
             }
             .scrollIndicators(.automatic)
             .scrollBounceBehavior(.basedOnSize)

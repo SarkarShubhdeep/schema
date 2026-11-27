@@ -62,6 +62,13 @@ struct TipTapEditorView: NSViewRepresentable {
         webView.navigationDelegate = context.coordinator
         #if DEBUG
         webView.isInspectable = true
+        if DemoData.isEnabled, DemoData.showsScrollBars {
+            // Screenshots: keep the themed thumb showing (#121).
+            configuration.userContentController.addUserScript(WKUserScript(
+                source: "document.documentElement.classList.add('is-scrolling'); window.addEventListener('scroll', e => e.stopImmediatePropagation(), true)",
+                injectionTime: .atDocumentEnd, forMainFrameOnly: true
+            ))
+        }
         #endif
         context.coordinator.attach(webView)
         context.coordinator.update(from: self)

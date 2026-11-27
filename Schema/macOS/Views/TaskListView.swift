@@ -79,6 +79,7 @@ struct TaskListView<Header: View>: View {
                     .padding(.top, TaskListMetrics.topInset)
                     .padding(.bottom, TaskListMetrics.bottomInset)
                     .frame(maxWidth: .infinity)
+                    .themedScrollBars()
                 }
                 .scrollIndicators(.automatic)
                 .onChange(of: workspace.primarySelectedTaskID) { _, taskID in
