@@ -4,6 +4,10 @@ All notable changes to Schema are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Back and forward (#118). Every page's header starts with back and forward buttons, and Go › Back (⌘[) and Forward (⌘]) walk through the pages, views and tools you've opened, Settings included. The Go menu also opens Today, Upcoming, Everything and Pomodoro. Schema opens on Today. Deleting the page you're on goes back to where you were. On a task page, previous and next task moved to ⌥⌘↑ and ⌥⌘↓.
+
 ### Changed
 
 - The window is laid out as floating islands on a 16/8 grid (#116). The sidebar, each page's header and the overview panel are rounded islands 16 pt from the window edges and 16 pt apart, with 8 pt padding and 8 pt corners inside, and 44 pt buttons in their header and footer rows. The window controls sit inside the sidebar's header row. Collapsed, the sidebar is a small pill with the window controls and its expand button (the floating bar of icons is gone), and the overview is its expand button alone. Every page puts where you are and its actions in a header island at the top: sort and page options, Hide done, Quick note, New timer, and previous and next on a task page. Page content is centred in a 600 pt column on every page, Settings included. Settings and Notifications moved to the sidebar's bottom row, and sidebar rows have 8 pt corners. The overview panel is only as tall as what it shows (it scrolls if that is taller than the window), and its cards sit flush with it, set apart by a faint tint instead of a white fill and border.

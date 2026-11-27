@@ -57,7 +57,7 @@ struct WorkspaceView: View {
 
     /// The selected page when it is a scratchpad (and no smart view is shown).
     var scratchpadPage: SchemaList? {
-        guard listViewModel.smartView == nil, let selectedList, selectedList.hasPageBody else { return nil }
+        guard listViewModel.selectedListID != nil, let selectedList, selectedList.hasPageBody else { return nil }
         return selectedList
     }
 
@@ -170,7 +170,7 @@ struct WorkspaceView: View {
                 requiresManualSort: requiresManualSort
             )
             TaskListView(
-                pageKey: listViewModel.smartView?.rawValue ?? listViewModel.selectedListID?.uuidString ?? "",
+                pageKey: pageKey,
                 header: VStack(alignment: .leading, spacing: 22) {
                     PageHeader(
                         model: headerModel(openCount: incomplete.count, doneCount: completed.count),
@@ -207,7 +207,7 @@ struct WorkspaceView: View {
                 sections: sections,
                 completedTasks: completed,
                 // Today groups by page, so the page tag would repeat the heading.
-                showListTags: selectedList?.isEverythingList == true && listViewModel.smartView != .today,
+                showListTags: listViewModel.selectedListID == nil && listViewModel.smartView != .today,
                 taskViewModel: taskViewModel,
                 isSequenceBlocked: { task in
                     RoutineSequenceOrdering.isBlocked(
@@ -306,34 +306,17 @@ struct WorkspaceView: View {
                 workspace.requestFocus(.taskList)
             }
         }
-        .onChange(of: listViewModel.selectedListID) { _, newID in
-            // Choosing another page in the sidebar leaves an open task page,
-            // unless that task was just opened in the page (a mention, #81).
-            if let editor = workspace.taskDetailEditor,
-               allTasks.first(where: { $0.id == editor.taskID })?.list?.id == newID {
+        .onChange(of: listViewModel.destination) { _, destination in
+            // Going elsewhere leaves an open task page, unless that task was
+            // just opened on its own page (a mention, #81).
+            if let editor = workspace.taskDetailEditor, let pageID = destination.pageID,
+               allTasks.first(where: { $0.id == editor.taskID })?.list?.id == pageID {
                 enforceManualSortIfNeeded()
                 return
             }
             workspace.taskDetailEditor = nil
             workspace.clearSelection()
             enforceManualSortIfNeeded()
-        }
-        .onChange(of: requiresManualSort) { _, required in
-            if required {
-                enforceManualSortIfNeeded()
-            }
-        }
-        .onChange(of: listViewModel.smartView) { _, newView in
-            // Leaving Today or Upcoming for the page of a task just opened from a mention keeps it open.
-            if newView == nil, let editor = workspace.taskDetailEditor,
-               allTasks.first(where: { $0.id == editor.taskID })?.list?.id == listViewModel.selectedListID {
-                return
-            }
-            workspace.taskDetailEditor = nil
-        }
-        .onChange(of: listViewModel.showsPomodoro) { _, _ in
-            workspace.taskDetailEditor = nil
-            workspace.clearSelection()
         }
         .onChange(of: listViewModel.sortOption) { _, _ in
             workspace.clearSelection()
@@ -412,6 +395,15 @@ struct WorkspaceView: View {
         }
     }
 
+    /// Keeps each page's and view's scroll position apart.
+    private var pageKey: String {
+        switch listViewModel.destination {
+        case .page(let id): id.uuidString
+        case .view(let kind): kind.rawValue
+        case .tool(let kind): kind.rawValue
+        }
+    }
+
     /// The task whose page is open (#31).
     var openTask: SchemaTask? {
         guard let editor = workspace.taskDetailEditor else { return nil }
@@ -420,7 +412,7 @@ struct WorkspaceView: View {
 
     /// Where the open task page goes back to: the page or view under it.
     private var originTitle: String {
-        if let smartView = listViewModel.smartView { return smartView.title }
+        if case .view(let kind) = listViewModel.destination { return kind.title }
         return selectedList?.title ?? "Back"
     }
 
@@ -446,7 +438,7 @@ struct WorkspaceView: View {
     }
 
     private var quickEntryPlaceholder: String {
-        guard listViewModel.smartView == nil, let selectedList, !selectedList.isEverythingList else {
+        guard listViewModel.selectedListID != nil, let selectedList, !selectedList.isEverythingList else {
             return "Add a task… type @ for a page, date or time"
         }
         return "Add to \(selectedList.title)… type @ for a date or time"
@@ -470,7 +462,7 @@ struct WorkspaceView: View {
                 showsProgress: false
             )
         }
-        if let selectedList, !selectedList.isEverythingList {
+        if listViewModel.selectedListID != nil, let selectedList, !selectedList.isEverythingList {
             return PageHeaderModel(
                 crumb: "Pages", title: selectedList.title,
                 kindLabel: "To-do list", kindSystemImage: "checklist",

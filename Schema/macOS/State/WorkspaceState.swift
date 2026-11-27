@@ -52,9 +52,20 @@ final class WorkspaceState {
 
     var highlightedTaskID: UUID?
     var showNotifications = false
+    /// Where the window is (#118); shared with the list view model.
+    let navigation = Navigation()
+
     /// Settings is its own page (#108): it takes the window until Back or Esc.
-    var showSettings = false {
-        didSet { if !showSettings { settingsQuery = "" } }
+    var showSettings: Bool {
+        get { navigation.destination == .tool(.settings) }
+        set {
+            if newValue {
+                navigation.go(to: .tool(.settings))
+            } else if showSettings {
+                settingsQuery = ""
+                if navigation.canGoBack { navigation.goBack() } else { navigation.go(to: .view(.today)) }
+            }
+        }
     }
     var settingsSection: SettingsSection = .general
     /// Go to line from a tag page (#102): the editor for `key` takes it.

@@ -47,6 +47,7 @@ struct SettingsScreen: View {
             escape()
             return .handled
         }
+        .onDisappear { workspace.settingsQuery = "" }
         .onAppear {
             #if DEBUG
             if DemoData.isEnabled, let query = DemoData.settingsQuery {

@@ -46,20 +46,26 @@ enum TaskFilterOption: String, CaseIterable, Identifiable {
 final class ListViewModel {
     private let modelContext: ModelContext
 
-    /// The selected page, or the Everything list while a smart view is shown.
-    /// Choosing a page clears `smartView`.
-    var selectedListID: UUID? {
-        didSet {
-            smartView = nil
-            showsPomodoro = false
-        }
-    }
-    /// Today or Upcoming, shown over the Everything list. `nil` shows the selected page.
+    /// Where the window is (#118). Everything below reads from it.
+    let navigation: Navigation
+
+    var destination: Destination { navigation.destination }
+
+    /// The open page; `nil` while a view or tool is shown.
+    var selectedListID: UUID? { navigation.destination.pageID }
+
+    /// Today or Upcoming, shown over every task. `nil` otherwise.
     var smartView: SmartView? {
-        didSet { if smartView != nil { showsPomodoro = false } }
+        if case .view(let kind) = navigation.destination { return kind.smartView }
+        return nil
     }
-    /// The Pomodoro page (#89), shown instead of any page or view.
-    var showsPomodoro = false
+
+    /// The Pomodoro page (#89).
+    var showsPomodoro: Bool { navigation.destination == .tool(.pomodoro) }
+
+    /// Everything is open (the view over every task).
+    var showsEverything: Bool { navigation.destination == .view(.everything) }
+
     var showNewListSheet = false
     var newListTitle = ""
     var newPageKind: PageKind = .todo
@@ -73,8 +79,13 @@ final class ListViewModel {
         didSet { SchemaPreferences.defaultWritableListID = defaultWritableListID }
     }
 
-    init(modelContext: ModelContext) {
+    init(modelContext: ModelContext, navigation: Navigation? = nil) {
         self.modelContext = modelContext
+        self.navigation = navigation ?? Navigation()
+    }
+
+    func go(to destination: Destination) {
+        navigation.go(to: destination)
     }
 
     func ensureDefaultListsIfNeeded(from lists: [SchemaList]) {
@@ -109,54 +120,50 @@ final class ListViewModel {
         modelContext.insert(githubWork)
         modelContext.insert(groceries)
         save()
-        selectedListID = everything.id
         defaultWritableListID = dailyTodos.id
         SchemaPreferences.defaultWritableListID = dailyTodos.id
     }
 
+    /// Opens a page; the stored Everything list opens the Everything view.
     func selectList(_ list: SchemaList?) {
-        selectedListID = list?.id
+        guard let list else { return }
+        go(to: list.isEverythingList ? .view(.everything) : .page(list.id))
+    }
+
+    func selectList(id: UUID, from lists: [SchemaList]) {
+        selectList(lists.first { $0.id == id })
     }
 
     func selectList(at index: Int, from lists: [SchemaList]) {
         guard lists.indices.contains(index) else { return }
-        selectedListID = lists[index].id
+        selectList(lists[index])
     }
 
     func selectNextList(from lists: [SchemaList]) {
-        guard !lists.isEmpty else { return }
-
-        guard let currentListID = selectedListID,
-              let currentIndex = lists.firstIndex(where: { $0.id == currentListID }) else {
-            selectedListID = lists.first?.id
-            return
-        }
-
-        let nextIndex = (currentIndex + 1) % lists.count
-        selectedListID = lists[nextIndex].id
+        step(by: 1, through: lists)
     }
 
     func selectPreviousList(from lists: [SchemaList]) {
-        guard !lists.isEmpty else { return }
+        step(by: -1, through: lists)
+    }
 
-        guard let currentListID = selectedListID,
-              let currentIndex = lists.firstIndex(where: { $0.id == currentListID }) else {
-            selectedListID = lists.first?.id
+    /// ⌃Tab walks the pages in sidebar order, wrapping around.
+    private func step(by offset: Int, through lists: [SchemaList]) {
+        let pages = pages(from: lists)
+        guard !pages.isEmpty else { return }
+        guard let current = selectedListID, let index = pages.firstIndex(where: { $0.id == current }) else {
+            selectList(offset > 0 ? pages.first : pages.last)
             return
         }
-
-        let previousIndex = currentIndex == 0 ? lists.count - 1 : currentIndex - 1
-        selectedListID = lists[previousIndex].id
+        selectList(pages[(index + offset + pages.count) % pages.count])
     }
 
-    func selectPomodoro(from lists: [SchemaList]) {
-        selectEverythingList(from: lists)
-        showsPomodoro = true
+    func selectPomodoro(from lists: [SchemaList] = []) {
+        go(to: .tool(.pomodoro))
     }
 
-    func selectSmartView(_ view: SmartView, from lists: [SchemaList]) {
-        selectEverythingList(from: lists)
-        smartView = view
+    func selectSmartView(_ view: SmartView, from lists: [SchemaList] = []) {
+        go(to: .view(ViewKind(view)))
     }
 
     /// Pages in sidebar order: every list except Everything.
@@ -176,15 +183,16 @@ final class ListViewModel {
         lists.filter(\.isTagPage).sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
     }
 
-    func selectEverythingList(from lists: [SchemaList]) {
-        selectedListID = lists.first(where: \.isEverythingList)?.id ?? lists.first?.id
+    func selectEverythingList(from lists: [SchemaList] = []) {
+        go(to: .view(.everything))
     }
 
+    /// The open page, or the Everything list (every task) while a view is shown.
     func selectedList(from lists: [SchemaList]) -> SchemaList? {
-        if let selectedListID {
-            return lists.first(where: { $0.id == selectedListID })
+        if let selectedListID, let page = lists.first(where: { $0.id == selectedListID }) {
+            return page
         }
-        return lists.first
+        return lists.first(where: \.isEverythingList) ?? lists.first
     }
 
     func createList(title: String, kind: PageKind = .todo, existingLists: [SchemaList]) {
@@ -200,7 +208,7 @@ final class ListViewModel {
         )
         modelContext.insert(list)
         save()
-        selectedListID = list.id
+        go(to: .page(list.id))
         cancelNewPage()
     }
 
@@ -227,9 +235,7 @@ final class ListViewModel {
     func deleteList(_ list: SchemaList, from lists: [SchemaList]) {
         guard !list.isEverythingList else { return }
 
-        if selectedListID == list.id {
-            selectedListID = lists.first(where: { $0.id != list.id })?.id
-        }
+        navigation.forget(page: list.id)
 
         modelContext.delete(list)
         save()
