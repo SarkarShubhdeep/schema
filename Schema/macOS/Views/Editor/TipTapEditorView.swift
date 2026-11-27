@@ -42,11 +42,6 @@ struct TipTapEditorView: NSViewRepresentable {
     var onDeleteSynced: ((_ holderID: UUID, _ blockID: String, _ kind: String, _ source: String) -> Void)?
     /// Go to line from a tag page (#102).
     var revealRequest: EditorRevealRequest?
-    /// Sized to its content inside a scrolling page, and scrolling passes
-    /// through to it (#123): writing above a list's tasks.
-    var isInline = false
-    var onHeight: ((CGFloat) -> Void)?
-    var onFocusChange: ((Bool) -> Void)?
     /// -> to →, ... to … and so on (#99); switched off in Settings.
     @AppStorage(SchemaPreferences.replacesAsYouTypeKey, store: SchemaPreferences.defaults) private var replacesAsYouType = true
     /// Your snippets (#101), edited in Settings › Editor.
@@ -61,14 +56,7 @@ struct TipTapEditorView: NSViewRepresentable {
         configuration.userContentController.add(WeakMessageHandler(context.coordinator), name: "schema")
         configuration.suppressesIncrementalRendering = true
 
-        if isInline {
-            configuration.userContentController.addUserScript(WKUserScript(
-                source: "document.documentElement.classList.add('is-inline')",
-                injectionTime: .atDocumentStart, forMainFrameOnly: true
-            ))
-        }
-        let webView = SchemaWebView(frame: .zero, configuration: configuration)
-        webView.passesScrollToParent = isInline
+        let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.setValue(false, forKey: "drawsBackground")
         webView.allowsMagnification = false
         webView.navigationDelegate = context.coordinator
@@ -199,8 +187,6 @@ struct TipTapEditorView: NSViewRepresentable {
             bridge.onMoveTask = view.onMoveTask
             bridge.onOpenMention = view.onOpenMention
             bridge.onSubmit = view.onSubmit
-            bridge.onHeight = view.onHeight.map { onHeight in { onHeight(CGFloat($0)) } }
-            bridge.onFocusChange = view.onFocusChange
             bridge.setMode(view.mode)
             bridge.setTypography(view.replacesAsYouType)
             bridge.setSnippets(view.snippetsJSON)
@@ -253,20 +239,6 @@ struct TipTapEditorView: NSViewRepresentable {
         init(_ target: any WKScriptMessageHandler) { self.target = target }
         func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
             target?.userContentController(controller, didReceive: message)
-        }
-    }
-}
-
-/// Inline editors (#123) don't scroll themselves: the wheel scrolls the
-/// page around them.
-final class SchemaWebView: WKWebView {
-    var passesScrollToParent = false
-
-    override func scrollWheel(with event: NSEvent) {
-        if passesScrollToParent {
-            nextResponder?.scrollWheel(with: event)
-        } else {
-            super.scrollWheel(with: event)
         }
     }
 }

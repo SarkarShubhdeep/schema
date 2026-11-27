@@ -61,12 +61,6 @@ struct WorkspaceView: View {
         return selectedList
     }
 
-    /// A to-do list page, which can have writing above its tasks (#123).
-    var writingPage: SchemaList? {
-        guard listViewModel.selectedListID != nil, let selectedList, selectedList.acceptsTasks else { return nil }
-        return selectedList
-    }
-
     /// Open tasks grouped into Today, Later this week, Later and Someday.
     var incompleteSections: [TaskSectionGroup] {
         shownTasks.sections
@@ -188,11 +182,6 @@ struct WorkspaceView: View {
                         isEditingListName: $workspace.isEditingListName
                     )
 
-                    if let page = writingPage {
-                        ListWritingView(page: page, taskActions: blockTaskActions)
-                            .id(page.id)
-                    }
-
                     if listViewModel.smartView == .today {
                         TodaySummaryTiles(stats: todayStats ?? dayStats)
                     }
@@ -288,16 +277,6 @@ struct WorkspaceView: View {
             }
         }
         .animation(SchemaMotion.smooth, value: workspace.isTaskPageOpen)
-        .background {
-            // Add writing above a list's tasks (#123).
-            Button("Add writing") {
-                if let page = writingPage { workspace.requestListWriting(page.id) }
-            }
-            .keyboardShortcut("w", modifiers: [.command, .option])
-            .disabled(writingPage == nil || workspace.isTaskPageOpen)
-            .hidden()
-            .accessibilityHidden(true)
-        }
         .environment(\.editorMentionActions, EditorMentionActions(open: openMention, openLine: openTaggedLine))
         .clickOutsideDismiss(isActive: workspace.hasDismissibleState) {
             dismissActiveEditing()
@@ -329,7 +308,6 @@ struct WorkspaceView: View {
             }
         }
         .onChange(of: listViewModel.destination) { old, destination in
-            workspace.isInlineEditorFocused = false
             // A task page is a destination (#124): its editor follows it,
             // through back and forward too.
             if let taskID = destination.taskID {
@@ -373,8 +351,7 @@ struct WorkspaceView: View {
             isAddTaskExpanded: $workspace.isAddTaskExpanded,
             isAddTaskFocused: $isAddTaskFocused,
             canUndo: taskViewModel.canUndo,
-            allowsSingleKeyShortcuts: scratchpadPage == nil && !workspace.isTaskPageOpen && !listViewModel.showsPomodoro
-                && !workspace.isInlineEditorFocused,
+            allowsSingleKeyShortcuts: scratchpadPage == nil && !workspace.isTaskPageOpen && !listViewModel.showsPomodoro,
             onSelectNextList: {
                 withAnimation(SchemaMotion.smooth) {
                     listViewModel.selectNextList(from: lists)

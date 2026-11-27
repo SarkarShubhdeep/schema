@@ -37,10 +37,6 @@ struct ListPreferencesMenu: View {
                 }
             }
             if let page {
-                if page.acceptsTasks {
-                    SchemaMenuItem.divider
-                    SchemaMenuItem.action("Add writing", shortcut: "⌥⌘W") { workspace.requestListWriting(page.id) }
-                }
                 PageManageMenu.items(for: page, workspace: workspace)
             }
         } label: {

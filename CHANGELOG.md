@@ -12,8 +12,6 @@ All notable changes to Schema are documented in this file.
 
 - Search everything with ⌘K (#122). One field finds pages and tags, tasks, and lines inside pages, plus commands such as New page, Go to Today, Open Settings and toggling the panels. Results are grouped; ↑ and ↓ move, Return opens, Esc closes. Typing > lists commands only, and ⌘⇧P opens it that way. The Search pill at the top of the sidebar opens it too.
 
-- Writing on to-do lists (#123). A list can have writing above its tasks, in the same editor as notes: plans, context, links, checklists. It stays out of sight until you choose Add writing in the page's ⋯ menu (⌥⌘W), is only as tall as what you write, and scrolls with the list. Single-key shortcuts like N stay out of the way while you type there.
-
 - Task pages are places you can go back to (#124). Opening a task from a list, Today, Upcoming, Everything, a tag page, a mention or ⌘K makes it a step in back and forward, over the list or view you opened it from (which stays lit in the sidebar). The header reads List / Task; click the list to open it. Esc goes up to the list with the task still selected, and previous and next (⌥⌘↑ ⌥⌘↓) step through tasks without filling up Back.
 
 ### Changed
