@@ -59,3 +59,15 @@ struct NavigationTests {
         #expect(navigation.backStack == [.view(.today), .view(.upcoming)])
     }
 }
+
+@MainActor
+struct PinTests {
+    @Test func destinationsRoundTripThroughStorage() {
+        let id = UUID()
+        for destination in [Destination.page(id), .view(.upcoming), .tool(.pomodoro)] {
+            #expect(Destination(storageKey: destination.storageKey) == destination)
+        }
+        #expect(Destination(storageKey: "page:nope") == nil)
+        #expect(Destination(storageKey: "junk") == nil)
+    }
+}

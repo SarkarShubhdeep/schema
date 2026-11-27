@@ -10,7 +10,7 @@ import Foundation
 import Observation
 
 /// Views gather tasks from every page; they can't be renamed or deleted.
-enum ViewKind: String, CaseIterable, Hashable, Sendable {
+nonisolated enum ViewKind: String, CaseIterable, Hashable, Sendable {
     case today
     case upcoming
     case everything
@@ -19,7 +19,7 @@ enum ViewKind: String, CaseIterable, Hashable, Sendable {
         switch self {
         case .today: "Today"
         case .upcoming: "Upcoming"
-        case .everything: SchemaList.everythingTitle
+        case .everything: "Everything"
         }
     }
 
@@ -49,7 +49,7 @@ enum ViewKind: String, CaseIterable, Hashable, Sendable {
 }
 
 /// App screens in the page layout that hold no writing.
-enum ToolKind: String, CaseIterable, Hashable, Sendable {
+nonisolated enum ToolKind: String, CaseIterable, Hashable, Sendable {
     case pomodoro
     case settings
 
@@ -62,7 +62,7 @@ enum ToolKind: String, CaseIterable, Hashable, Sendable {
 }
 
 /// Where the window is.
-enum Destination: Hashable, Sendable {
+nonisolated enum Destination: Hashable, Sendable {
     case page(UUID)
     case view(ViewKind)
     case tool(ToolKind)
@@ -70,6 +70,26 @@ enum Destination: Hashable, Sendable {
     var pageID: UUID? {
         if case .page(let id) = self { return id }
         return nil
+    }
+
+    /// How a pin is saved: "page:<uuid>", "view:today", "tool:pomodoro".
+    var storageKey: String {
+        switch self {
+        case .page(let id): "page:\(id.uuidString)"
+        case .view(let kind): "view:\(kind.rawValue)"
+        case .tool(let kind): "tool:\(kind.rawValue)"
+        }
+    }
+
+    init?(storageKey: String) {
+        let parts = storageKey.split(separator: ":", maxSplits: 1).map(String.init)
+        guard parts.count == 2 else { return nil }
+        switch parts[0] {
+        case "page": guard let id = UUID(uuidString: parts[1]) else { return nil }; self = .page(id)
+        case "view": guard let kind = ViewKind(rawValue: parts[1]) else { return nil }; self = .view(kind)
+        case "tool": guard let kind = ToolKind(rawValue: parts[1]) else { return nil }; self = .tool(kind)
+        default: return nil
+        }
     }
 }
 
