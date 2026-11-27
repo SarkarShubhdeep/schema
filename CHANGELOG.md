@@ -12,6 +12,8 @@ All notable changes to Schema are documented in this file.
 
 ### Changed
 
+- Themed scroll bars everywhere (#121). The system scroll bars are gone from pages, lists, the editor, the sidebar, the overview panel, Settings, Pomodoro and Notifications. In their place is a thin rounded thumb in the text colour at 16%, with no track, that shows while you scroll and fades away after, in light and dark, even with "Always show scroll bars" on.
+
 - The window is laid out as floating islands on a 16/8 grid (#116). The sidebar, each page's header and the overview panel are rounded islands 16 pt from the window edges and 16 pt apart, with 8 pt padding and 8 pt corners inside, and 44 pt buttons in their header and footer rows. The window controls sit inside the sidebar's header row. Collapsed, the sidebar is a small pill with the window controls and its expand button (the floating bar of icons is gone), and the overview is its expand button alone. Every page puts where you are and its actions in a header island at the top: sort and page options, Hide done, Quick note, New timer, and previous and next on a task page. Page content is centred in a 600 pt column on every page, Settings included. Settings and Notifications moved to the sidebar's bottom row, and sidebar rows have 8 pt corners. The overview panel is only as tall as what it shows (it scrolls if that is taller than the window), and its cards sit flush with it, set apart by a faint tint instead of a white fill and border.
 
 ## [0.5.6] — 2026-11-23

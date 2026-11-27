@@ -56,8 +56,8 @@ struct SidebarSections: View {
                         ScrollView {
                             rows(of: section, pinned: pinned)
                                 .padding(.bottom, 8)
+                                .themedScrollBars()
                         }
-                        .scrollIndicators(.never)
                         .frame(maxHeight: .infinity)
                         .transition(.opacity)
                     }
