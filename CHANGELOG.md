@@ -12,6 +12,8 @@ All notable changes to Schema are documented in this file.
 
 - Search everything with ⌘K (#122). One field finds pages and tags, tasks, and lines inside pages, plus commands such as New page, Go to Today, Open Settings and toggling the panels. Results are grouped; ↑ and ↓ move, Return opens, Esc closes. Typing > lists commands only, and ⌘⇧P opens it that way. The Search pill at the top of the sidebar opens it too.
 
+- Writing on to-do lists (#123). A list can have writing above its tasks, in the same editor as notes: plans, context, links, checklists. It stays out of sight until you choose Add writing in the page's ⋯ menu (⌥⌘W), is only as tall as what you write, and scrolls with the list. Single-key shortcuts like N stay out of the way while you type there.
+
 ### Changed
 
 - Themed scroll bars everywhere (#121). The system scroll bars are gone from pages, lists, the editor, the sidebar, the overview panel, Settings, Pomodoro and Notifications. In their place is a thin rounded thumb in the text colour at 16%, with no track, that shows while you scroll and fades away after, in light and dark, even with "Always show scroll bars" on.

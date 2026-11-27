@@ -296,6 +296,9 @@ struct ContentView: View {
         if DemoData.isEnabled, DemoData.opensTagPage {
             listVM.selectList(listVM.tagPages(from: lists).first)
         }
+        if DemoData.isEnabled, let title = DemoData.opensPageTitled {
+            listVM.selectList(lists.first { $0.title == title })
+        }
         if DemoData.isEnabled, DemoData.opensFirstPage {
             listVM.selectList(listVM.pages(from: lists).first)
         }

@@ -53,6 +53,14 @@ final class WorkspaceState {
     var highlightedTaskID: UUID?
     /// The ⌘K command bar (#122).
     var isCommandBarOpen = false
+    /// The writing above a list's tasks has the caret (#123).
+    var isInlineEditorFocused = false
+    /// Add writing on a to-do list (#123): the page whose writing opens.
+    private(set) var listWritingRequest: PageRenameRequest?
+
+    func requestListWriting(_ pageID: UUID) {
+        listWritingRequest = PageRenameRequest(pageID: pageID)
+    }
     /// Typed into ⌘K as it opens: ">" for ⌘⇧P (commands only).
     var commandBarPrefix = ""
 
