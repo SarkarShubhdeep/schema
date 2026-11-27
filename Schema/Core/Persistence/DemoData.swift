@@ -32,6 +32,8 @@ enum DemoData {
     static let hasNoPins = CommandLine.arguments.contains("-SchemaDemoNoPins")
     /// `-SchemaDemoScrollBars` keeps the themed scroll bars showing (#121).
     static let showsScrollBars = CommandLine.arguments.contains("-SchemaDemoScrollBars")
+    /// `-SchemaDemoCommandBar lis` opens ⌘K with that typed (#122).
+    static let commandBarQuery = value(after: "-SchemaDemoCommandBar")
     /// `-SchemaDemoSettings` opens Settings.
     static let opensSettings = CommandLine.arguments.contains("-SchemaDemoSettings")
 

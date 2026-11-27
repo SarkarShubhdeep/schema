@@ -35,6 +35,13 @@ struct PanelCommands: Commands {
 
         // Back and forward through the places you've been (#118).
         CommandMenu("Go") {
+            Button("Search Everything\u{2026}") { workspace?.openCommandBar() }
+                .keyboardShortcut("k", modifiers: .command)
+                .disabled(workspace == nil)
+            Button("Commands\u{2026}") { workspace?.openCommandBar(commandsOnly: true) }
+                .keyboardShortcut("p", modifiers: [.command, .shift])
+                .disabled(workspace == nil)
+            Divider()
             Button("Back") { workspace?.navigation.goBack() }
                 .keyboardShortcut("[", modifiers: .command)
                 .disabled(workspace?.navigation.canGoBack != true)

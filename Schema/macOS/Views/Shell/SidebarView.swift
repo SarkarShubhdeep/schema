@@ -32,7 +32,7 @@ struct SidebarView: View {
             .frame(height: ShellMetrics.control)
 
             let summary = TodaySummary(tasks: allTasks)
-            SidebarSearchPill { workspace.isCommandBarOpen = true }
+            SidebarSearchPill { workspace.openCommandBar() }
                 .padding(.horizontal, 4)
             SidebarTodayTile(
                 isActive: listViewModel.destination == .view(.today),
