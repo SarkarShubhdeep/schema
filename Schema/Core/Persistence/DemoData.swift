@@ -26,6 +26,10 @@ enum DemoData {
     static let opensToday = CommandLine.arguments.contains("-SchemaDemoToday")
     /// `-SchemaDemoUpcoming` opens on the Upcoming view.
     static let opensUpcoming = CommandLine.arguments.contains("-SchemaDemoUpcoming")
+    /// `-SchemaDemoSidebarSection pinned` opens that sidebar section (#120).
+    static let sidebarSection = value(after: "-SchemaDemoSidebarSection").flatMap(SidebarSection.init(rawValue:))
+    /// `-SchemaDemoNoPins` starts with nothing pinned.
+    static let hasNoPins = CommandLine.arguments.contains("-SchemaDemoNoPins")
     /// `-SchemaDemoSettings` opens Settings.
     static let opensSettings = CommandLine.arguments.contains("-SchemaDemoSettings")
 
@@ -127,6 +131,10 @@ enum DemoData {
             // Start with both side panels collapsed, for screenshots.
             defaults.set(true, forKey: "schema.preferences.isSidebarCollapsed")
             defaults.set(true, forKey: "schema.preferences.isDetailsPanelCollapsed")
+        }
+        // Upcoming and the Ideas page pinned (#120), unless asked not to.
+        if !CommandLine.arguments.contains("-SchemaDemoNoPins") {
+            defaults.set(["view:upcoming"], forKey: "schema.preferences.pinned")
         }
         // A few snippets (#101), so Settings and the editor have some to show.
         defaults.set(SnippetStore.encode([

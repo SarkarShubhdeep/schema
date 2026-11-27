@@ -25,6 +25,12 @@ enum SchemaPreferences {
         set { defaults.set(newValue.map(\.uuidString).sorted(), forKey: "schema.preferences.ungroupedTagPages") }
     }
 
+    /// The sidebar section that's open (#120).
+    static var sidebarOpenSection: SidebarSection {
+        get { defaults.string(forKey: "schema.preferences.sidebarOpenSection").flatMap(SidebarSection.init(rawValue:)) ?? .pages }
+        set { defaults.set(newValue.rawValue, forKey: "schema.preferences.sidebarOpenSection") }
+    }
+
     /// Pinned pages and views, in the order the Pinned section shows them (#119).
     static var pinnedDestinations: [Destination] {
         get { (defaults.stringArray(forKey: "schema.preferences.pinned") ?? []).compactMap(Destination.init(storageKey:)) }

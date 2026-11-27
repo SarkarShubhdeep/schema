@@ -76,6 +76,7 @@ struct PomodoroChoiceStyle: ButtonStyle {
 /// Pomodoro under Views, with the time left on the timer that ends soonest.
 struct PomodoroSidebarRow: View {
     let isActive: Bool
+    var isPinned = false
     let action: () -> Void
 
     @Query private var timers: [PomodoroTimer]
@@ -91,7 +92,7 @@ struct PomodoroSidebarRow: View {
     }
 
     private func row(trailing: SidebarRowTrailing) -> some View {
-        SidebarRow(title: "Pomodoro", isActive: isActive, trailing: trailing, tooltip: "Pomodoro") {
+        SidebarRow(title: "Pomodoro", isActive: isActive, isPinned: isPinned, trailing: trailing, tooltip: "Pomodoro") {
             Image(systemName: "timer")
         } action: {
             action()

@@ -195,6 +195,10 @@ struct ContentView: View {
         pomodoro = PomodoroRunner(context: modelContext)
         ensureListSelection()
         #if DEBUG
+        if DemoData.isEnabled, !DemoData.hasNoPins,
+           let ideas = listVM.pages(from: lists).first(where: \.isScratchpad), !listVM.isPinned(.page(ideas.id)) {
+            listVM.togglePin(.page(ideas.id))
+        }
         if DemoData.isEnabled, DemoData.opensToday {
             listVM.selectSmartView(.today, from: lists)
         }
