@@ -25,10 +25,16 @@ enum SchemaPreferences {
         set { defaults.set(newValue.map(\.uuidString).sorted(), forKey: "schema.preferences.ungroupedTagPages") }
     }
 
-    /// The sidebar section that's open (#120).
-    static var sidebarOpenSection: SidebarSection {
-        get { defaults.string(forKey: "schema.preferences.sidebarOpenSection").flatMap(SidebarSection.init(rawValue:)) ?? .pages }
-        set { defaults.set(newValue.rawValue, forKey: "schema.preferences.sidebarOpenSection") }
+    /// The sidebar sections that are open (#120): any number, even none.
+    /// Pinned, Views and Pages start open.
+    static var sidebarOpenSections: Set<SidebarSection> {
+        get {
+            guard let saved = defaults.stringArray(forKey: "schema.preferences.sidebarOpenSections") else {
+                return [.pinned, .views, .pages]
+            }
+            return Set(saved.compactMap(SidebarSection.init(rawValue:)))
+        }
+        set { defaults.set(newValue.map(\.rawValue).sorted(), forKey: "schema.preferences.sidebarOpenSections") }
     }
 
     /// Pinned pages and views, in the order the Pinned section shows them (#119).

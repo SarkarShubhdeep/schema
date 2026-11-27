@@ -164,11 +164,13 @@ struct WorkspaceView: View {
             } else if let scratchpad = scratchpadPage {
                 ScratchpadPageView(page: scratchpad, taskActions: blockTaskActions)
             } else {
+            FloatingHeaderPage {
             PageHeaderBar(
                 model: headerModel(openCount: incomplete.count, doneCount: completed.count),
                 listViewModel: listViewModel,
                 requiresManualSort: requiresManualSort
             )
+            } content: {
             TaskListView(
                 pageKey: pageKey,
                 header: VStack(alignment: .leading, spacing: 22) {
@@ -237,6 +239,7 @@ struct WorkspaceView: View {
                     onOpenDetail: openTaskDetail
                 )
             )
+            }
             }
         }
         .overlay(alignment: .bottom) {

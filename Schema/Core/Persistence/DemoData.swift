@@ -26,7 +26,7 @@ enum DemoData {
     static let opensToday = CommandLine.arguments.contains("-SchemaDemoToday")
     /// `-SchemaDemoUpcoming` opens on the Upcoming view.
     static let opensUpcoming = CommandLine.arguments.contains("-SchemaDemoUpcoming")
-    /// `-SchemaDemoSidebarSection pinned` opens that sidebar section (#120).
+    /// `-SchemaDemoSidebarSection pinned` opens only that sidebar section (#120).
     static let sidebarSection = value(after: "-SchemaDemoSidebarSection").flatMap(SidebarSection.init(rawValue:))
     /// `-SchemaDemoNoPins` starts with nothing pinned.
     static let hasNoPins = CommandLine.arguments.contains("-SchemaDemoNoPins")
