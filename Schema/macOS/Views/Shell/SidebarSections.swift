@@ -223,14 +223,12 @@ struct SidebarSections: View {
     }
 
     private func pageRow(_ page: SchemaList, isActive: Bool, isPinned: Bool) -> some View {
-        let index = pages.firstIndex(where: { $0.id == page.id })
-        let shortcut = index.flatMap { $0 < 9 ? "⌘\($0 + 1)" : nil }
         let destination = Destination.page(page.id)
         return SidebarRow(
             title: page.title,
             isActive: isActive,
             isPinned: isPinned,
-            trailing: shortcut.map { .keys($0) } ?? .none,
+            trailing: .none,
             tooltip: page.isTagPage ? "Tag page: lines tagged #\(page.title)" : page.pageKind.displayName
         ) {
             Image(systemName: page.pageKind.systemImage)

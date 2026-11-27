@@ -152,7 +152,6 @@ struct ContentView: View {
                 NewPageDialog(
                     title: Binding(get: { listViewModel.newListTitle }, set: { listViewModel.newListTitle = $0 }),
                     kind: Binding(get: { listViewModel.newPageKind }, set: { listViewModel.newPageKind = $0 }),
-                    shortcutNumber: newPageShortcutNumber(listViewModel),
                     onCreate: {
                         listViewModel.createList(
                             title: listViewModel.newListTitle,
@@ -223,12 +222,6 @@ struct ContentView: View {
                 workspace.navigation.goForward()
             }
         }
-    }
-
-    /// ⌘1–⌘9 go to the first nine pages; the new page is added last.
-    private func newPageShortcutNumber(_ listViewModel: ListViewModel) -> Int? {
-        let next = listViewModel.pages(from: lists).count + 1
-        return next <= 9 ? next : nil
     }
 
     private func bootstrapIfNeeded() {

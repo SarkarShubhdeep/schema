@@ -12,8 +12,6 @@ import SwiftUI
 struct NewPageDialog: View {
     @Binding var title: String
     @Binding var kind: PageKind
-    /// Sidebar shortcut the new page will get (⌘1–⌘9), if any.
-    let shortcutNumber: Int?
     let onCreate: () -> Void
     let onCancel: () -> Void
 
@@ -143,7 +141,7 @@ struct NewPageDialog: View {
 
     private var footer: some View {
         HStack(spacing: 8) {
-            Text(shortcutNumber.map { "Adds to Pages in the sidebar as ⌘\($0)" } ?? "Adds to Pages in the sidebar")
+            Text("Adds to Pages in the sidebar")
                 .font(.satoshi(13, relativeTo: .callout))
                 .foregroundStyle(SchemaTheme.inkMuted)
                 .lineLimit(1)

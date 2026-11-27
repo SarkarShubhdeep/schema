@@ -372,13 +372,9 @@ struct WorkspaceView: View {
         .workspaceKeyboardShortcuts(
             isAddTaskExpanded: $workspace.isAddTaskExpanded,
             isAddTaskFocused: $isAddTaskFocused,
-            pageCount: listViewModel.pages(from: lists).count,
             canUndo: taskViewModel.canUndo,
             allowsSingleKeyShortcuts: scratchpadPage == nil && !workspace.isTaskPageOpen && !listViewModel.showsPomodoro
                 && !workspace.isInlineEditorFocused,
-            onSelectListAtIndex: { index in
-                listViewModel.selectList(at: index, from: listViewModel.pages(from: lists))
-            },
             onSelectNextList: {
                 withAnimation(SchemaMotion.smooth) {
                     listViewModel.selectNextList(from: lists)

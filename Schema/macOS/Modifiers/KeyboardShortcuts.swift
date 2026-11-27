@@ -10,13 +10,10 @@ struct WorkspaceKeyboardShortcuts: ViewModifier {
     @Binding var isAddTaskExpanded: Bool
     @FocusState.Binding var isAddTaskFocused: Bool
 
-    /// Number of pages; ⌘1–⌘9 select the first nine.
-    let pageCount: Int
     let canUndo: Bool
     /// False while a page that is all text (a scratchpad) is shown: single
     /// keys like N and / are typing there, and ⌘Z undoes typing.
     var allowsSingleKeyShortcuts = true
-    let onSelectListAtIndex: (Int) -> Void
     let onSelectNextList: () -> Void
     let onSelectPreviousList: () -> Void
     let onSelectEverythingList: () -> Void
@@ -69,19 +66,6 @@ struct WorkspaceKeyboardShortcuts: ViewModifier {
             Button("New List", action: onCreateList)
                 .keyboardShortcut("n", modifiers: .command)
                 .hidden()
-
-            ForEach(0..<9, id: \.self) { index in
-                if index < pageCount {
-                    Button("Select Page \(index + 1)") {
-                        onSelectListAtIndex(index)
-                    }
-                    .keyboardShortcut(
-                        KeyEquivalent(Character("\(index + 1)")),
-                        modifiers: .command
-                    )
-                    .hidden()
-                }
-            }
         }
         .frame(width: 0, height: 0)
         .accessibilityHidden(true)
@@ -94,10 +78,8 @@ extension View {
     func workspaceKeyboardShortcuts(
         isAddTaskExpanded: Binding<Bool>,
         isAddTaskFocused: FocusState<Bool>.Binding,
-        pageCount: Int,
         canUndo: Bool,
         allowsSingleKeyShortcuts: Bool = true,
-        onSelectListAtIndex: @escaping (Int) -> Void,
         onSelectNextList: @escaping () -> Void,
         onSelectPreviousList: @escaping () -> Void,
         onSelectEverythingList: @escaping () -> Void,
@@ -109,10 +91,8 @@ extension View {
             WorkspaceKeyboardShortcuts(
                 isAddTaskExpanded: isAddTaskExpanded,
                 isAddTaskFocused: isAddTaskFocused,
-                pageCount: pageCount,
                 canUndo: canUndo,
                 allowsSingleKeyShortcuts: allowsSingleKeyShortcuts,
-                onSelectListAtIndex: onSelectListAtIndex,
                 onSelectNextList: onSelectNextList,
                 onSelectPreviousList: onSelectPreviousList,
                 onSelectEverythingList: onSelectEverythingList,

@@ -37,7 +37,6 @@ Schema v0.1 is distributed via **TestFlight for Mac** for internal testing.
 | `Esc` | Close add task field |
 | `Cmd+Z` | Undo last task action |
 | `Cmd+N` | New list |
-| `Cmd+1` … `Cmd+9` | Switch to list 1–9 |
 | `Ctrl+Tab` | Next list |
 | `Ctrl+Shift+Tab` | Previous list |
 | `/` | Jump to Everything list |
