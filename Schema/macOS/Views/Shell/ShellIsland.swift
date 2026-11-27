@@ -42,10 +42,12 @@ struct HeaderIsland<Leading: View, Trailing: View>: View {
     var body: some View {
         HeaderSplitLayout {
             HStack(spacing: 6) {
+                NavigationButtons()
+                    .padding(.trailing, 6)
                 leading()
             }
             .lineLimit(1)
-            .padding(.horizontal, 12)
+            .padding(.trailing, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: ShellMetrics.innerGap) {
@@ -111,6 +113,54 @@ struct IslandIconButton: View {
         .onHover { isHovered = $0 }
         .animation(SchemaMotion.fast, value: isHovered)
         .help(shortcut.map { "\(label)  \($0)" } ?? label)
+        .accessibilityLabel(label)
+    }
+}
+
+/// Back and forward (⌘[ ⌘]) at the start of every header island (#118).
+struct NavigationButtons: View {
+    @Environment(Navigation.self) private var navigation
+
+    var body: some View {
+        HStack(spacing: 0) {
+            HeaderNavButton(systemImage: "chevron.left", label: "Back", shortcut: "⌘[", isEnabled: navigation.canGoBack) {
+                withAnimation(SchemaMotion.smooth) { navigation.goBack() }
+            }
+            HeaderNavButton(systemImage: "chevron.right", label: "Forward", shortcut: "⌘]", isEnabled: navigation.canGoForward) {
+                withAnimation(SchemaMotion.smooth) { navigation.goForward() }
+            }
+        }
+    }
+}
+
+/// A compact chevron: 32pt wide, full header height, faint when there is
+/// nowhere to go.
+private struct HeaderNavButton: View {
+    let systemImage: String
+    let label: String
+    let shortcut: String
+    let isEnabled: Bool
+    let action: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(!isEnabled ? SchemaTheme.inkFaint : (isHovered ? SchemaTheme.ink : SchemaTheme.inkMuted))
+                .frame(width: 32, height: ShellMetrics.control)
+                .background(
+                    RoundedRectangle(cornerRadius: ShellMetrics.innerRadius, style: .continuous)
+                        .fill(isHovered && isEnabled ? SchemaTheme.surfaceHover : .clear)
+                )
+                .contentShape(RoundedRectangle(cornerRadius: ShellMetrics.innerRadius, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .onHover { isHovered = $0 }
+        .animation(SchemaMotion.fast, value: isHovered)
+        .help("\(label)  \(shortcut)")
         .accessibilityLabel(label)
     }
 }

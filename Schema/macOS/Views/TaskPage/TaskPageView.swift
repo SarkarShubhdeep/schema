@@ -86,11 +86,11 @@ struct TaskPageView: View {
                 .foregroundStyle(SchemaTheme.ink)
                 .truncationMode(.tail)
         } trailing: {
-            SchemaIconButton(systemImage: "chevron.up", label: "Previous task", shortcut: "⌘[", size: 32) {
+            SchemaIconButton(systemImage: "chevron.up", label: "Previous task", shortcut: "⌥⌘↑", size: 32) {
                 actions.onPrevious?()
             }
             .disabled(actions.onPrevious == nil)
-            SchemaIconButton(systemImage: "chevron.down", label: "Next task", shortcut: "⌘]", size: 32) {
+            SchemaIconButton(systemImage: "chevron.down", label: "Next task", shortcut: "⌥⌘↓", size: 32) {
                 actions.onNext?()
             }
             .disabled(actions.onNext == nil)
@@ -153,16 +153,16 @@ struct TaskPageView: View {
         .padding(.top, 12)
     }
 
-    /// Esc goes back; ⌘[ and ⌘] step through the list.
+    /// Esc goes back; ⌥⌘↑ and ⌥⌘↓ step through the list.
     private var hiddenShortcuts: some View {
         Group {
             Button("Back", action: back)
                 .keyboardShortcut(.cancelAction)
             Button("Previous task") { actions.onPrevious?() }
-                .keyboardShortcut("[", modifiers: .command)
+                .keyboardShortcut(.upArrow, modifiers: [.command, .option])
                 .disabled(actions.onPrevious == nil)
             Button("Next task") { actions.onNext?() }
-                .keyboardShortcut("]", modifiers: .command)
+                .keyboardShortcut(.downArrow, modifiers: [.command, .option])
                 .disabled(actions.onNext == nil)
         }
         .hidden()

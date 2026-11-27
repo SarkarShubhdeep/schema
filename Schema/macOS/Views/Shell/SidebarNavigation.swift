@@ -209,12 +209,11 @@ struct SidebarNavigation: View {
     // MARK: State
 
     private var isEverythingActive: Bool {
-        listViewModel.smartView == nil && !listViewModel.showsPomodoro
-            && listViewModel.selectedList(from: lists)?.isEverythingList == true
+        listViewModel.showsEverything
     }
 
     private func isActive(_ page: SchemaList) -> Bool {
-        listViewModel.smartView == nil && listViewModel.selectedListID == page.id
+        listViewModel.selectedListID == page.id
     }
 
     /// Open tasks in Today and Upcoming, from one pass over the tasks (#45).

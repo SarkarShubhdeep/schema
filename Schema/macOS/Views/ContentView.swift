@@ -43,6 +43,7 @@ struct ContentView: View {
             }
         }
         .environment(workspace)
+        .environment(workspace.navigation)
         .environment(pomodoro)
         .task(id: pomodoro == nil) {
             await pomodoro?.run()
@@ -50,7 +51,7 @@ struct ContentView: View {
         .onAppear(perform: bootstrapIfNeeded)
         .onReceive(NotificationCenter.default.publisher(for: NotificationNames.taskReminderOpened)) { notification in
             if let listID = notification.openedListID {
-                listViewModel?.selectedListID = listID
+                listViewModel?.selectList(id: listID, from: lists)
             }
             workspace.highlightedTaskID = notification.openedTaskID
         }
@@ -61,7 +62,7 @@ struct ContentView: View {
 
     private func openNotification(_ item: SchemaNotificationItem, listViewModel: ListViewModel) {
         if let listID = item.listID {
-            listViewModel.selectedListID = listID
+            listViewModel.selectList(id: listID, from: lists)
         }
         workspace.highlightedTaskID = item.taskID
         workspace.showNotifications = false
@@ -79,6 +80,7 @@ struct ContentView: View {
         }
         // The window controls sit in the sidebar's header row (#116).
         .background(WindowControlsPlacement())
+        .focusedSceneValue(\.workspaceState, workspace)
     }
 
     private func appStack(listViewModel: ListViewModel, taskViewModel: TaskViewModel) -> some View {
@@ -152,7 +154,6 @@ struct ContentView: View {
         }
         .animation(SchemaMotion.appear, value: workspace.isConfirmingDelete)
         .animation(SchemaMotion.appear, value: listViewModel.showNewListSheet)
-        .focusedSceneValue(\.workspaceState, workspace)
         .onGeometryChange(for: CGFloat.self) { proxy in
             proxy.size.width
         } action: { width in
@@ -186,7 +187,7 @@ struct ContentView: View {
         listStore = loadedLists
         let loadedTasks = ModelStore<SchemaTask>(context: modelContext)
         taskStore = loadedTasks
-        let listVM = ListViewModel(modelContext: modelContext)
+        let listVM = ListViewModel(modelContext: modelContext, navigation: workspace.navigation)
         // Read the fetched pages directly: this must never see an empty
         // store by mistake, or it would add the default pages again.
         listVM.ensureDefaultListsIfNeeded(from: loadedLists.items.sorted { $0.order < $1.order })
@@ -247,7 +248,7 @@ struct ContentView: View {
         }
         if DemoData.isEnabled, DemoData.selectsTasks || DemoData.opensDeleteDialog {
             let ids = allTasks
-                .filter { !$0.isCompleted && $0.list?.id == listVM.selectedListID }
+                .filter { !$0.isCompleted && (listVM.selectedListID == nil || $0.list?.id == listVM.selectedListID) }
                 .prefix(2)
                 .map(\.id)
             workspace.select(Array(ids))
@@ -284,8 +285,9 @@ struct ContentView: View {
 
     private func ensureListSelection() {
         guard let listViewModel else { return }
-        if listViewModel.selectedListID == nil {
-            listViewModel.selectedListID = lists.first?.id
+        // A page that is gone (deleted elsewhere) leaves for Today.
+        if let id = listViewModel.selectedListID, !lists.contains(where: { $0.id == id }) {
+            listViewModel.navigation.forget(page: id)
         }
         if listViewModel.defaultWritableListID == nil {
             listViewModel.defaultWritableListID = lists.first(where: \.acceptsTasks)?.id

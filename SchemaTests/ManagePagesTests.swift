@@ -104,6 +104,7 @@ struct ManagePagesTests {
         try context.save()
 
         tasks.deleteTasks(onPage: work)
+        viewModel.selectList(home)
         viewModel.selectList(work)
         viewModel.deleteList(work, from: [work, home])
 
@@ -112,6 +113,7 @@ struct ManagePagesTests {
         #expect(Set(notifications.cancelled) == [first.id, second.id])
         #expect(elsewhere.afterTaskID == nil)
         #expect(try context.fetch(FetchDescriptor<SchemaList>()).map(\.title) == ["Home"])
+        // Deleting the open page goes back to where you were (#118).
         #expect(viewModel.selectedListID == home.id)
         #expect(!tasks.canUndo)
     }

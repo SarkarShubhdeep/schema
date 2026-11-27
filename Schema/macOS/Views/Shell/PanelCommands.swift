@@ -32,5 +32,22 @@ struct PanelCommands: Commands {
 
             Divider()
         }
+
+        // Back and forward through the places you've been (#118).
+        CommandMenu("Go") {
+            Button("Back") { workspace?.navigation.goBack() }
+                .keyboardShortcut("[", modifiers: .command)
+                .disabled(workspace?.navigation.canGoBack != true)
+            Button("Forward") { workspace?.navigation.goForward() }
+                .keyboardShortcut("]", modifiers: .command)
+                .disabled(workspace?.navigation.canGoForward != true)
+            Divider()
+            ForEach(ViewKind.allCases, id: \.self) { kind in
+                Button(kind.title) { workspace?.navigation.go(to: .view(kind)) }
+                    .disabled(workspace == nil)
+            }
+            Button(ToolKind.pomodoro.title) { workspace?.navigation.go(to: .tool(.pomodoro)) }
+                .disabled(workspace == nil)
+        }
     }
 }
