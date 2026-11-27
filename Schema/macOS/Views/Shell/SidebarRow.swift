@@ -11,7 +11,10 @@ import SwiftUI
 enum SidebarMetrics {
     /// Space before the icon inside a row.
     static let iconLeading: CGFloat = 12
-    static let rowHeight: CGFloat = 36
+    static let rowHeight: CGFloat = 32
+    static let rowGap: CGFloat = 1
+    /// Distance between two rows, for dragging.
+    static let rowStep: CGFloat = rowHeight + rowGap
     static let iconSize: CGFloat = 14
 }
 
@@ -27,6 +30,8 @@ struct SidebarRow<Icon: View>: View {
     let title: String
     let isActive: Bool
     var isSubtle = false
+    /// Pinned (#120): a small pin, the item keeps its place.
+    var isPinned = false
     let trailing: SidebarRowTrailing
     let tooltip: String
     @ViewBuilder let icon: () -> Icon
@@ -42,9 +47,16 @@ struct SidebarRow<Icon: View>: View {
                     .frame(width: SidebarMetrics.iconSize, height: SidebarMetrics.iconSize)
 
                 Text(title)
-                    .font(.schemaControl)
+                    .font(.schemaBody)
                     .lineLimit(1)
                 Spacer(minLength: 6)
+                if isPinned {
+                    Image(systemName: "pin")
+                        .font(.system(size: 10, weight: .medium))
+                        .rotationEffect(.degrees(45))
+                        .opacity(0.7)
+                        .accessibilityLabel("Pinned")
+                }
                 trailingView
                     .fixedSize()
             }

@@ -3,9 +3,9 @@
 //  Schema
 //
 //  The sidebar island (#116), 283pt wide: a header row with the window
-//  controls and the collapse button, the views, pages and tags (they
-//  scroll), and a footer row with Settings and Notifications. ⌘⌥←
-//  collapses it to SidebarPill.
+//  controls and the collapse button, Search and the Today tile, the
+//  sections (#120), and a footer row with Settings and Notifications.
+//  ⌘⌥← collapses it to SidebarPill.
 //
 
 import SwiftUI
@@ -31,12 +31,18 @@ struct SidebarView: View {
             }
             .frame(height: ShellMetrics.control)
 
-            ScrollView {
-                SidebarNavigation(lists: lists, allTasks: allTasks, listViewModel: listViewModel)
-                    .padding(.bottom, 8)
+            let summary = TodaySummary(tasks: allTasks)
+            SidebarSearchPill { workspace.isCommandBarOpen = true }
+                .padding(.horizontal, 4)
+            SidebarTodayTile(
+                isActive: listViewModel.destination == .view(.today),
+                openCount: summary.today,
+                nextReminder: summary.nextReminder
+            ) {
+                listViewModel.go(to: .view(.today))
             }
-            .scrollIndicators(.never)
-            .frame(maxHeight: .infinity)
+            SidebarSections(lists: lists, upcomingCount: summary.upcoming, listViewModel: listViewModel)
+                .frame(maxHeight: .infinity)
 
             HStack(spacing: ShellMetrics.innerGap) {
                 IslandIconButton(systemImage: "gearshape", label: "Settings", shortcut: "⌘,") {
@@ -79,6 +85,28 @@ struct SidebarView: View {
             NotificationsPopover(items: workspace.notificationItems, onSelect: onNotificationSelect)
         }
         .accessibilityValue(pending == 0 ? "" : "\(pending) pending")
+    }
+}
+
+/// Open tasks due today and later, and the next reminder still to come
+/// today, from one pass over the tasks (#45).
+struct TodaySummary {
+    var today = 0
+    var upcoming = 0
+    var nextReminder: Date?
+
+    init(tasks: [SchemaTask], now: Date = .now) {
+        let clock = TaskSectionClock(now: now, calendar: .schema())
+        for task in tasks where !task.isCompleted {
+            if clock.section(for: task) == .today {
+                today += 1
+                if let reminder = task.reminderTime, reminder >= now, reminder < clock.startOfTomorrow,
+                   nextReminder.map({ reminder < $0 }) ?? true {
+                    nextReminder = reminder
+                }
+            }
+            if let reminder = task.reminderTime, reminder >= clock.startOfTomorrow { upcoming += 1 }
+        }
     }
 }
 
