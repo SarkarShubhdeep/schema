@@ -26,7 +26,7 @@ enum DemoData {
     static let opensToday = CommandLine.arguments.contains("-SchemaDemoToday")
     /// `-SchemaDemoUpcoming` opens on the Upcoming view.
     static let opensUpcoming = CommandLine.arguments.contains("-SchemaDemoUpcoming")
-    /// `-SchemaDemoSidebarSection pinned` opens that sidebar section (#120).
+    /// `-SchemaDemoSidebarSection pinned` opens only that sidebar section (#120).
     static let sidebarSection = value(after: "-SchemaDemoSidebarSection").flatMap(SidebarSection.init(rawValue:))
     /// `-SchemaDemoNoPins` starts with nothing pinned.
     static let hasNoPins = CommandLine.arguments.contains("-SchemaDemoNoPins")
@@ -34,8 +34,6 @@ enum DemoData {
     static let showsScrollBars = CommandLine.arguments.contains("-SchemaDemoScrollBars")
     /// `-SchemaDemoCommandBar lis` opens ⌘K with that typed (#122).
     static let commandBarQuery = value(after: "-SchemaDemoCommandBar")
-    /// `-SchemaDemoOpen Groceries` opens the page with that title.
-    static let opensPageTitled = value(after: "-SchemaDemoOpen")
     /// `-SchemaDemoSettings` opens Settings.
     static let opensSettings = CommandLine.arguments.contains("-SchemaDemoSettings")
 
@@ -302,10 +300,6 @@ enum DemoData {
         try? PageDocumentMigration.moveBlocksIntoDocuments(in: context)
         seedTags(context, ideas: ideas, daily: daily, order: 6, index: index + 20)
         seedPomodoro(context, readingPageID: reading.id)
-        // Writing above Groceries' tasks (#123).
-        groceries.setDocument(TipTapDocument.json(["type": "doc", "content": [
-            ["type": "paragraph", "content": [["type": "text", "text": "Saturday market run. The bakery closes at 1, so go there first; the rest is at the corner shop."]]],
-        ]]))
         try? context.save()
         defaults.set(daily.id.uuidString, forKey: "schema.preferences.defaultWritableListID")
     }

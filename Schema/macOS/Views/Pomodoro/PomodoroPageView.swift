@@ -32,8 +32,9 @@ struct PomodoroPageView: View {
             PomodoroHistory.Entry(timerID: $0.timerID, timerName: $0.timerName, startedAt: $0.startedAt, minutes: $0.minutes)
         }
         let today = entries.filter { Calendar.current.isDateInToday($0.startedAt) }
-        VStack(spacing: ShellMetrics.margin) {
-        headerBar
+        FloatingHeaderPage {
+            headerBar
+        } content: {
         ScrollViewReader { proxy in
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -45,11 +46,13 @@ struct PomodoroPageView: View {
             .frame(maxWidth: ShellMetrics.contentWidth, alignment: .leading)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 32)
-            .padding(.top, 24)
-            .padding(.bottom, 56)
+            .padding(.top, 24 + FloatingHeaderPageMetrics.contentInsets.top)
+            .padding(.bottom, 56 + ShellMetrics.margin)
             .themedScrollBars()
         }
         .scrollIndicators(.automatic)
+        .contentMargins(.top, FloatingHeaderPageMetrics.contentInsets.top, for: .scrollIndicators)
+        .contentMargins(.bottom, ShellMetrics.margin, for: .scrollIndicators)
         #if DEBUG
         .task {
             // Screenshots only: wait for the first layout, then show the history.

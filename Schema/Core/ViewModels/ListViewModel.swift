@@ -173,11 +173,6 @@ final class ListViewModel {
         selectList(lists.first { $0.id == id })
     }
 
-    func selectList(at index: Int, from lists: [SchemaList]) {
-        guard lists.indices.contains(index) else { return }
-        selectList(lists[index])
-    }
-
     func selectNextList(from lists: [SchemaList]) {
         step(by: 1, through: lists)
     }

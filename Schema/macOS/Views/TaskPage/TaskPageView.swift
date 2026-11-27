@@ -38,8 +38,22 @@ struct TaskPageView: View {
     @FocusState private var isTitleFocused: Bool
 
     var body: some View {
-        VStack(spacing: 18) {
+        FloatingHeaderPage(fadesContent: false) {
             topBar
+        } content: {
+            pageContent
+        }
+        .background(hiddenShortcuts)
+        .onAppear(perform: load)
+        .onChange(of: task.id) { _, _ in load() }
+        .onChange(of: task.title) { _, newTitle in
+            if !isTitleFocused { title = newTitle }
+        }
+        .onDisappear(perform: commitTitle)
+    }
+
+    private var pageContent: some View {
+        VStack(spacing: 18) {
             VStack(alignment: .leading, spacing: 20) {
                 header
                 Rectangle()
@@ -52,13 +66,8 @@ struct TaskPageView: View {
             .padding(.top, 6)
             PageBodyEditor(holder: task, id: task.id, focusRequest: editorFocus, onEscape: back)
         }
-        .background(hiddenShortcuts)
-        .onAppear(perform: load)
-        .onChange(of: task.id) { _, _ in load() }
-        .onChange(of: task.title) { _, newTitle in
-            if !isTitleFocused { title = newTitle }
-        }
-        .onDisappear(perform: commitTitle)
+        // The header island's place, then the 18pt gap it had above the title.
+        .padding(.top, FloatingHeaderPageMetrics.headerClearance + 18)
     }
 
     // MARK: Top bar

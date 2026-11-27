@@ -58,6 +58,8 @@ struct TaskListView<Header: View>: View {
         var insertionIndex: Int
     }
 
+    @Environment(\.pageContentInsets) private var contentInsets
+
     var body: some View {
         ZStack {
             ScrollViewReader { proxy in
@@ -76,12 +78,14 @@ struct TaskListView<Header: View>: View {
                     }
                     .frame(maxWidth: TaskListMetrics.maxContentWidth)
                     .padding(.horizontal, TaskListMetrics.horizontalInset)
-                    .padding(.top, TaskListMetrics.topInset)
-                    .padding(.bottom, TaskListMetrics.bottomInset)
+                    .padding(.top, TaskListMetrics.topInset + contentInsets.top)
+                    .padding(.bottom, TaskListMetrics.bottomInset + contentInsets.bottom)
                     .frame(maxWidth: .infinity)
                     .themedScrollBars()
                 }
                 .scrollIndicators(.automatic)
+                .contentMargins(.top, contentInsets.top, for: .scrollIndicators)
+                .contentMargins(.bottom, contentInsets.bottom, for: .scrollIndicators)
                 .onChange(of: workspace.primarySelectedTaskID) { _, taskID in
                     guard let taskID else { return }
                     if completedTasks.contains(where: { $0.id == taskID }), !showCompleted {

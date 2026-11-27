@@ -3,9 +3,8 @@
 //  Schema
 //
 //  The sidebar's sections (#120): Pinned (only when something is pinned),
-//  Views, Pages, Tags and Tools. One is open at a time, like VS Code:
-//  headers above it stay at the top, headers below it sit at the bottom,
-//  and the open one takes the room between them and scrolls.
+//  Views, Pages, Tags and Tools. Any of them can be open at once, or none;
+//  they scroll together between the Today tile and the footer, which stay put.
 //
 
 import SwiftUI
@@ -31,7 +30,7 @@ struct SidebarSections: View {
     let upcomingCount: Int
     let listViewModel: ListViewModel
 
-    @State private var open: SidebarSection = SchemaPreferences.sidebarOpenSection
+    @State private var open: Set<SidebarSection> = SchemaPreferences.sidebarOpenSections
     /// The row being dragged to a new place (#42, #120). Nothing is saved
     /// until the drag ends.
     @State private var drag: RowDrag?
@@ -42,42 +41,50 @@ struct SidebarSections: View {
     var body: some View {
         let pinned = listViewModel.pinnedDestinations(existingIn: lists)
         let sections = SidebarSection.allCases.filter { $0 != .pinned || !pinned.isEmpty }
-        let current = sections.contains(open) ? open : .pages
 
-        VStack(spacing: 0) {
-            ForEach(sections, id: \.self) { section in
-                let isOpen = section == current
-                VStack(spacing: 0) {
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(sections, id: \.self) { section in
+                    let isOpen = open.contains(section)
                     Rectangle()
                         .fill(SchemaTheme.line)
                         .frame(height: 1)
                     header(section, isOpen: isOpen, count: count(of: section, pinned: pinned))
                     if isOpen {
-                        ScrollView {
-                            rows(of: section, pinned: pinned)
-                                .padding(.bottom, 8)
-                                .themedScrollBars()
-                        }
-                        .frame(maxHeight: .infinity)
-                        .transition(.opacity)
+                        rows(of: section, pinned: pinned)
+                            .padding(.bottom, 8)
+                            // Rows fade as the sections below slide over
+                            // them, the same both ways.
+                            .transition(.opacity.combined(with: .offset(y: -6)))
                     }
                 }
-                .frame(maxHeight: isOpen ? .infinity : nil, alignment: .top)
             }
+            .padding(.bottom, 4)
+            .themedScrollBars()
         }
-        .animation(SchemaMotion.smooth, value: current)
-        .onChange(of: open) { _, section in
-            SchemaPreferences.sidebarOpenSection = section
+        .clipped()
+        .onChange(of: open) { _, sections in
+            SchemaPreferences.sidebarOpenSections = sections
         }
         #if DEBUG
         .onAppear {
-            if DemoData.isEnabled, let section = DemoData.sidebarSection { open = section }
+            if DemoData.isEnabled, let section = DemoData.sidebarSection { open = [section] }
             if DemoData.isEnabled, DemoData.dragsPage, let first = pages.first {
-                open = .pages
+                open.insert(.pages)
                 drag = RowDrag(key: first.id.uuidString, from: 0, offset: SidebarMetrics.rowStep * 2.6)
             }
         }
         #endif
+    }
+
+    private func toggle(_ section: SidebarSection) {
+        withAnimation(SchemaMotion.smooth) {
+            if open.contains(section) {
+                open.remove(section)
+            } else {
+                open.insert(section)
+            }
+        }
     }
 
     // MARK: Headers
@@ -85,7 +92,7 @@ struct SidebarSections: View {
     private func header(_ section: SidebarSection, isOpen: Bool, count: Int?) -> some View {
         HStack(spacing: 2) {
             Button {
-                open = section
+                toggle(section)
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "chevron.right")
@@ -109,8 +116,7 @@ struct SidebarSections: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help(isOpen ? section.title : "Show \(section.title.lowercased())")
-            .accessibilityAddTraits(isOpen ? .isSelected : [])
+            .help(isOpen ? "Hide \(section.title.lowercased())" : "Show \(section.title.lowercased())")
             .accessibilityValue(isOpen ? "Open" : "Collapsed")
 
             if section == .pages {
@@ -223,14 +229,12 @@ struct SidebarSections: View {
     }
 
     private func pageRow(_ page: SchemaList, isActive: Bool, isPinned: Bool) -> some View {
-        let index = pages.firstIndex(where: { $0.id == page.id })
-        let shortcut = index.flatMap { $0 < 9 ? "⌘\($0 + 1)" : nil }
         let destination = Destination.page(page.id)
         return SidebarRow(
             title: page.title,
             isActive: isActive,
             isPinned: isPinned,
-            trailing: shortcut.map { .keys($0) } ?? .none,
+            trailing: .none,
             tooltip: page.isTagPage ? "Tag page: lines tagged #\(page.title)" : page.pageKind.displayName
         ) {
             Image(systemName: page.pageKind.systemImage)

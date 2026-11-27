@@ -152,7 +152,6 @@ struct ContentView: View {
                 NewPageDialog(
                     title: Binding(get: { listViewModel.newListTitle }, set: { listViewModel.newListTitle = $0 }),
                     kind: Binding(get: { listViewModel.newPageKind }, set: { listViewModel.newPageKind = $0 }),
-                    shortcutNumber: newPageShortcutNumber(listViewModel),
                     onCreate: {
                         listViewModel.createList(
                             title: listViewModel.newListTitle,
@@ -225,12 +224,6 @@ struct ContentView: View {
         }
     }
 
-    /// ⌘1–⌘9 go to the first nine pages; the new page is added last.
-    private func newPageShortcutNumber(_ listViewModel: ListViewModel) -> Int? {
-        let next = listViewModel.pages(from: lists).count + 1
-        return next <= 9 ? next : nil
-    }
-
     private func bootstrapIfNeeded() {
         guard listViewModel == nil else { return }
 
@@ -295,9 +288,6 @@ struct ContentView: View {
         }
         if DemoData.isEnabled, DemoData.opensTagPage {
             listVM.selectList(listVM.tagPages(from: lists).first)
-        }
-        if DemoData.isEnabled, let title = DemoData.opensPageTitled {
-            listVM.selectList(lists.first { $0.title == title })
         }
         if DemoData.isEnabled, DemoData.opensFirstPage {
             listVM.selectList(listVM.pages(from: lists).first)

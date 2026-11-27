@@ -8,15 +8,19 @@ All notable changes to Schema are documented in this file.
 
 - Back and forward (#118). Every page's header starts with back and forward buttons, and Go › Back (⌘[) and Forward (⌘]) walk through the pages, views and tools you've opened, Settings included. The Go menu also opens Today, Upcoming, Everything and Pomodoro. Schema opens on Today. Deleting the page you're on goes back to where you were. On a task page, previous and next task moved to ⌥⌘↑ and ⌥⌘↓.
 
-- A new sidebar (#120). Under the window controls: Search (⌘K) and a Today tile with the date, the next reminder and how many tasks are due (dark while Today is open). Then Pinned, Views (Upcoming, Everything), Pages, Tags and Tools as sections, one open at a time: click a header to open it; headers above it stay at the top, the rest move to the bottom, and the open one gets the room between and scrolls. Pages is one flat list. Right-click a page, view or Pomodoro to pin it: Pinned appears with it (drag to reorder), and the item keeps its place in its own section with a small pin. The sidebar remembers which section was open.
+- A new sidebar (#120). Under the window controls: Search (⌘K) and a Today tile with the date, the next reminder and how many tasks are due (dark while Today is open). Then Pinned, Views (Upcoming, Everything), Pages, Tags and Tools as sections: click a header to open or close it, any number at once or none, and they scroll together between the Today tile and the footer, which stay put (#133). Pages is one flat list. Right-click a page, view or Pomodoro to pin it: Pinned appears with it (drag to reorder), and the item keeps its place in its own section with a small pin. The sidebar remembers which sections are open.
 
 - Search everything with ⌘K (#122). One field finds pages and tags, tasks, and lines inside pages, plus commands such as New page, Go to Today, Open Settings and toggling the panels. Results are grouped; ↑ and ↓ move, Return opens, Esc closes. Typing > lists commands only, and ⌘⇧P opens it that way. The Search pill at the top of the sidebar opens it too.
 
-- Writing on to-do lists (#123). A list can have writing above its tasks, in the same editor as notes: plans, context, links, checklists. It stays out of sight until you choose Add writing in the page's ⋯ menu (⌥⌘W), is only as tall as what you write, and scrolls with the list. Single-key shortcuts like N stay out of the way while you type there.
-
 - Task pages are places you can go back to (#124). Opening a task from a list, Today, Upcoming, Everything, a tag page, a mention or ⌘K makes it a step in back and forward, over the list or view you opened it from (which stays lit in the sidebar). The header reads List / Task; click the list to open it. Esc goes up to the list with the task still selected, and previous and next (⌥⌘↑ ⌥⌘↓) step through tasks without filling up Back.
 
+### Removed
+
+- ⌘1–⌘9 no longer jump to pages, and the sidebar no longer shows them (#133). Ctrl-Tab and ⌘K still move between pages.
+
 ### Changed
+
+- Pages scroll the full height of the window (#133). A list, Today, Upcoming, Everything and Pomodoro scroll up behind the header island, fading out under a soft blur, and down behind the selection bar to the window's bottom edge; on scratchpads and task pages the editor reaches the bottom edge.
 
 - Themed scroll bars everywhere (#121). The system scroll bars are gone from pages, lists, the editor, the sidebar, the overview panel, Settings, Pomodoro and Notifications. In their place is a thin rounded thumb in the text colour at 16%, with no track, that shows while you scroll and fades away after, in light and dark, even with "Always show scroll bars" on.
 

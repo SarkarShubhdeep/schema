@@ -32,8 +32,9 @@ struct ScratchpadPageView: View {
     @State private var groupsByPage = true
 
     var body: some View {
-        VStack(spacing: ShellMetrics.margin) {
+        FloatingHeaderPage(fadesContent: false) {
             headerBar
+        } content: {
             VStack(spacing: 18) {
                 header
                     .frame(maxWidth: ShellMetrics.contentWidth + PageBodyEditor.gutterWidth, alignment: .leading)
@@ -41,6 +42,7 @@ struct ScratchpadPageView: View {
                     .padding(.top, 24)
                 editor
             }
+            .padding(.top, FloatingHeaderPageMetrics.contentInsets.top)
         }
         .background(hiddenShortcuts)
         .onAppear(perform: pageAppeared)
